@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+
+<launch>
+    <arg name="sim" default="true"/>
+    <!-- +++++++++++++++++++++++++++++++++++++++++++++++++++ -->
+
+    <!-- Manage moveit scene -->
+    <node name="manage_moveit_scene_node" pkg="grasp_pipeline"
+        type="manage_moveit_scene_server.py" output="screen">
+        <param name="sim" value="$(arg sim)"/>
+    </node>
+
+</launch>
