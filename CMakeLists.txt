@@ -31,6 +31,7 @@ include_directories(
 add_service_files(
     FILES
     ManageMoveitScene.srv
+    PalmGoalPoseWorld.srv
 )
 
 generate_messages(
@@ -38,6 +39,7 @@ generate_messages(
    std_msgs
    sensor_msgs
    geometry_msgs
+   trajectory_msgs
 )
 include_directories(
   ${catkin_INCLUDE_DIRS}

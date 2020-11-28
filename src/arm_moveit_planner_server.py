@@ -6,9 +6,9 @@ from sensor_msgs.msg import JointState
 import moveit_msgs.msg
 import moveit_commander
 import numpy as np
-from track_ik_python.trac_ik import IK
+from trac_ik_python.trac_ik import IK
 
-def CartesianPoseMoveitPlanner():
+class CartesianPoseMoveitPlanner():
     def __init__(self):
         moveit_commander.roscpp_initialize(sys.argv)
         rospy.init_node('moveit_goal_pose_planner_node')
@@ -95,7 +95,7 @@ def CartesianPoseMoveitPlanner():
         rospy.loginfo('Service moveit_cartesian_pose_planner:')
         rospy.loginfo('Ready to start to execute movement plan on robot arm.')
 
-if __name__='__main__':
+if __name__=='__main__':
     planner = CartesianPoseMoveitPlanner()
     planner.create_moveit_planner_server()
     rospy.spin()
