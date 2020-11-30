@@ -165,8 +165,9 @@ class VisualDataSaver():
                 req, "32FC1")
             cv2.imshow("depth_img_from_ros", depth_img/depth_img.max())
             print("Show depth before save")
-            self.save_depth_img(depth_img, "/home/vm/depth.pgm")
-            depth_img_loaded = self.load_depth_img("/home/vm/depth.pgm")
+            self.save_depth_img(depth_img, "/home/vm/depth_unregistered.pgm")
+            depth_img_loaded = self.load_depth_img(
+                "/home/vm/depth_unregistered.pgm")
             cv2.imshow("depth_img_after_loading",
                        depth_img_loaded/depth_img_loaded.max())
             cv2.waitKey(0)
@@ -199,11 +200,19 @@ class VisualDataSaver():
 if __name__ == "__main__":
     Saver = VisualDataSaver()
     if VERBOSE:
+        # rospy.Subscriber("/depth_registered/image_rect", Image,
+        #                  Saver.test_depth_callback, queue_size=1)
+        # rospy.Subscriber("/camera/color/image_raw", Image,
+        #                Saver.test_color_callback, queue_size=1)
+        # rospy.Subscriber("/depth_registered/points", PointCloud2,
+        #                 Saver.test_point_cloud_callback, queue_size=1)
+
+        # ++++++ FOLLOWING TOPICS ARE NOT REGISTERED +++++++++++++++++++++++++++++
         rospy.Subscriber("/camera/depth/image_raw", Image,
                          Saver.test_depth_callback, queue_size=1)
         # rospy.Subscriber("/camera/color/image_raw", Image,
-        #                  Saver.test_color_callback, queue_size=1)
-        # # rospy.Subscriber("/camera/depth/points", PointCloud2,
+        #                Saver.test_color_callback, queue_size=1)
+        # rospy.Subscriber("/depth/points", PointCloud2,
         #                 Saver.test_point_cloud_callback, queue_size=1)
     rospy.spin()
     cv2.destroyAllWindows()
