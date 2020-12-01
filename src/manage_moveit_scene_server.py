@@ -20,15 +20,9 @@ class ManageSceneInMoveit():
         scene.add_mesh('obj_mesh', req.object_pose_world, req.object_mesh_path)
         rospy.sleep(0.5)
 
-        response = ManageMoveItSceneResponse()
+        response = ManageMoveitSceneResponse()
         response.success = True
         return response
-
-    def create_moveit_scene_server(self):
-        rospy.Service('create_moveit_scene', ManageMoveitScene,
-                      self.handle_create_moveit_scene)
-        rospy.loginfo('Service create_scene:')
-        rospy.loginfo('Ready to create the moveit_scene.')
 
     def handle_clean_moveit_scene(self, req):
         scene = PlanningSceneInterface()
@@ -38,6 +32,12 @@ class ManageSceneInMoveit():
         response = ManageMoveitSceneResponse()
         response.success = True
         return response
+
+    def create_moveit_scene_server(self):
+        rospy.Service('create_moveit_scene', ManageMoveitScene,
+                      self.handle_create_moveit_scene)
+        rospy.loginfo('Service create_scene:')
+        rospy.loginfo('Ready to create the moveit_scene.')
 
     def clean_moveit_scene_server(self):
         rospy.Service('clean_moveit_scene', ManageMoveitScene,

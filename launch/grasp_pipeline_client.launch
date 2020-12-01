@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+
+<launch>
+    <arg name="sim" default="true"/>
+    <arg name="utah_planner" value="false"/>
+    <!-- +++++++++++++++++++++++++++++++++++++++++++++++++ -->
+    <group if="$(arg voxel_planner)">
+        <node name="grasp_client_node" pkg="grasp_pipeline" type="voxel_plan_sim_client.py" 
+            output="screen" if="$(arg simulation)">
+        </node>
+    </group>
+</launch>

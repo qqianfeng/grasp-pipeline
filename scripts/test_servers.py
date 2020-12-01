@@ -15,16 +15,15 @@ class ServerUnitTester():
         self.test_count = 0
         self.bridge = CvBridge
 
-    def test_manage_gazebo_scene_server(self, object_name, object_model_name, dataset, model_type):
+    def test_manage_gazebo_scene_server(self, object_name, object_pose_array, object_model_name, dataset, model_type):
         self.test_count += 1
         print('Running test_manage_gazebo_scene_server, test number %d' %
               self.test_count)
         update_gazebo_object = rospy.ServiceProxy(
             'update_gazebo_object', UpdateObjectGazebo)
 
-        pose = [0, 0, 0, 1, 0, 0]
         res = update_gazebo_object(
-            object_name, pose, object_model_name, model_type, dataset)
+            object_name, object_pose_array, object_model_name, model_type, dataset)
 
         result = 'SUCCEDED' if res else 'FAILED'
         print(result)
@@ -48,7 +47,7 @@ class ServerUnitTester():
         result = 'SUCCEDED' if res else 'FAILED'
         print(result)
 
-    def template_test(self):
+    def arm_moveit_planner_test(self):
         self.test_count += 1
         print('Running test_manage_gazebo_scene_server, test number %d' %
               self.test_count)
@@ -68,10 +67,11 @@ class ServerUnitTester():
 if __name__ == '__main__':
     # Define variables for testing
     # Test spawn/delete Gazebo
-    object_name = 'cracker_box'
-    object_model_name = '003_cracker_box'
-    dataset = 'ycb'
+    object_name = 'mustard_bottle'
+    object_pose_array = [0., 0., 0., 1, 0., 0.]
+    object_model_name = '006_mustard_bottle'
     model_type = 'sdf'
+    dataset = 'ycb'
     # Test save visual data
     pc_save_path = '/home/vm/test_cloud.pcd'
     depth_save_path = '/home/vm/test_depth.pgm'
@@ -80,7 +80,7 @@ if __name__ == '__main__':
     sut = ServerUnitTester()
     # Test spawning and deleting of objects
     # sut.test_manage_gazebo_scene_server(
-    #    object_name, object_model_name, dataset, model_type)
+    #    object_name, object_pose_array, object_model_name, dataset, model_type)
     # Test visual data save server
     sut.test_save_visual_data_server(
         pc_save_path, depth_save_path, color_save_path)

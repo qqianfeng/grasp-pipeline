@@ -1,6 +1,7 @@
 bool create_scene
 bool clean_scene
-string object_mesh_path
+#point_cloud_segmentation/GraspObject obj_seg
 geometry_msgs/PoseStamped object_pose_world
+string object_mesh_path
 ---
 bool success

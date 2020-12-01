@@ -32,6 +32,7 @@ add_service_files(
     PalmGoalPoseWorld.srv
     SaveVisualData.srv
     UpdateObjectGazebo.srv
+    MoveArm.srv
 )
 
 generate_messages(

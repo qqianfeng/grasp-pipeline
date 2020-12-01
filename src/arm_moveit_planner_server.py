@@ -8,6 +8,7 @@ import moveit_commander
 import numpy as np
 from trac_ik_python.trac_ik import IK
 
+
 class CartesianPoseMoveitPlanner():
     def __init__(self):
         moveit_commander.roscpp_initialize(sys.argv)
@@ -22,7 +23,8 @@ class CartesianPoseMoveitPlanner():
         self.group.set_num_planning_attempts(3)
 
         self.zero_joint_states = np.zeros(7)
-        self.home_joint_states = np.array([0, -0.553876, 0, -2.5361, 0, 1.9884, -0.785])
+        self.home_joint_states = np.array(
+            [0, -0.553876, 0, -2.5361, 0, 1.9884, -0.785])
 
         self.ik_solver = IK('world', 'panda_link8')
         self.seed_state = [0.0] * self.ik_solver.number_of_joints
@@ -51,7 +53,8 @@ class CartesianPoseMoveitPlanner():
     def go_goal_trac_ik(self, pose):
         print 'go goal trac ik'
         self.group.clear_pose_targets()
-        ik_js = self.ik_solver.get_ik(self.seed_state, pose.position.x, pose.position.y, pose.position.z, pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w)
+        ik_js = self.ik_solver.get_ik(self.seed_state, pose.position.x, pose.position.y, pose.position.z,
+                                      pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w)
         if ik_js is None:
             rospy.logerr('No IK solution found')
             return None
@@ -77,11 +80,13 @@ class CartesianPoseMoveitPlanner():
         return response
 
     def create_moveit_planner_server(self):
-        rospy.Service('moveit_cartesian_pose_planner', PalmGoalPoseWorld, self.handle_pose_goal_planner)
+        rospy.Service('moveit_cartesian_pose_planner',
+                      PalmGoalPoseWorld, self.handle_pose_goal_planner)
         rospy.loginfo('Service moveit_cartesian_pose_planner:')
-        rospy.loginfo('Reference frame: %s' %self.group.get_planning_frame())
-        rospy.loginfo('End-effector frame: %s' %self.group.get_end_effector_link())
-        rospy.loginfo('Robot Groups: %s' %self.robot.get_group_names())
+        rospy.loginfo('Reference frame: %s' % self.group.get_planning_frame())
+        rospy.loginfo('End-effector frame: %s' %
+                      self.group.get_end_effector_link())
+        rospy.loginfo('Robot Groups: %s' % self.robot.get_group_names())
         rospy.loginfo('Ready to start to plan for given palm goal poses.')
 
     def handle_arm_movement(self, req):
@@ -95,7 +100,8 @@ class CartesianPoseMoveitPlanner():
         rospy.loginfo('Service moveit_cartesian_pose_planner:')
         rospy.loginfo('Ready to start to execute movement plan on robot arm.')
 
-if __name__=='__main__':
+
+if __name__ == '__main__':
     planner = CartesianPoseMoveitPlanner()
     planner.create_moveit_planner_server()
     rospy.spin()
