@@ -31,6 +31,7 @@ add_service_files(
     ManageMoveitScene.srv
     PalmGoalPoseWorld.srv
     SaveVisualData.srv
+    UpdateObjectGazebo.srv
 )
 
 generate_messages(

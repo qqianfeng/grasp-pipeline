@@ -3,7 +3,7 @@ sensor_msgs/PointCloud2 point_cloud
 sensor_msgs/Image depth_img
 sensor_msgs/Image color_img
 string point_cloud_save_path
-string depth_image_save_path
-string color_image_save_path
+string depth_img_save_path
+string color_img_save_path
 ---
 bool save_visual_data_success

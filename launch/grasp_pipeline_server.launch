@@ -2,17 +2,25 @@
 
 <launch>
     <arg name="sim" default="true"/>
+    <arg name="object_datasets_folder" default="/home/vm/object_datasets"/>
     <!-- +++++++++++++++++++++++++++++++++++++++++++++++++++ -->
 
     <!-- Manage moveit scene -->
-    <node name="manage_moveit_scene_node" pkg="grasp_pipeline"
+    <!-- <node name="manage_moveit_scene_node" pkg="grasp_pipeline"
         type="manage_moveit_scene_server.py" output="screen">
         <param name="sim" value="$(arg sim)"/>
-    </node>
+    </node> -->
 
     <!-- Moveit planner node for panda arm -->
-    <node name="arm_moveit_planner_server_node" pkg="grasp_pipeline" type="arm_moveit_planner_server.py" output="screen"/>
+    <!--<node name="arm_moveit_planner_server_node" pkg="grasp_pipeline" type="arm_moveit_planner_server.py" output="screen"/> -->
 
     <!-- Save visual data node -->
     <node name="save_visual_data_node" pkg="grasp_pipeline" type="save_visual_data_server.py" output="screen"/>
+
+    <!-- Gazebo scene manager -->
+    <group if="$(arg sim)">
+        <node name="manage_gazebo_scene_node" pkg="grasp_pipeline" type="manage_gazebo_scene_server.py" output="screen">
+            <param name="object_datasets_folder" value="$(arg object_datasets_folder)"/>
+        </node>
+    </group>   
 </launch>

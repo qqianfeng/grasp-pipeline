@@ -39,9 +39,9 @@ class GazeboSceneManager():
             quaternion = quaternion_from_euler(
                 object_pose_array[0], object_pose_array[1], object_pose_array[2])
             initial_pose = Pose()
-            initial_pose.position.x = object_pose_array[4]
-            initial_pose.position.y = object_pose_array[5]
-            initial_pose.position.z = object_pose_array[6]
+            initial_pose.position.x = object_pose_array[3]
+            initial_pose.position.y = object_pose_array[4]
+            initial_pose.position.z = object_pose_array[5]
             initial_pose.orientation.x = quaternion[0]
             initial_pose.orientation.y = quaternion[1]
             initial_pose.orientation.z = quaternion[2]
@@ -56,12 +56,14 @@ class GazeboSceneManager():
             print "Service call failed: %s" % e
 
     def handle_update_gazebo_object(self, req):
+        print("RECEIVED REQUEST")
+        print(req)
         self.delete_prev_object()
         self.spawn_object(req.object_name, req.object_model_name,
                           req.object_pose_array, req.model_type, req.dataset)
 
-        res = UpdateObjectGazeboResponse()
-        res.success = True
+        response = UpdateObjectGazeboResponse()
+        response.success = True
         return response
 
     def update_gazebo_object_server(self):
