@@ -15,7 +15,7 @@ from ctypes import *
 
 # This module should save, restore and display depth images as well as point clouds
 
-VERBOSE = True
+VERBOSE = False
 
 FIELDS_XYZ = [
     PointField(name='x', offset=0, datatype=PointField.FLOAT32, count=1),
@@ -84,7 +84,7 @@ def cloud_from_ros_to_open3d(ros_cloud):
 # Convert the datatype of point cloud from Open3D to ROS PointCloud2 (XYZRGB only)
 
 
-def convertCloudFromOpen3dToRos(open3d_cloud, frame_id="camera_depth_optical_frame"):
+def cloud_from_open3d_to_ros(open3d_cloud, frame_id="camera_depth_optical_frame"):
     # Set "header"
     header = Header()
     header.stamp = rospy.Time.now()
