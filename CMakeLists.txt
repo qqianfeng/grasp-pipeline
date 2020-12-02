@@ -28,11 +28,12 @@ include_directories(
 
 add_service_files(
     FILES
+    HithandControl.srv
     ManageMoveitScene.srv
+    MoveArm.srv
     PalmGoalPoseWorld.srv
     SaveVisualData.srv
     UpdateObjectGazebo.srv
-    MoveArm.srv
 )
 
 generate_messages(

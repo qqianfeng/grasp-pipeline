@@ -6,6 +6,19 @@ import numpy as np
 from cv_bridge import CvBridge, CvBridgeError
 import cv2
 from sensor_msgs.msg import Image, PointCloud2
+from geometry_msgs.msg import PoseStamped
+import tf.transformations as tft
+
+
+def get_pose_stamped_from_array(pose_array, frame_id='/world'):
+    pose_stamped = PoseStamped()
+    pose_stamped.header.frame_id = frame_id
+    quaternion = tft.quaternion_from_euler(
+        pose_array[0], pose_array[1], pose_array[2])
+    pose_stamped.pose.orientation.x, pose_stamped.pose.orientation.y, pose_stamped.pose.orientation.z, pose_stamped.pose.orientation.w = quaternion
+    pose_stamped.pose.position.x, pose_stamped.pose.position.y, pose_stamped.pose.position.z = pose_array[
+        3:]
+    return pose_stamped
 
 
 class ServerUnitTester():
@@ -47,11 +60,34 @@ class ServerUnitTester():
         result = 'SUCCEDED' if res else 'FAILED'
         print(result)
 
+    def create_moveit_scene_test(self, pose_stamped, object_mesh_path):
+        self.test_count += 1
+        print('Running test_create_moveit_scene_server, test number %d' %
+              self.test_count)
+        create_moveit_scene = rospy.ServiceProxy(
+            'create_moveit_scene', ManageMoveitScene)
+        req = ManageMoveitSceneRequest(
+            create_scene=True, object_mesh_path=object_mesh_path, object_pose_world=pose_stamped)
+        res = create_moveit_scene(req)
+        result = 'SUCCEDED' if res else 'FAILED'
+        print(result)
+
+    def clean_moveit_scene_test(self):
+        self.test_count += 1
+        print('Running test_clean_moveit_scene_server, test number %d' %
+              self.test_count)
+        clean_moveit_scene = rospy.ServiceProxy(
+            'clean_moveit_scene', ManageMoveitScene)
+        req = ManageMoveitSceneRequest(clean_scene=True)
+        res = clean_moveit_scene(req)
+        result = 'SUCCEDED' if res else 'FAILED'
+        print(result)
+
     def arm_moveit_planner_test(self):
         self.test_count += 1
         print('Running test_manage_gazebo_scene_server, test number %d' %
               self.test_count)
-
+        res = True
         result = 'SUCCEDED' if res else 'FAILED'
         print(result)
 
@@ -59,13 +95,14 @@ class ServerUnitTester():
         self.test_count += 1
         print('Running test_manage_gazebo_scene_server, test number %d' %
               self.test_count)
-
+        res = True
         result = 'SUCCEDED' if res else 'FAILED'
         print(result)
 
 
 if __name__ == '__main__':
-    # Define variables for testing
+    # +++ Define variables for testing +++
+    # ++++++++++++++++++++++++++++++++++++
     # Test spawn/delete Gazebo
     object_name = 'mustard_bottle'
     object_pose_array = [0., 0., 0., 1, 0., 0.]
@@ -76,11 +113,25 @@ if __name__ == '__main__':
     pc_save_path = '/home/vm/test_cloud.pcd'
     depth_save_path = '/home/vm/test_depth.pgm'
     color_save_path = '/home/vm/test_color.ppm'
+    # Test create_moveit_scene
+    pose_stamped = get_pose_stamped_from_array(object_pose_array)
+    datasets_base_path = '/home/vm/object_datasets'
+    object_mesh_path = datasets_base_path + '/' + dataset + \
+        '/models/' + object_model_name + '/google_16k/nontextured.stl'
+
     # Tester
     sut = ServerUnitTester()
+
     # Test spawning and deleting of objects
     # sut.test_manage_gazebo_scene_server(
     #    object_name, object_pose_array, object_model_name, dataset, model_type)
+
     # Test visual data save server
-    sut.test_save_visual_data_server(
-        pc_save_path, depth_save_path, color_save_path)
+    # sut.test_save_visual_data_server(
+    #    pc_save_path, depth_save_path, color_save_path)
+
+    # Test moveit spawn object
+    sut.create_moveit_scene_test(pose_stamped, object_mesh_path)
+
+    # Test moveit delete object
+    sut.clean_moveit_scene_test()
