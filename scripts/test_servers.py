@@ -5,7 +5,7 @@ import numpy as np
 
 from cv_bridge import CvBridge, CvBridgeError
 import cv2
-from sensor_msgs.msg import Image, PointCloud2
+from sensor_msgs.msg import Image, PointCloud2, JointState
 from geometry_msgs.msg import PoseStamped
 import tf.transformations as tft
 
@@ -83,6 +83,18 @@ class ServerUnitTester():
         result = 'SUCCEDED' if res else 'FAILED'
         print(result)
 
+    def control_hithand_config_test(self, hithand_joint_states):
+        self.test_count += 1
+        print('Running test_control_hithand_config_server, test number %d' %
+              self.test_count)
+        control_hithand_config = rospy.ServiceProxy(
+            'control_hithand_config', ControlHithand)
+        req = ControlHithandRequest(
+            hithand_target_joint_state=hithand_joint_states)
+        res = control_hithand_config(req)
+        result = 'SUCCEDED' if res else 'FAILED'
+        print(result)
+
     def arm_moveit_planner_test(self):
         self.test_count += 1
         print('Running test_manage_gazebo_scene_server, test number %d' %
@@ -118,6 +130,9 @@ if __name__ == '__main__':
     datasets_base_path = '/home/vm/object_datasets'
     object_mesh_path = datasets_base_path + '/' + dataset + \
         '/models/' + object_model_name + '/google_16k/nontextured.stl'
+    # Test control_hithand_config
+    hithand_joint_states = JointState()
+    hithand_joint_states.position = [0.1] * 20
 
     # Tester
     sut = ServerUnitTester()
@@ -131,7 +146,10 @@ if __name__ == '__main__':
     #    pc_save_path, depth_save_path, color_save_path)
 
     # Test moveit spawn object
-    sut.create_moveit_scene_test(pose_stamped, object_mesh_path)
+    # sut.create_moveit_scene_test(pose_stamped, object_mesh_path)
 
     # Test moveit delete object
-    sut.clean_moveit_scene_test()
+    # sut.clean_moveit_scene_test()
+
+    # Test hithand control preshape/config
+    sut.control_hithand_config_test(hithand_joint_states)

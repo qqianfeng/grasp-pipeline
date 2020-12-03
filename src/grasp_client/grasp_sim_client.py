@@ -60,10 +60,19 @@ class GraspClient():
                       str(res))
         return res.success
 
-    def control_hithand_config_client(self):
+    def control_hithand_config_client(self, go_home=False, close_hand=False):
         rospy.loginfo('Waiting for service control_hithand_config.')
         rospy.wait_for_service('control_hithand_config')
         rospy.loginfo('Calling service control_hithand_config.')
+        req = ControlHithandRequest()
+        if go_home:
+            req.go_home = True
+        elif close_hand:
+            req.close_hand = True
+        else:
+            req.hithand_target_joint_state =
+
+    def plan_hithand_preshape_client
 
     def grasp_and_lift_object(self, object_pose_stamped):
         self.create_moveit_scene_client(object_pose_stamped)

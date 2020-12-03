@@ -25,4 +25,6 @@ if __name__ == '__main__':
     # Grasp and lift object
     object_pose_stamped = dc_client.get_pose_stamped_from_array(
         object_pose_array)  # This should come from a random generator, WHY do this if object spawned in fixed  position previously?
+    hithand_preshape = dc_client.plan_hithand_preshape_client()
+    # This needs the object pose because it spawns the object mesh in moveit
     grasp_arm_plan = dc_client.grasp_and_lift_object(object_pose_stamped)

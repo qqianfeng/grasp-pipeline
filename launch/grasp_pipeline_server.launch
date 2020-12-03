@@ -17,10 +17,13 @@
     <!-- Save visual data node -->
     <node name="save_visual_data_node" pkg="grasp_pipeline" type="save_visual_data_server.py" output="screen"/>
 
-    <!-- Gazebo scene manager -->
+
     <group if="$(arg sim)">
+        <!-- Gazebo scene manager -->
         <node name="manage_gazebo_scene_node" pkg="grasp_pipeline" type="manage_gazebo_scene_server.py" output="screen">
             <param name="object_datasets_folder" value="$(arg object_datasets_folder)"/>
         </node>
+        <!-- Hithand control manager -->
+        <node name="control_hithand_config_node" pkg="grasp_pipeline" type="control_sim_hithand_server.py" output="screen"/>
     </group>   
 </launch>

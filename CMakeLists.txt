@@ -28,7 +28,7 @@ include_directories(
 
 add_service_files(
     FILES
-    HithandControl.srv
+    ControlHithand.srv
     ManageMoveitScene.srv
     MoveArm.srv
     PalmGoalPoseWorld.srv
