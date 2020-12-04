@@ -13,8 +13,8 @@ import tf.transformations as tft
 def get_pose_stamped_from_array(pose_array, frame_id='/world'):
     pose_stamped = PoseStamped()
     pose_stamped.header.frame_id = frame_id
-    quaternion = tft.quaternion_from_euler(
-        pose_array[0], pose_array[1], pose_array[2])
+    quaternion = tft.quaternion_from_euler(pose_array[0], pose_array[1],
+                                           pose_array[2])
     pose_stamped.pose.orientation.x, pose_stamped.pose.orientation.y, pose_stamped.pose.orientation.z, pose_stamped.pose.orientation.w = quaternion
     pose_stamped.pose.position.x, pose_stamped.pose.position.y, pose_stamped.pose.position.z = pose_array[
         3:]
@@ -28,32 +28,35 @@ class ServerUnitTester():
         self.test_count = 0
         self.bridge = CvBridge
 
-    def test_manage_gazebo_scene_server(self, object_name, object_pose_array, object_model_name, dataset, model_type):
+    def test_manage_gazebo_scene_server(self, object_name, object_pose_array,
+                                        object_model_name, dataset,
+                                        model_type):
         self.test_count += 1
         print('Running test_manage_gazebo_scene_server, test number %d' %
               self.test_count)
-        update_gazebo_object = rospy.ServiceProxy(
-            'update_gazebo_object', UpdateObjectGazebo)
+        update_gazebo_object = rospy.ServiceProxy('update_gazebo_object',
+                                                  UpdateObjectGazebo)
 
-        res = update_gazebo_object(
-            object_name, object_pose_array, object_model_name, model_type, dataset)
+        res = update_gazebo_object(object_name, object_pose_array,
+                                   object_model_name, model_type, dataset)
 
         result = 'SUCCEDED' if res else 'FAILED'
         print(result)
 
-    def test_save_visual_data_server(self, pc_save_path, depth_save_path, color_save_path):
+    def test_save_visual_data_server(self, pc_save_path, depth_save_path,
+                                     color_save_path):
         self.test_count += 1
         print('Running test_save_visual_data_server, test number %d' %
               self.test_count)
         # Receive one message from depth, color and pointcloud topic, not registered
         msg_depth = rospy.wait_for_message("/camera/depth/image_raw", Image)
         msg_color = rospy.wait_for_message("/camera/color/image_raw", Image)
-        msg_pc = rospy.wait_for_message(
-            "/depth_registered/points", PointCloud2)
+        msg_pc = rospy.wait_for_message("/depth_registered/points",
+                                        PointCloud2)
         print('Received depth, color and point cloud messages')
         # Send to server and wait for response
-        save_visual_data = rospy.ServiceProxy(
-            'save_visual_data', SaveVisualData)
+        save_visual_data = rospy.ServiceProxy('save_visual_data',
+                                              SaveVisualData)
         res = save_visual_data(False, msg_pc, msg_depth, msg_color,
                                pc_save_path, depth_save_path, color_save_path)
         # Print result
@@ -64,10 +67,11 @@ class ServerUnitTester():
         self.test_count += 1
         print('Running test_create_moveit_scene_server, test number %d' %
               self.test_count)
-        create_moveit_scene = rospy.ServiceProxy(
-            'create_moveit_scene', ManageMoveitScene)
-        req = ManageMoveitSceneRequest(
-            create_scene=True, object_mesh_path=object_mesh_path, object_pose_world=pose_stamped)
+        create_moveit_scene = rospy.ServiceProxy('create_moveit_scene',
+                                                 ManageMoveitScene)
+        req = ManageMoveitSceneRequest(create_scene=True,
+                                       object_mesh_path=object_mesh_path,
+                                       object_pose_world=pose_stamped)
         res = create_moveit_scene(req)
         result = 'SUCCEDED' if res else 'FAILED'
         print(result)
@@ -76,8 +80,8 @@ class ServerUnitTester():
         self.test_count += 1
         print('Running test_clean_moveit_scene_server, test number %d' %
               self.test_count)
-        clean_moveit_scene = rospy.ServiceProxy(
-            'clean_moveit_scene', ManageMoveitScene)
+        clean_moveit_scene = rospy.ServiceProxy('clean_moveit_scene',
+                                                ManageMoveitScene)
         req = ManageMoveitSceneRequest(clean_scene=True)
         res = clean_moveit_scene(req)
         result = 'SUCCEDED' if res else 'FAILED'
@@ -87,8 +91,8 @@ class ServerUnitTester():
         self.test_count += 1
         print('Running test_control_hithand_config_server, test number %d' %
               self.test_count)
-        control_hithand_config = rospy.ServiceProxy(
-            'control_hithand_config', ControlHithand)
+        control_hithand_config = rospy.ServiceProxy('control_hithand_config',
+                                                    ControlHithand)
         req = ControlHithandRequest(
             hithand_target_joint_state=hithand_joint_states)
         res = control_hithand_config(req)
@@ -132,7 +136,7 @@ if __name__ == '__main__':
         '/models/' + object_model_name + '/google_16k/nontextured.stl'
     # Test control_hithand_config
     hithand_joint_states = JointState()
-    hithand_joint_states.position = [0.1] * 20
+    hithand_joint_states.position = [0.2] * 20
 
     # Tester
     sut = ServerUnitTester()
