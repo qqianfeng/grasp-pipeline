@@ -1,8 +1,9 @@
 <?xml version="1.0"?>
 
 <launch>
-    <arg name="sim" default="true"/>
+    <arg name="sim"                    default="true"/>
     <arg name="object_datasets_folder" default="/home/vm/object_datasets"/>
+    <arg name="launch_conda"           default="true" />
     <!-- +++++++++++++++++++++++++++++++++++++++++++++++++++ -->
 
     <!-- Manage moveit scene -->
@@ -25,5 +26,10 @@
         </node>
         <!-- Hithand control manager -->
         <node name="control_hithand_config_node" pkg="grasp_pipeline" type="control_sim_hithand_server.py" output="screen"/>
-    </group>   
+    </group>
+
+    <group if="$(arg launch_conda)">
+	  <node name="launch_conda" pkg="grasp_pipeline" type="conda_python3.sh" output="screen"/>
+    </group>
+   
 </launch>
