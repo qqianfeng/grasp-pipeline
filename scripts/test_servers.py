@@ -96,6 +96,9 @@ class ServerUnitTester():
         req = ControlHithandRequest(
             hithand_target_joint_state=hithand_joint_states)
         res = control_hithand_config(req)
+
+        req = ControlHithandRequest(go_home=True)
+        res = control_hithand_config(req)
         result = 'SUCCEDED' if res else 'FAILED'
         print(result)
 
