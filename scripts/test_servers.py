@@ -159,4 +159,4 @@ if __name__ == '__main__':
     # sut.clean_moveit_scene_test()
 
     # Test hithand control preshape/config
-    sut.control_hithand_config_test(hithand_joint_states)
+    # sut.control_hithand_config_test(hithand_joint_states)
