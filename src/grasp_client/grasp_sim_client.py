@@ -36,6 +36,14 @@ class GraspClient():
         pose.pose.position = pose_array[3:]  # x,y,z position
         return pose
 
+    def get_pose_array_from_stamped(self, pose_stamped):
+        """Transforms a stamped pose into a 6D pose array.
+        """
+        r, p, y = tft.euler_from_quaternion(pose_stamped.pose.orientation)
+        x_p, y_p, z_p = pose_stamped.pose.position
+        pose_array = [r, p, y, x_p, y_p, z_p]
+        return pose_array
+
     def generate_random_object_pose_for_experiment(self):
         """Generates a random x,y position and z orientation within object_spawn boundaries for grasping experiments.
         """
@@ -74,7 +82,7 @@ class GraspClient():
         rospy.loginfo('Service create_moveit_scene is executed %s.' %
                       str(self.create_scene_response))
 
-    def update_gazebo_object_client(self, object_name, object_pose_array,
+    def update_gazebo_object_client(self, object_name, object_pose,
                                     object_model_name, model_type, dataset):
         '''
             Gazebo management client, deletes previous object and spawns new object
