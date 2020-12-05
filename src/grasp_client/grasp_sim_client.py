@@ -105,7 +105,7 @@ class GraspClient():
 
     def control_hithand_config_client(self, go_home=False, close_hand=False):
         rospy.loginfo('Waiting for service control_hithand_config.')
-        rospy.wait_for_service('control_hithand_config')
+        rospy.wait_for_service('control_hithand_config_server')
         rospy.loginfo('Calling service control_hithand_config.')
         req = ControlHithandRequest()
         if go_home:

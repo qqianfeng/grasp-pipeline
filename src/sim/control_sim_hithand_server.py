@@ -12,10 +12,12 @@ import moveit_msgs.msg
 class ControlHithandConfig():
     def __init__(self, publish_prefix='/hithand'):
         rospy.init_node('control_hithand_config_node')
-        self.hithand_joint_cmd_pub = rospy.Publisher(
-            publish_prefix+'/joint_cmd', JointState, queue_size=1)
-        rospy.Subscriber('hithand/joint_states',
-                         JointState, self.get_hithand_current_joint_state_cb)
+        self.hithand_joint_cmd_pub = rospy.Publisher(publish_prefix +
+                                                     '/joint_cmd',
+                                                     JointState,
+                                                     queue_size=1)
+        rospy.Subscriber('hithand/joint_states', JointState,
+                         self.get_hithand_current_joint_state_cb)
         self.hithand_init_joint_state = None
         self.hithand_current_joint_state = None
         self.hithand_target_joint_state = None
@@ -87,7 +89,7 @@ class ControlHithandConfig():
         return res
 
     def create_control_hithand_config_server(self):
-        rospy.Service('control_hithand_config', ControlHithand,
+        rospy.Service('control_hithand_config_server', ControlHithand,
                       self.handle_control_hithand)
         rospy.loginfo('Service control_hithand_config:')
         rospy.loginfo('Ready to control hithand to speficied configurations.')

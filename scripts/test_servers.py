@@ -8,6 +8,7 @@ import cv2
 from sensor_msgs.msg import Image, PointCloud2, JointState
 from geometry_msgs.msg import PoseStamped
 import tf.transformations as tft
+from std_srvs.srv import SetBoolRequest, SetBool
 
 
 def get_pose_stamped_from_array(pose_array, frame_id='/world'):
@@ -63,7 +64,7 @@ class ServerUnitTester():
         result = 'SUCCEDED' if res else 'FAILED'
         print(result)
 
-    def create_moveit_scene_test(self, pose_stamped, object_mesh_path):
+    def test_create_moveit_scene_server(self, pose_stamped, object_mesh_path):
         self.test_count += 1
         print('Running test_create_moveit_scene_server, test number %d' %
               self.test_count)
@@ -76,7 +77,7 @@ class ServerUnitTester():
         result = 'SUCCEDED' if res else 'FAILED'
         print(result)
 
-    def clean_moveit_scene_test(self):
+    def test_clean_moveit_scene_server(self):
         self.test_count += 1
         print('Running test_clean_moveit_scene_server, test number %d' %
               self.test_count)
@@ -87,12 +88,12 @@ class ServerUnitTester():
         result = 'SUCCEDED' if res else 'FAILED'
         print(result)
 
-    def control_hithand_config_test(self, hithand_joint_states):
+    def test_control_hithand_config_server(self, hithand_joint_states):
         self.test_count += 1
         print('Running test_control_hithand_config_server, test number %d' %
               self.test_count)
-        control_hithand_config = rospy.ServiceProxy('control_hithand_config',
-                                                    ControlHithand)
+        control_hithand_config = rospy.ServiceProxy(
+            'control_hithand_config_server', ControlHithand)
         req = ControlHithandRequest(
             hithand_target_joint_state=hithand_joint_states)
         res = control_hithand_config(req)
@@ -102,7 +103,20 @@ class ServerUnitTester():
         result = 'SUCCEDED' if res else 'FAILED'
         print(result)
 
-    def arm_moveit_planner_test(self):
+    def test_table_object_segmentation_server(self):
+        self.test_count = +1
+        print(
+            'Running test_table_object_segmentation_start_server, test number %d'
+            % self.test_count)
+        table_object_segmentation = rospy.ServiceProxy(
+            'table_object_segmentation_start_server', SetBool)
+        req = SetBoolRequest()
+        req.data = True
+        res = table_object_segmentation(req)
+        result = 'SUCCEDED' if res else 'FAILED'
+        print(result)
+
+    def test_arm_moveit_planner_server(self):
         self.test_count += 1
         print('Running test_manage_gazebo_scene_server, test number %d' %
               self.test_count)
@@ -153,10 +167,13 @@ if __name__ == '__main__':
     #    pc_save_path, depth_save_path, color_save_path)
 
     # Test moveit spawn object
-    # sut.create_moveit_scene_test(pose_stamped, object_mesh_path)
+    # sut.test_moveit_scene_server(pose_stamped, object_mesh_path)
 
     # Test moveit delete object
-    # sut.clean_moveit_scene_test()
+    # sut.test_clean_moveit_scene_server()
 
     # Test hithand control preshape/config
-    # sut.control_hithand_config_test(hithand_joint_states)
+    # sut.test_control_hithand_config_server(hithand_joint_states)
+
+    # Test table object segmentation
+    sut.test_table_object_segmentation_server()

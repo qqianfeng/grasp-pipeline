@@ -31,7 +31,7 @@ class TableObjectSegmenter():
 
     # +++++++++++++++++ Part II: Main business logic ++++++++++++++++++++++++
     def table_object_segmentation_handler(self, req, res):
-        print("TRIGGEREERRED!!!")
+        print("table_object_segmentation_handler received the service call")
         pcd = o3d.io.read_point_cloud("/home/vm/test_cloud.pcd")
         #self.custom_draw_scene(pcd)
         #start = time.time()
