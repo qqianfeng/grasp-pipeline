@@ -11,7 +11,7 @@ class TableObjectSegmenter():
             client, '/table_object_segmentation_start_server',
             'std_srvs/SetBool')
         table_object_segmentation_service.advertise(
-            self.table_object_segmentation_handler)
+            self.handle_table_object_segmentation)
         print("Service advertised: /table_object_segmentation_start_server")
 
     # +++++++++++++++++ Part I: Helper functions ++++++++++++++++++++++++
@@ -30,8 +30,8 @@ class TableObjectSegmenter():
                                           up=[0.02236, -0.9787, -0.1245])
 
     # +++++++++++++++++ Part II: Main business logic ++++++++++++++++++++++++
-    def table_object_segmentation_handler(self, req, res):
-        print("table_object_segmentation_handler received the service call")
+    def handle_table_object_segmentation(self, req, res):
+        print("handle_table_object_segmentation received the service call")
         pcd = o3d.io.read_point_cloud("/home/vm/test_cloud.pcd")
         #self.custom_draw_scene(pcd)
         #start = time.time()

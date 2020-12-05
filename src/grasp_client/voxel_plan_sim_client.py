@@ -25,7 +25,7 @@ if __name__ == '__main__':
                                           dataset)
 
     # Generate hithand preshape
-    hithand_preshape = dc_client.plan_hithand_preshape_client()
+    hithand_preshape = dc_client.generate_hithand_preshape_client()
 
     # Grasp and lift object
     grasp_arm_plan = dc_client.grasp_and_lift_object(

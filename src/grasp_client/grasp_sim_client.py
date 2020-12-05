@@ -12,6 +12,7 @@ class GraspClient():
         rospy.init_node('grasp_client')
         self.datasets_base_path = datasets_base_path
         # save the mesh path of the currently spawned model
+        self.spawned_object_name = None
         self.spawned_object_mesh_path = None
         self.spawned_object_pose = None
         self._setup_workspace_boundaries()
@@ -97,6 +98,7 @@ class GraspClient():
                                        object_model_name, model_type, dataset)
             self.spawned_object_mesh_path = self.datasets_base_path + '/' + dataset + \
                 '/models/' + object_model_name + '/google_16k/nontextured.stl'
+            self.spawned_object_name = object_name
         except rospy.ServiceException, e:
             rospy.loginfo('Service update_gazebo_object call failed: %s' % e)
         rospy.loginfo('Service update_gazebo_object is executed %s.' %
@@ -114,7 +116,7 @@ class GraspClient():
             req.close_hand = True
         raise NotImplementedError
 
-    def plan_hithand_preshape_client(self):
+    def generate_hithand_preshape_client(self):
         raise NotImplementedError
 
     # ++++++++ PART III: The third part consists of all the main logic/orchestration of Parts I and II ++++++++++++
