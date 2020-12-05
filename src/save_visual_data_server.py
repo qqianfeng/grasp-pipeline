@@ -28,22 +28,23 @@ BIT_MOVE_16 = 2**16
 BIT_MOVE_8 = 2**8
 
 
-def convert_rgbUint32_to_tuple(rgb_uint32): return (
-    (rgb_uint32 & 0x00ff0000) >> 16, (rgb_uint32 &
-                                      0x0000ff00) >> 8, (rgb_uint32 & 0x000000ff)
-)
+def convert_rgbUint32_to_tuple(rgb_uint32):
+    return ((rgb_uint32 & 0x00ff0000) >> 16, (rgb_uint32 & 0x0000ff00) >> 8,
+            (rgb_uint32 & 0x000000ff))
 
 
-def convert_rgbFloat_to_tuple(rgb_float): return convert_rgbUint32_to_tuple(
-    int(cast(pointer(c_float(rgb_float)), POINTER(c_uint32)).contents.value)
-)
+def convert_rgbFloat_to_tuple(rgb_float):
+    return convert_rgbUint32_to_tuple(
+        int(
+            cast(pointer(c_float(rgb_float)),
+                 POINTER(c_uint32)).contents.value))
 
 
 def cloud_from_ros_to_open3d(ros_cloud):
     # Get cloud data from ros_cloud
     field_names = [field.name for field in ros_cloud.fields]
-    cloud_data = list(pc2.read_points(
-        ros_cloud, skip_nans=True, field_names=field_names))
+    cloud_data = list(
+        pc2.read_points(ros_cloud, skip_nans=True, field_names=field_names))
     # Check empty
     open3d_cloud = open3d.geometry.PointCloud()
     if len(cloud_data) == 0:
@@ -59,24 +60,28 @@ def cloud_from_ros_to_open3d(ros_cloud):
         # Check whether int or float
         # if float (from pcl::toROSMsg)
         if type(cloud_data[0][IDX_RGB_IN_FIELD]) == float:
-            rgb = [convert_rgbFloat_to_tuple(rgb)
-                   for x, y, z, rgb in cloud_data]
+            rgb = [
+                convert_rgbFloat_to_tuple(rgb) for x, y, z, rgb in cloud_data
+            ]
         else:
-            rgb = [convert_rgbUint32_to_tuple(rgb)
-                   for x, y, z, rgb in cloud_data]
+            rgb = [
+                convert_rgbUint32_to_tuple(rgb) for x, y, z, rgb in cloud_data
+            ]
         # combine
         open3d_cloud.points = open3d.utility.Vector3dVector(np.array(xyz))
         open3d_cloud.colors = open3d.utility.Vector3dVector(
-            np.array(rgb)/255.0)
+            np.array(rgb) / 255.0)
     else:
         xyz = [(x, y, z) for x, y, z in cloud_data]  # get xyz
         open3d_cloud.points = open3d.utility.Vector3dVector(np.array(xyz))
     return open3d_cloud
 
+
 # Convert the datatype of point cloud from Open3D to ROS PointCloud2 (XYZRGB only)
 
 
-def cloud_from_open3d_to_ros(open3d_cloud, frame_id="camera_depth_optical_frame"):
+def cloud_from_open3d_to_ros(open3d_cloud,
+                             frame_id="camera_depth_optical_frame"):
     # Set "header"
     header = Header()
     header.stamp = rospy.Time.now()
@@ -90,7 +95,7 @@ def cloud_from_open3d_to_ros(open3d_cloud, frame_id="camera_depth_optical_frame"
         fields = FIELDS_XYZRGB
         # -- Change rgb color from "three float" to "one 24-byte int"
         # 0x00FFFFFF is white, 0x00000000 is black.
-        colors = np.floor(np.asarray(open3d_cloud.colors)*255)  # nx3 matrix
+        colors = np.floor(np.asarray(open3d_cloud.colors) * 255)  # nx3 matrix
         colors = colors[:, 0] * BIT_MOVE_16 + \
             colors[:, 1] * BIT_MOVE_8 + colors[:, 2]
         cloud_data = np.c_[points, colors]
@@ -108,8 +113,12 @@ class VisualDataSaver():
         self.bridge = CvBridge()
 
     def save_depth_img(self, depth_img, depth_img_save_path):
-        depth_img_u16 = cv2.normalize(depth_img, depth_img, 0,
-                                      65535, cv2.NORM_MINMAX, dtype=cv2.CV_16UC1)
+        depth_img_u16 = cv2.normalize(depth_img,
+                                      depth_img,
+                                      0,
+                                      65535,
+                                      cv2.NORM_MINMAX,
+                                      dtype=cv2.CV_16UC1)
         cv2.imwrite(depth_img_save_path, depth_img_u16)
 
     def save_color_img(self, color_img, color_img_save_path):
@@ -120,8 +129,9 @@ class VisualDataSaver():
 
     def load_depth_img(self, depth_img_save_path):
         depth_img_u16 = cv2.imread(depth_img_save_path, -1)
-        depth_img_f32 = cv2.normalize(
-            depth_img_u16, depth_img_u16, dtype=cv2.CV_32FC1)
+        depth_img_f32 = cv2.normalize(depth_img_u16,
+                                      depth_img_u16,
+                                      dtype=cv2.CV_32FC1)
         return depth_img_f32
 
     def load_color_img(self, color_img_save_path):
@@ -131,6 +141,7 @@ class VisualDataSaver():
     def load_point_cloud(self, point_cloud_save_path):
         point_cloud = open3d.io.read_point_cloud(point_cloud_save_path)
         return point_cloud
+
     ################ Handle below ########################
 
     def handle_visual_data_saver(self, req):

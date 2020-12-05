@@ -29,7 +29,7 @@
     </group>
 
     <group if="$(arg launch_conda)">
-	  <node name="launch_conda" pkg="grasp_pipeline" type="conda_python3.sh" output="screen"/>
+	  <node name="table_object_segmentation_node" pkg="grasp_pipeline" type="table_object_segmenter_conda.sh" output="screen"/>
     </group>
    
 </launch>
