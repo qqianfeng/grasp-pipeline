@@ -13,6 +13,10 @@ class GenerateHithandPreshape():
         res = GraspPreshapeResponse()
         # Compute bounding box faces
 
+    def generate_grasp_preshape(self, req):
+        res = GraspPreshapeResponse()
+        return res
+
     def handle_generate_hithand_preshape(self, req):
         if req.sample:
             return self.sample_grasp_preshape(req)
