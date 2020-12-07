@@ -52,8 +52,7 @@ class ServerUnitTester():
         # Receive one message from depth, color and pointcloud topic, not registered
         msg_depth = rospy.wait_for_message("/camera/depth/image_raw", Image)
         msg_color = rospy.wait_for_message("/camera/color/image_raw", Image)
-        msg_pc = rospy.wait_for_message("/depth_registered/points",
-                                        PointCloud2)
+        msg_pc = rospy.wait_for_message("camera/depth/points", PointCloud2)
         print('Received depth, color and point cloud messages')
         # Send to server and wait for response
         save_visual_data = rospy.ServiceProxy('save_visual_data',
@@ -163,8 +162,8 @@ if __name__ == '__main__':
     #    object_name, object_pose_array, object_model_name, dataset, model_type)
 
     # Test visual data save server
-    # sut.test_save_visual_data_server(
-    #    pc_save_path, depth_save_path, color_save_path)
+    sut.test_save_visual_data_server(pc_save_path, depth_save_path,
+                                     color_save_path)
 
     # Test moveit spawn object
     # sut.test_moveit_scene_server(pose_stamped, object_mesh_path)

@@ -26,6 +26,11 @@ class TableObjectSegmenter():
                 '/segmented_object_bounding_box_corner_points',
                 'std_msgs/Float32MultiArray',
                 latch=True)
+            #self.tfclient = roslibpy.tf.TFClient(client,
+            #                                     fixed_frame='/world')  #
+            #self.tfclient.subscribe('/camera_color_optical_frame',
+            #                        self.callback_tfclient)
+
         print("Service advertised: /table_object_segmentation_start_server")
         print(
             "Publisher for object dimensions and bounding box corner coordinates started"
@@ -41,6 +46,7 @@ class TableObjectSegmenter():
                 [0, 1, 1],  # light blue   left/back/down
                 [1, 1, 0],  # yellow      right/back/up
                 [1, 0, 1],
+                [0.6, 0.2, 0.4]  #purple/ red-ish
             ]
         )  # this was just to understand the corner numbering logic, point 0 and point 4 in the list are cross diagonal, points 1,2,3 are attached to 0 in right handed sense, same for 5,6,7
 
@@ -52,13 +58,14 @@ class TableObjectSegmenter():
                                           lookat=[-0.013, -1.1, 5.42],
                                           up=[0., -0.97, -0.24])
 
-    def construct_eight_box_objects(self):
+    def construct_nine_box_objects(self):
         boxes = []
-        for i in range(8):
+        for i in range(9):
             box = o3d.geometry.TriangleMesh.create_box(width=0.01,
                                                        height=0.01,
                                                        depth=0.01)
-            box.translate(self.bounding_box_corner_points[i, :])
+            box.translate(self.bounding_box_corner_points[
+                i, :]) if i != 8 else box.translate([0, 0, 0])
             box.paint_uniform_color(self.colors[i, :])
             boxes.append(box)
         return boxes
@@ -76,10 +83,10 @@ class TableObjectSegmenter():
                                               up=[0.02236, -0.9787, -0.1245],
                                               point_show_normal=show_normal)
         else:
-            boxes = self.construct_eight_box_objects()
+            boxes = self.construct_nine_box_objects()
             o3d.visualization.draw_geometries([
                 pcd, bounding_box, boxes[0], boxes[1], boxes[2], boxes[3],
-                boxes[4], boxes[5], boxes[6], boxes[7]
+                boxes[4], boxes[5], boxes[6], boxes[7], boxes[8]
             ],
                                               zoom=1.,
                                               front=[0., 0.1245, -0.977],
@@ -102,6 +109,11 @@ class TableObjectSegmenter():
         return vis.get_picked_points()
 
     # +++++++++++++++++ Part II: Main business logic ++++++++++++++++++++++++
+    def callback_tfclient(self, data):
+        print(data)
+        self.tfclient.unsubscribe('/camera_color_optical_frame',
+                                  self.callback_tfclient)
+
     def handle_table_object_segmentation(self, req, res):
         print("handle_table_object_segmentation received the service call")
         pcd = o3d.io.read_point_cloud("/home/vm/test_cloud.pcd")
@@ -141,7 +153,7 @@ class TableObjectSegmenter():
         print(self.bounding_box_corner_points)
 
         # Draw object, bounding box and colored corners
-        #self.custom_draw_object(object_pcd, object_bounding_box, False, True)
+        self.custom_draw_object(object_pcd, object_bounding_box, False, True)
 
         # In the end the object pcd, bounding box corner points, bounding box size information need to be stored to disk
         # Could also be sent over a topic
@@ -166,7 +178,7 @@ class TableObjectSegmenter():
 
 
 if __name__ == "__main__":
-    # client = None
+    client = None
     client = roslibpy.Ros(host='localhost', port=9090) if not DEBUG else None
     tos = TableObjectSegmenter(client)
 
@@ -174,4 +186,6 @@ if __name__ == "__main__":
         tos.handle_table_object_segmentation(None, dict({"success": True}))
     else:
         client.run_forever()
+        print(client.is_connected)
+
         client.terminate()

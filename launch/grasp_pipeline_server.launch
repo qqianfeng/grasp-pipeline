@@ -26,6 +26,8 @@
         </node>
         <!-- Hithand control manager -->
         <node name="control_hithand_config_node" pkg="grasp_pipeline" type="control_sim_hithand_server.py" output="screen"/>
+        <node name="camera_transform_broadcaster_node" pkg="grasp_pipeline" type="camera_transform_broadcaster.py" output="screen"/>
+
     </group>
 
     <group if="$(arg launch_conda)">
