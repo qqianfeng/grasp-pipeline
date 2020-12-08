@@ -7,6 +7,8 @@ import numpy as np
 
 DEBUG = False
 
+#todo: Use published transform to bring pointcloud to different realm, then
+
 
 class TableObjectSegmenter():
     def __init__(self, client):
@@ -26,10 +28,10 @@ class TableObjectSegmenter():
                 '/segmented_object_bounding_box_corner_points',
                 'std_msgs/Float32MultiArray',
                 latch=True)
-            #self.tfclient = roslibpy.tf.TFClient(client,
-            #                                     fixed_frame='/world')  #
-            #self.tfclient.subscribe('/camera_color_optical_frame',
-            #                        self.callback_tfclient)
+            self.camera_tf_listener = roslibpy.Topic(
+                client, '/camera_color_optical_frame_in_world',
+                'geometry_msgs/PoseStamped')
+            self.camera_tf_listener.subscribe(self.callback_camera_tf)
 
         print("Service advertised: /table_object_segmentation_start_server")
         print(
@@ -49,6 +51,7 @@ class TableObjectSegmenter():
                 [0.6, 0.2, 0.4]  #purple/ red-ish
             ]
         )  # this was just to understand the corner numbering logic, point 0 and point 4 in the list are cross diagonal, points 1,2,3 are attached to 0 in right handed sense, same for 5,6,7
+        self.camera_color_frame_T = None
 
     # +++++++++++++++++ Part I: Helper functions ++++++++++++++++++++++++
     def custom_draw_scene(self, pcd):
@@ -109,14 +112,30 @@ class TableObjectSegmenter():
         return vis.get_picked_points()
 
     # +++++++++++++++++ Part II: Main business logic ++++++++++++++++++++++++
-    def callback_tfclient(self, data):
-        print(data)
-        self.tfclient.unsubscribe('/camera_color_optical_frame',
-                                  self.callback_tfclient)
+    def callback_camera_tf(self, msg):
+        orientation = msg['pose']['orientation']
+        position = msg['pose']['position']
+        quat = np.array([
+            orientation['x'], orientation['y'], orientation['z'],
+            orientation['w']
+        ])
+        rotation_matrix = o3d.geometry.get_rotation_matrix_from_quaternion(
+            quat)
+        self.camera_tf_listener.unsubscribe()
+        transformation_matrix = np.zeros([4, 4])
+        transformation_matrix[3, 3] = 1
+        transformation_matrix[:3, :3] = rotation_matrix
+        transformation_matrix[:3, 3] = np.array(
+            [position['x'], position['y'], position['z']])
+        self.camera_color_frame_T = transformation_matrix
 
     def handle_table_object_segmentation(self, req, res):
         print("handle_table_object_segmentation received the service call")
         pcd = o3d.io.read_point_cloud("/home/vm/test_cloud.pcd")
+
+        # Transform PCD into world frame/origin
+        pcd = pcd.transform(self.camera_color_frame_T)
+
         #self.custom_draw_scene(pcd)
         #start = time.time()
 

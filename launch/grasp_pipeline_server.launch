@@ -3,7 +3,7 @@
 <launch>
     <arg name="sim"                    default="true"/>
     <arg name="object_datasets_folder" default="/home/vm/object_datasets"/>
-    <arg name="launch_conda"           default="true" />
+    <arg name="launch_conda"           default="false" />
     <!-- +++++++++++++++++++++++++++++++++++++++++++++++++++ -->
 
     <!-- Manage moveit scene -->
@@ -26,6 +26,7 @@
         </node>
         <!-- Hithand control manager -->
         <node name="control_hithand_config_node" pkg="grasp_pipeline" type="control_sim_hithand_server.py" output="screen"/>
+        <!-- Camera transformation broadcaster -->
         <node name="camera_transform_broadcaster_node" pkg="grasp_pipeline" type="camera_transform_broadcaster.py" output="screen"/>
 
     </group>

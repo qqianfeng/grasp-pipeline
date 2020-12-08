@@ -12,7 +12,7 @@ if __name__ == '__main__':
     transform_pub = rospy.Publisher('/camera_color_optical_frame_in_world',
                                     PoseStamped)
     pose_color = PoseStamped()
-    rospy.sleep(2)
+    rospy.sleep(0.5)
     trans = tfBuffer.lookup_transform('world', 'camera_color_optical_frame',
                                       rospy.Time())
     #pose_color.header = '/world'
