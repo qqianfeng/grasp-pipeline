@@ -52,12 +52,13 @@ class ServerUnitTester():
         # Receive one message from depth, color and pointcloud topic, not registered
         msg_depth = rospy.wait_for_message("/camera/depth/image_raw", Image)
         msg_color = rospy.wait_for_message("/camera/color/image_raw", Image)
-        msg_pc = rospy.wait_for_message("camera/depth/points", PointCloud2)
+        msg_pcd = rospy.wait_for_message("/depth_registered/points",
+                                         PointCloud2)
         print('Received depth, color and point cloud messages')
         # Send to server and wait for response
         save_visual_data = rospy.ServiceProxy('save_visual_data',
                                               SaveVisualData)
-        res = save_visual_data(False, msg_pc, msg_depth, msg_color,
+        res = save_visual_data(False, msg_pcd, msg_depth, msg_color,
                                pc_save_path, depth_save_path, color_save_path)
         # Print result
         result = 'SUCCEDED' if res else 'FAILED'
@@ -175,4 +176,4 @@ if __name__ == '__main__':
     # sut.test_control_hithand_config_server(hithand_joint_states)
 
     # Test table object segmentation
-    sut.test_table_object_segmentation_server()
+    # sut.test_table_object_segmentation_server()

@@ -5,7 +5,13 @@ import os
 import time
 import numpy as np
 
-DEBUG = False
+DEBUG = True
+
+camera_color_TF = np.array(
+    [[2.95520207e-01, 9.55336489e-01, -2.18525541e-13, 8.07500000e-01],
+     [-9.55336489e-01, 2.95520207e-01, 1.44707624e-12, -9.96305997e-01],
+     [1.44702345e-12, -2.18874845e-13, 1.00000000e+00, 3.61941706e-01],
+     [0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.00000000e+00]])
 
 #todo: Use published transform to bring pointcloud to different realm, then
 
@@ -128,20 +134,22 @@ class TableObjectSegmenter():
         transformation_matrix[:3, 3] = np.array(
             [position['x'], position['y'], position['z']])
         self.camera_color_frame_T = transformation_matrix
+        print(self.camera_color_frame_T)
 
     def handle_table_object_segmentation(self, req, res):
         print("handle_table_object_segmentation received the service call")
         pcd = o3d.io.read_point_cloud("/home/vm/test_cloud.pcd")
 
         # Transform PCD into world frame/origin
+        if DEBUG: self.camera_color_frame_T = camera_color_TF
         pcd = pcd.transform(self.camera_color_frame_T)
 
-        #self.custom_draw_scene(pcd)
+        self.custom_draw_scene(pcd)
         #start = time.time()
 
         # downsample point cloud
         down_pcd = pcd.voxel_down_sample(voxel_size=0.005)  # downsample
-        #self.custom_draw_scene(down_pcd)
+        self.custom_draw_scene(down_pcd)
 
         # segment plane
         plane_model, inliers = down_pcd.segment_plane(distance_threshold=0.01,
@@ -149,18 +157,18 @@ class TableObjectSegmenter():
                                                       num_iterations=30)
         object_pcd = down_pcd.select_by_index(inliers, invert=True)
         #print(time.time() - start)
-        #self.custom_draw_object(object_pcd)
+        self.custom_draw_object(object_pcd)
 
         # compute bounding box and size
         object_bounding_box = object_pcd.get_axis_aligned_bounding_box()
         object_size = object_bounding_box.get_extent()
-        # self.custom_draw_object(object_pcd, object_bounding_box)
+        self.custom_draw_object(object_pcd, object_bounding_box)
 
         # compute normals of object
         object_pcd.estimate_normals(
             search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.2,
                                                               max_nn=50))
-        #self.custom_draw_object(object_pcd, object_bounding_box, True)
+        self.custom_draw_object(object_pcd, object_bounding_box, True)
 
         # orient normals towards camera
         object_pcd.orient_normals_towards_camera_location()

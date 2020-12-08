@@ -149,6 +149,8 @@ class VisualDataSaver():
         color_img = self.bridge.imgmsg_to_cv2(req.color_img, "bgr8")
         point_cloud = cloud_from_ros_to_open3d(req.point_cloud)
 
+        #open3d.visualization.draw_geometries([point_cloud])
+
         self.save_depth_img(depth_img, req.depth_img_save_path)
         self.save_color_img(color_img, req.color_img_save_path)
         self.save_point_cloud(point_cloud, req.point_cloud_save_path)
