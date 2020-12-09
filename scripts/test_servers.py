@@ -10,6 +10,8 @@ from geometry_msgs.msg import PoseStamped
 import tf.transformations as tft
 from std_srvs.srv import SetBoolRequest, SetBool
 
+import open3d as o3d
+
 
 def get_pose_stamped_from_array(pose_array, frame_id='/world'):
     pose_stamped = PoseStamped()
@@ -41,7 +43,7 @@ class ServerUnitTester():
         res = update_gazebo_object(object_name, object_pose_array,
                                    object_model_name, model_type, dataset)
 
-        result = 'SUCCEDED' if res else 'FAILED'
+        result = 'SUCCEEDED' if res else 'FAILED'
         print(result)
 
     def test_save_visual_data_server(self, pc_save_path, depth_save_path,
@@ -61,8 +63,25 @@ class ServerUnitTester():
         res = save_visual_data(False, msg_pcd, msg_depth, msg_color,
                                pc_save_path, depth_save_path, color_save_path)
         # Print result
-        result = 'SUCCEDED' if res else 'FAILED'
+        result = 'SUCCEEDED' if res else 'FAILED'
         print(result)
+
+    def test_display_saved_point_cloud(self, pcd_save_path):
+        pcd = o3d.io.read_point_cloud(pcd_save_path)
+
+        box = o3d.geometry.TriangleMesh.create_box(width=0.05,
+                                                   height=0.05,
+                                                   depth=0.05)
+        box.paint_uniform_color([1, 0, 0])  # create box at origin
+
+        box_cam = o3d.geometry.TriangleMesh.create_box(width=0.05,
+                                                       height=0.05,
+                                                       depth=0.05)
+        box_cam.paint_uniform_color([0, 1, 0])
+        box_cam.translate([0.8275, -0.996,
+                           0.361])  # create box at camera location
+
+        o3d.visualization.draw_geometries([pcd, box, box_cam])
 
     def test_create_moveit_scene_server(self, pose_stamped, object_mesh_path):
         self.test_count += 1
@@ -74,7 +93,7 @@ class ServerUnitTester():
                                        object_mesh_path=object_mesh_path,
                                        object_pose_world=pose_stamped)
         res = create_moveit_scene(req)
-        result = 'SUCCEDED' if res else 'FAILED'
+        result = 'SUCCEEDED' if res else 'FAILED'
         print(result)
 
     def test_clean_moveit_scene_server(self):
@@ -85,7 +104,7 @@ class ServerUnitTester():
                                                 ManageMoveitScene)
         req = ManageMoveitSceneRequest(clean_scene=True)
         res = clean_moveit_scene(req)
-        result = 'SUCCEDED' if res else 'FAILED'
+        result = 'SUCCEEDED' if res else 'FAILED'
         print(result)
 
     def test_control_hithand_config_server(self, hithand_joint_states):
@@ -100,7 +119,7 @@ class ServerUnitTester():
 
         req = ControlHithandRequest(go_home=True)
         res = control_hithand_config(req)
-        result = 'SUCCEDED' if res else 'FAILED'
+        result = 'SUCCEEDED' if res else 'FAILED'
         print(result)
 
     def test_table_object_segmentation_server(self):
@@ -113,7 +132,7 @@ class ServerUnitTester():
         req = SetBoolRequest()
         req.data = True
         res = table_object_segmentation(req)
-        result = 'SUCCEDED' if res else 'FAILED'
+        result = 'SUCCEEDED' if res else 'FAILED'
         print(result)
 
     def test_arm_moveit_planner_server(self):
@@ -121,7 +140,7 @@ class ServerUnitTester():
         print('Running test_manage_gazebo_scene_server, test number %d' %
               self.test_count)
         res = True
-        result = 'SUCCEDED' if res else 'FAILED'
+        result = 'SUCCEEDED' if res else 'FAILED'
         print(result)
 
     def template_test(self):
@@ -129,7 +148,7 @@ class ServerUnitTester():
         print('Running test_manage_gazebo_scene_server, test number %d' %
               self.test_count)
         res = True
-        result = 'SUCCEDED' if res else 'FAILED'
+        result = 'SUCCEEDED' if res else 'FAILED'
         print(result)
 
 
@@ -165,6 +184,9 @@ if __name__ == '__main__':
     # Test visual data save server
     sut.test_save_visual_data_server(pc_save_path, depth_save_path,
                                      color_save_path)
+
+    # Test display saved point cloud
+    sut.test_display_saved_point_cloud(pc_save_path)
 
     # Test moveit spawn object
     # sut.test_moveit_scene_server(pose_stamped, object_mesh_path)

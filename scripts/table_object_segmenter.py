@@ -4,16 +4,10 @@ import open3d as o3d
 import os
 import time
 import numpy as np
+from scipy.spatial.transform import Rotation
+import copy
 
 DEBUG = True
-
-camera_color_TF = np.array(
-    [[2.95520207e-01, 9.55336489e-01, -2.18525541e-13, 8.07500000e-01],
-     [-9.55336489e-01, 2.95520207e-01, 1.44707624e-12, -9.96305997e-01],
-     [1.44702345e-12, -2.18874845e-13, 1.00000000e+00, 3.61941706e-01],
-     [0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.00000000e+00]])
-
-#todo: Use published transform to bring pointcloud to different realm, then
 
 
 class TableObjectSegmenter():
@@ -34,10 +28,6 @@ class TableObjectSegmenter():
                 '/segmented_object_bounding_box_corner_points',
                 'std_msgs/Float32MultiArray',
                 latch=True)
-            self.camera_tf_listener = roslibpy.Topic(
-                client, '/camera_color_optical_frame_in_world',
-                'geometry_msgs/PoseStamped')
-            self.camera_tf_listener.subscribe(self.callback_camera_tf)
 
         print("Service advertised: /table_object_segmentation_start_server")
         print(
@@ -57,15 +47,14 @@ class TableObjectSegmenter():
                 [0.6, 0.2, 0.4]  #purple/ red-ish
             ]
         )  # this was just to understand the corner numbering logic, point 0 and point 4 in the list are cross diagonal, points 1,2,3 are attached to 0 in right handed sense, same for 5,6,7
-        self.camera_color_frame_T = None
 
     # +++++++++++++++++ Part I: Helper functions ++++++++++++++++++++++++
     def custom_draw_scene(self, pcd):
         o3d.visualization.draw_geometries([pcd],
-                                          zoom=0.24,
-                                          front=[0., 0.24, -1],
-                                          lookat=[-0.013, -1.1, 5.42],
-                                          up=[0., -0.97, -0.24])
+                                          front=[0.29, -0.95, 0.056],
+                                          lookat=[-0.244, 3.89, 0.054],
+                                          up=[-0.029, 0.05, 1],
+                                          zoom=[0.24])
 
     def construct_nine_box_objects(self):
         boxes = []
@@ -86,10 +75,10 @@ class TableObjectSegmenter():
                            draw_box=False):
         if bounding_box == None:
             o3d.visualization.draw_geometries([pcd],
-                                              zoom=1.,
-                                              front=[0., 0.1245, -0.977],
-                                              lookat=[0.04479, -0.2049, 1.347],
-                                              up=[0.02236, -0.9787, -0.1245],
+                                              front=[0.29, -0.95, 0.056],
+                                              lookat=[-0.244, 3.89, 0.054],
+                                              up=[-0.029, 0.05, 1],
+                                              zoom=[0.24],
                                               point_show_normal=show_normal)
         else:
             boxes = self.construct_nine_box_objects()
@@ -97,10 +86,10 @@ class TableObjectSegmenter():
                 pcd, bounding_box, boxes[0], boxes[1], boxes[2], boxes[3],
                 boxes[4], boxes[5], boxes[6], boxes[7], boxes[8]
             ],
-                                              zoom=1.,
-                                              front=[0., 0.1245, -0.977],
-                                              lookat=[0.04479, -0.2049, 1.347],
-                                              up=[0.02236, -0.9787, -0.1245],
+                                              front=[0.29, -0.95, 0.056],
+                                              lookat=[-0.244, 3.89, 0.054],
+                                              up=[-0.029, 0.05, 1],
+                                              zoom=[0.24],
                                               point_show_normal=show_normal)
 
     def pick_points(self, pcd, bounding_box):
@@ -125,24 +114,15 @@ class TableObjectSegmenter():
             orientation['x'], orientation['y'], orientation['z'],
             orientation['w']
         ])
-        rotation_matrix = o3d.geometry.get_rotation_matrix_from_quaternion(
-            quat)
+        rotation_matrix = Rotation(quat=quat).as_matrix()
         self.camera_tf_listener.unsubscribe()
-        transformation_matrix = np.zeros([4, 4])
-        transformation_matrix[3, 3] = 1
-        transformation_matrix[:3, :3] = rotation_matrix
-        transformation_matrix[:3, 3] = np.array(
+        self.world_R_cam = rotation_matrix
+        self.world_t_cam = np.array(
             [position['x'], position['y'], position['z']])
-        self.camera_color_frame_T = transformation_matrix
-        print(self.camera_color_frame_T)
 
     def handle_table_object_segmentation(self, req, res):
         print("handle_table_object_segmentation received the service call")
         pcd = o3d.io.read_point_cloud("/home/vm/test_cloud.pcd")
-
-        # Transform PCD into world frame/origin
-        if DEBUG: self.camera_color_frame_T = camera_color_TF
-        pcd = pcd.transform(self.camera_color_frame_T)
 
         self.custom_draw_scene(pcd)
         #start = time.time()
@@ -152,9 +132,9 @@ class TableObjectSegmenter():
         self.custom_draw_scene(down_pcd)
 
         # segment plane
-        plane_model, inliers = down_pcd.segment_plane(distance_threshold=0.01,
-                                                      ransac_n=3,
-                                                      num_iterations=30)
+        _, inliers = down_pcd.segment_plane(distance_threshold=0.01,
+                                            ransac_n=3,
+                                            num_iterations=30)
         object_pcd = down_pcd.select_by_index(inliers, invert=True)
         #print(time.time() - start)
         self.custom_draw_object(object_pcd)
@@ -162,6 +142,10 @@ class TableObjectSegmenter():
         # compute bounding box and size
         object_bounding_box = object_pcd.get_axis_aligned_bounding_box()
         object_size = object_bounding_box.get_extent()
+        # get the 8 corner points, from these you can compute the bounding box face center points from which you can get the nearest neighbour from the point cloud
+        self.bounding_box_corner_points = np.asarray(
+            object_bounding_box.get_box_points())
+        print(self.bounding_box_corner_points)
         self.custom_draw_object(object_pcd, object_bounding_box)
 
         # compute normals of object
@@ -172,12 +156,7 @@ class TableObjectSegmenter():
 
         # orient normals towards camera
         object_pcd.orient_normals_towards_camera_location()
-        #self.custom_draw_object(object_pcd, object_bounding_box, True)
-
-        # get the 8 corner points, from these you can compute the bounding box face center points from which you can get the nearest neighbour from the point cloud
-        self.bounding_box_corner_points = np.asarray(
-            object_bounding_box.get_box_points())
-        print(self.bounding_box_corner_points)
+        self.custom_draw_object(object_pcd, object_bounding_box, True)
 
         # Draw object, bounding box and colored corners
         self.custom_draw_object(object_pcd, object_bounding_box, False, True)

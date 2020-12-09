@@ -3,6 +3,7 @@ import rospy
 import tf2_ros
 from geometry_msgs.msg import PoseStamped
 from tf2_msgs.msg import TFMessage
+import numpy as np
 
 if __name__ == '__main__':
     rospy.init_node('camera_transform_broadcaster_node')
@@ -13,7 +14,7 @@ if __name__ == '__main__':
                                     PoseStamped)
     pose_color = PoseStamped()
     rospy.sleep(0.5)
-    trans = tfBuffer.lookup_transform('world', 'camera_color_optical_frame',
+    trans = tfBuffer.lookup_transform('camera_color_optical_frame', 'world',
                                       rospy.Time())
     #pose_color.header = '/world'
     pose_color.pose.position = trans.transform.translation
@@ -21,3 +22,5 @@ if __name__ == '__main__':
     while not rospy.is_shutdown():
         transform_pub.publish(pose_color)
         rate.sleep()
+
+# WIE MACHEN DIE UTAH GUYS DAS? Transformieren sie die Pointcloud?; p_w = w_T_c * p_c; DAS GILT
