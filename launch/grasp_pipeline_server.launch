@@ -1,10 +1,18 @@
 <?xml version="1.0"?>
 
 <launch>
-    <arg name="sim"                    default="true"/>
-    <arg name="object_datasets_folder" default="/home/vm/object_datasets"/>
-    <arg name="launch_conda"           default="false" />
+    <arg name="sim"                     default="true"/>
+    <arg name="object_datasets_folder"  default="/home/vm/object_datasets"/>
+    <arg name="object_point_cloud_path" default="/home/vm/object.pcd"/>
+    <arg name="scene_point_cloud_path"  default="/home/vm/test_cloud.pcd"/>   
+    <arg name="launch_conda"            default="true"/>
     <!-- +++++++++++++++++++++++++++++++++++++++++++++++++++ -->
+    
+    <!-- Publish the paths of scene and object point cloud-->
+    <node name="point_cloud_save_publisher_node" pkg="grasp_pipeline" type="publish_point_cloud_save_path.py" output="screen">
+        <param name="object_point_cloud_path" value="$(arg object_point_cloud_path)"/>
+        <param name="scene_point_cloud_path" value="$(arg scene_point_cloud_path)"/>
+    </node>
 
     <!-- Manage moveit scene -->
     <node name="manage_moveit_scene_node" pkg="grasp_pipeline"

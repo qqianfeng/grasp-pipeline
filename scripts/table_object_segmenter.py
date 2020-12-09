@@ -11,8 +11,12 @@ DEBUG = True
 
 
 class TableObjectSegmenter():
-    def __init__(self, client):
+    def __init__(self,
+                 client,
+                 scene_point_cloud_path=None,
+                 object_point_cloud_path=None):
         if not DEBUG:
+            self.client = client
             table_object_segmentation_service = roslibpy.Service(
                 client, '/table_object_segmentation_start_server',
                 'std_srvs/SetBool')
@@ -28,6 +32,20 @@ class TableObjectSegmenter():
                 '/segmented_object_bounding_box_corner_points',
                 'std_msgs/Float32MultiArray',
                 latch=True)
+            # for the camera position in 3D space w.r.t world
+            self.camera_tf_listener = roslibpy.Topic(
+                client, '/camera_color_optical_frame_in_world',
+                'geometry_msgs/PoseStamped')
+            self.camera_tf_listener.subscribe(self.callback_camera_tf)
+            # Where to save the object point cloud and where to load it from
+            self.scene_cloud_path_listener = roslibpy.Topic(
+                client, '/scene_point_cloud_path', 'std_msgs/String')
+            self.scene_cloud_path_listener.subscribe(
+                self.callback_scene_cloud_path)
+            self.object_cloud_path_listener = roslibpy.Topic(
+                client, '/object_point_cloud_path', 'std_msgs/String')
+            self.object_cloud_path_listener.subscribe(
+                self.callback_object_cloud_path)
 
         print("Service advertised: /table_object_segmentation_start_server")
         print(
@@ -47,14 +65,19 @@ class TableObjectSegmenter():
                 [0.6, 0.2, 0.4]  #purple/ red-ish
             ]
         )  # this was just to understand the corner numbering logic, point 0 and point 4 in the list are cross diagonal, points 1,2,3 are attached to 0 in right handed sense, same for 5,6,7
+        self.world_R_cam = None
+        self.world_t_cam = None
+
+        self.object_point_cloud_save_path = object_point_cloud_path
+        self.point_cloud_read_path = scene_point_cloud_path
 
     # +++++++++++++++++ Part I: Helper functions ++++++++++++++++++++++++
     def custom_draw_scene(self, pcd):
         o3d.visualization.draw_geometries([pcd],
-                                          front=[0.29, -0.95, 0.056],
-                                          lookat=[-0.244, 3.89, 0.054],
-                                          up=[-0.029, 0.05, 1],
-                                          zoom=[0.24])
+                                          front=[0.236, -0.97, 0.0435],
+                                          lookat=[-0.244, 3.89, 0.0539],
+                                          up=[0., 0.045, 0.998],
+                                          zoom=0.2399)
 
     def construct_nine_box_objects(self):
         boxes = []
@@ -75,10 +98,6 @@ class TableObjectSegmenter():
                            draw_box=False):
         if bounding_box == None:
             o3d.visualization.draw_geometries([pcd],
-                                              front=[0.29, -0.95, 0.056],
-                                              lookat=[-0.244, 3.89, 0.054],
-                                              up=[-0.029, 0.05, 1],
-                                              zoom=[0.24],
                                               point_show_normal=show_normal)
         else:
             boxes = self.construct_nine_box_objects()
@@ -86,10 +105,6 @@ class TableObjectSegmenter():
                 pcd, bounding_box, boxes[0], boxes[1], boxes[2], boxes[3],
                 boxes[4], boxes[5], boxes[6], boxes[7], boxes[8]
             ],
-                                              front=[0.29, -0.95, 0.056],
-                                              lookat=[-0.244, 3.89, 0.054],
-                                              up=[-0.029, 0.05, 1],
-                                              zoom=[0.24],
                                               point_show_normal=show_normal)
 
     def pick_points(self, pcd, bounding_box):
@@ -108,6 +123,7 @@ class TableObjectSegmenter():
 
     # +++++++++++++++++ Part II: Main business logic ++++++++++++++++++++++++
     def callback_camera_tf(self, msg):
+        print("Entered callback camera tf")
         orientation = msg['pose']['orientation']
         position = msg['pose']['position']
         quat = np.array([
@@ -119,17 +135,42 @@ class TableObjectSegmenter():
         self.world_R_cam = rotation_matrix
         self.world_t_cam = np.array(
             [position['x'], position['y'], position['z']])
+        print("Unsubscribed camera_tf_listener")
+
+    def callback_object_cloud_path(self, msg):
+        print("Entered callback object cloud path")
+        self.object_cloud_save_path = msg['data']
+        print("I heard: %s" % msg['data'])
+        self.object_cloud_path_listener.unsubscribe()
+        print("Unsubscribed object_cloud_path_listener")
+
+    def callback_scene_cloud_path(self, msg):
+        print("Entered callback scene cloud path")
+        self.point_cloud_read_path = msg['data']
+        print("I heard: %s" % msg['data'])
+        self.scene_cloud_path_listener.unsubscribe()
+        print("Unsubscribedscene_cloud_path_listener ")
 
     def handle_table_object_segmentation(self, req, res):
         print("handle_table_object_segmentation received the service call")
-        pcd = o3d.io.read_point_cloud("/home/vm/test_cloud.pcd")
 
-        self.custom_draw_scene(pcd)
+        if (self.object_point_cloud_save_path is
+                None) or (self.point_cloud_read_path is None):
+            self.object_point_cloud_save_path = self.client.get_param(
+                '/object_point_cloud_path')
+            self.point_cloud_read_path = self.client.get_param(
+                '/scene_point_cloud_path')
+            print("I READ THE PATH PARAMS FOR THE FIRST TIME!")
+        print("handle_table_object_segmentation received the service call")
+        pcd = o3d.io.read_point_cloud(self.point_cloud_read_path)
+
+        if self.world_t_cam is None: self.world_t_cam = [0.8275, -0.996, 0.36]
+        #self.custom_draw_scene(pcd)
         #start = time.time()
 
         # downsample point cloud
         down_pcd = pcd.voxel_down_sample(voxel_size=0.005)  # downsample
-        self.custom_draw_scene(down_pcd)
+        #self.custom_draw_scene(down_pcd)
 
         # segment plane
         _, inliers = down_pcd.segment_plane(distance_threshold=0.01,
@@ -137,7 +178,7 @@ class TableObjectSegmenter():
                                             num_iterations=30)
         object_pcd = down_pcd.select_by_index(inliers, invert=True)
         #print(time.time() - start)
-        self.custom_draw_object(object_pcd)
+        #self.custom_draw_object(object_pcd)
 
         # compute bounding box and size
         object_bounding_box = object_pcd.get_axis_aligned_bounding_box()
@@ -146,23 +187,25 @@ class TableObjectSegmenter():
         self.bounding_box_corner_points = np.asarray(
             object_bounding_box.get_box_points())
         print(self.bounding_box_corner_points)
-        self.custom_draw_object(object_pcd, object_bounding_box)
+        #self.custom_draw_object(object_pcd, object_bounding_box)
 
         # compute normals of object
         object_pcd.estimate_normals(
             search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.2,
                                                               max_nn=50))
-        self.custom_draw_object(object_pcd, object_bounding_box, True)
+        #self.custom_draw_object(object_pcd, object_bounding_box, True)
 
         # orient normals towards camera
-        object_pcd.orient_normals_towards_camera_location()
-        self.custom_draw_object(object_pcd, object_bounding_box, True)
+        object_pcd.orient_normals_towards_camera_location(self.world_t_cam)
+        #self.custom_draw_object(object_pcd, object_bounding_box, True)
 
         # Draw object, bounding box and colored corners
-        self.custom_draw_object(object_pcd, object_bounding_box, False, True)
+        #self.custom_draw_object(object_pcd, object_bounding_box, False, True)
 
         # In the end the object pcd, bounding box corner points, bounding box size information need to be stored to disk
         # Could also be sent over a topic
+        if os.path.exists(self.object_point_cloud_save_path):
+            os.remove(self.object_point_cloud_save_path)
         o3d.io.write_point_cloud("/home/vm/object.pcd", object_pcd)
         print(
             "Object.pcd saved successfully with normals oriented towards camera"
@@ -185,13 +228,17 @@ class TableObjectSegmenter():
 
 if __name__ == "__main__":
     client = None
-    client = roslibpy.Ros(host='localhost', port=9090) if not DEBUG else None
-    tos = TableObjectSegmenter(client)
+    if not DEBUG:
+        client = roslibpy.Ros(host='localhost', port=9090)
+        tos = TableObjectSegmenter(client)
 
     if DEBUG:
+        tos = TableObjectSegmenter(
+            client,
+            scene_point_cloud_path='/home/vm/test_cloud.pcd',
+            object_point_cloud_path='/home/vm/object.pcd')
+
         tos.handle_table_object_segmentation(None, dict({"success": True}))
     else:
         client.run_forever()
-        print(client.is_connected)
-
         client.terminate()

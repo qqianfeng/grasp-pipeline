@@ -117,7 +117,7 @@ class VisualDataSaver():
         rospy.sleep(0.5)  # essential, otherwise next line crashes
         self.transform_camera_world = self.tf_buffer.lookup_transform(
             'world', 'camera_color_optical_frame', rospy.Time())
-        rospy.loginfo(self.transform_camera_world)
+        #rospy.loginfo(self.transform_camera_world)
 
     def save_depth_img(self, depth_img, depth_img_save_path):
         depth_img_u16 = cv2.normalize(depth_img,

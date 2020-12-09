@@ -67,21 +67,22 @@ class ServerUnitTester():
         print(result)
 
     def test_display_saved_point_cloud(self, pcd_save_path):
+        self.test_count += 1
+        print('Running test_display_saved_point_cloud, test number %d' %
+              self.test_count)
         pcd = o3d.io.read_point_cloud(pcd_save_path)
-
         box = o3d.geometry.TriangleMesh.create_box(width=0.05,
                                                    height=0.05,
                                                    depth=0.05)
         box.paint_uniform_color([1, 0, 0])  # create box at origin
-
         box_cam = o3d.geometry.TriangleMesh.create_box(width=0.05,
                                                        height=0.05,
                                                        depth=0.05)
         box_cam.paint_uniform_color([0, 1, 0])
         box_cam.translate([0.8275, -0.996,
                            0.361])  # create box at camera location
-
         o3d.visualization.draw_geometries([pcd, box, box_cam])
+        print('SUCCEEDED')
 
     def test_create_moveit_scene_server(self, pose_stamped, object_mesh_path):
         self.test_count += 1
@@ -186,7 +187,7 @@ if __name__ == '__main__':
                                      color_save_path)
 
     # Test display saved point cloud
-    sut.test_display_saved_point_cloud(pc_save_path)
+    # sut.test_display_saved_point_cloud(pc_save_path)
 
     # Test moveit spawn object
     # sut.test_moveit_scene_server(pose_stamped, object_mesh_path)
@@ -198,4 +199,4 @@ if __name__ == '__main__':
     # sut.test_control_hithand_config_server(hithand_joint_states)
 
     # Test table object segmentation
-    # sut.test_table_object_segmentation_server()
+    sut.test_table_object_segmentation_server()
