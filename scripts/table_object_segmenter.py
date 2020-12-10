@@ -139,7 +139,7 @@ class TableObjectSegmenter():
 
     def callback_object_cloud_path(self, msg):
         print("Entered callback object cloud path")
-        self.object_cloud_save_path = msg['data']
+        self.object_point_cloud_save_path = msg['data']
         print("I heard: %s" % msg['data'])
         self.object_cloud_path_listener.unsubscribe()
         print("Unsubscribed object_cloud_path_listener")
@@ -165,12 +165,12 @@ class TableObjectSegmenter():
         pcd = o3d.io.read_point_cloud(self.point_cloud_read_path)
 
         if self.world_t_cam is None: self.world_t_cam = [0.8275, -0.996, 0.36]
-        #self.custom_draw_scene(pcd)
+        if DEBUG: self.custom_draw_scene(pcd)
         #start = time.time()
 
         # downsample point cloud
         down_pcd = pcd.voxel_down_sample(voxel_size=0.005)  # downsample
-        #self.custom_draw_scene(down_pcd)
+        if DEBUG: self.custom_draw_scene(down_pcd)
 
         # segment plane
         _, inliers = down_pcd.segment_plane(distance_threshold=0.01,
@@ -178,7 +178,7 @@ class TableObjectSegmenter():
                                             num_iterations=30)
         object_pcd = down_pcd.select_by_index(inliers, invert=True)
         #print(time.time() - start)
-        #self.custom_draw_object(object_pcd)
+        if DEBUG: self.custom_draw_object(object_pcd)
 
         # compute bounding box and size
         object_bounding_box = object_pcd.get_axis_aligned_bounding_box()
@@ -187,20 +187,24 @@ class TableObjectSegmenter():
         self.bounding_box_corner_points = np.asarray(
             object_bounding_box.get_box_points())
         print(self.bounding_box_corner_points)
-        #self.custom_draw_object(object_pcd, object_bounding_box)
+        if DEBUG: self.custom_draw_object(object_pcd, object_bounding_box)
 
         # compute normals of object
         object_pcd.estimate_normals(
             search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.2,
                                                               max_nn=50))
-        #self.custom_draw_object(object_pcd, object_bounding_box, True)
+        if DEBUG:
+            self.custom_draw_object(object_pcd, object_bounding_box, True)
 
         # orient normals towards camera
         object_pcd.orient_normals_towards_camera_location(self.world_t_cam)
-        #self.custom_draw_object(object_pcd, object_bounding_box, True)
+        if DEBUG:
+            self.custom_draw_object(object_pcd, object_bounding_box, True)
 
         # Draw object, bounding box and colored corners
-        self.custom_draw_object(object_pcd, object_bounding_box, False, True)
+        if DEBUG:
+            self.custom_draw_object(object_pcd, object_bounding_box, False,
+                                    True)
 
         # In the end the object pcd, bounding box corner points, bounding box size information need to be stored to disk
         # Could also be sent over a topic
