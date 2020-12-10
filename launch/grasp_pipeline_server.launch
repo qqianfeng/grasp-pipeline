@@ -10,14 +10,14 @@
     
     <!-- Publish the paths of scene and object point cloud-->
     <node name="point_cloud_save_publisher_node" pkg="grasp_pipeline" type="publish_point_cloud_save_path.py" output="screen">
-        <param name="object_point_cloud_path" value="$(arg object_point_cloud_path)"/>
-        <param name="scene_point_cloud_path" value="$(arg scene_point_cloud_path)"/>
+        <param name="object_point_cloud_path" value="$(arg object_point_cloud_path)" type="string" />
+        <param name="scene_point_cloud_path" value="$(arg scene_point_cloud_path)" type="string" />
     </node>
 
     <!-- Manage moveit scene -->
     <node name="manage_moveit_scene_node" pkg="grasp_pipeline"
         type="manage_moveit_scene_server.py" output="screen">
-        <param name="sim" value="$(arg sim)"/>
+        <param name="sim" type="bool" value="$(arg sim)"/>
     </node>
 
     <!-- Moveit planner node for panda arm -->

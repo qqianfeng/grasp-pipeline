@@ -7,7 +7,7 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 import copy
 
-DEBUG = True
+DEBUG = False
 
 
 class TableObjectSegmenter():
@@ -154,13 +154,13 @@ class TableObjectSegmenter():
     def handle_table_object_segmentation(self, req, res):
         print("handle_table_object_segmentation received the service call")
 
-        if (self.object_point_cloud_save_path is
-                None) or (self.point_cloud_read_path is None):
-            self.object_point_cloud_save_path = self.client.get_param(
-                '/object_point_cloud_path')
-            self.point_cloud_read_path = self.client.get_param(
-                '/scene_point_cloud_path')
-            print("I READ THE PATH PARAMS FOR THE FIRST TIME!")
+        while (self.object_point_cloud_save_path is
+               None) or (self.point_cloud_read_path is None):
+            print(
+                "I haven't received the pointcloud paths from the corrsponding topic. Stuck in a while loop until they are received."
+            )
+            time.sleep(2)
+
         print("handle_table_object_segmentation received the service call")
         pcd = o3d.io.read_point_cloud(self.point_cloud_read_path)
 
@@ -200,7 +200,7 @@ class TableObjectSegmenter():
         #self.custom_draw_object(object_pcd, object_bounding_box, True)
 
         # Draw object, bounding box and colored corners
-        #self.custom_draw_object(object_pcd, object_bounding_box, False, True)
+        self.custom_draw_object(object_pcd, object_bounding_box, False, True)
 
         # In the end the object pcd, bounding box corner points, bounding box size information need to be stored to disk
         # Could also be sent over a topic
