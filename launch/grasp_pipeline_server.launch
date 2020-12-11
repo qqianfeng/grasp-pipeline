@@ -20,6 +20,18 @@
         <param name="sim" type="bool" value="$(arg sim)"/>
     </node>
 
+   <!-- !!!!!!!!!!!!!!!!!!!GENERATE GRASP PRESHAPE SERVER ?! KINDA DIFFICULT/ELABORATE/SOMETHING FOR LATER!!!!!!!!!!!!! /-->
+    <node name="generate_hithand_preshape_server_node" pkg="grasp_pipeline" 
+        type="generate_hithand_preshape_server.py" output="screen">
+      <param name="palm_dist_to_top_face_mean"   value="0.1"   type="double"/>
+      <param name="palm_dist_to_side_face_mean"  value="0.07"  type="double"/>
+      <param name="palm_dist_normal_to_obj_var"  value="0.03"  type="double"/>
+      <param name="palm_position_3D_sample_var"  value="0.005" type="double"/>
+      <param name="wrist_roll_orientation_var"   value="0.005" type="double"/>
+      <param name="hand_roll_angle_sample_var"   value="0.005" type="double"/>
+      <param name="min_object_height"            value="0.03"  type="double"/>
+    </node>
+
     <!-- Moveit planner node for panda arm -->
     <!--<node name="arm_moveit_planner_server_node" pkg="grasp_pipeline" type="arm_moveit_planner_server.py" output="screen"/> -->
 
