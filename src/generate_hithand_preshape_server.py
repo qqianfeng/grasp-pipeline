@@ -92,6 +92,8 @@ class GenerateHithandPreshape():
 
         self.num_samples_per_preshape = 50
 
+        self.setup_joint_angle_limits()
+
     def update_object_information(self):
         """ Update instance variables related to the object of interest
 
@@ -126,85 +128,144 @@ class GenerateHithandPreshape():
             segmented_object_pcd.normals)
 
     def setup_joint_angle_limits(self):
+        ''' Initializes a number of constants determing the joint limits for the Hithand
         '''
-        Initializes a number of constants determing the joint limits for allegro
-        TODO: Automate this by using a URDF file and allow hand to be specified at launch
-        '''
-        self.index_joint_0_lower = -0.59
-        self.index_joint_0_upper = 0.57
-        self.middle_joint_0_lower = -0.59
-        self.middle_joint_0_upper = 0.57
-        self.ring_joint_0_lower = -0.59
-        self.ring_joint_0_upper = 0.57
+        # Set smart joint limits for joints 0 and 1
+        self.thumb_joint_0_lower = -0.261799  # -15 degrees
+        self.thumb_joint_0_upper = 0.261799  #
+        self.thumb_joint_1_lower = 0.0872665  # 5  degrees
+        self.thumb_joint_1_upper = 1.48353  # 85 degrees
 
-        self.index_joint_1_lower = -0.296
-        self.index_joint_1_upper = 0.71
-        self.middle_joint_1_lower = -0.296
-        self.middle_joint_1_upper = 0.71
-        self.ring_joint_1_lower = -0.296
-        self.ring_joint_1_upper = 0.71
+        self.index_joint_0_lower = -0.2617999
+        self.index_joint_0_upper = 0.261799
+        self.index_joint_1_lower = 0.0872665
+        self.index_joint_1_upper = 0.8  # 45 degrees
 
-        self.thumb_joint_0_lower = 0.363
-        self.thumb_joint_0_upper = 1.55
-        self.thumb_joint_1_lower = -0.205
-        self.thumb_joint_1_upper = 1.263
+        self.middle_joint_0_lower = -0.261799
+        self.middle_joint_0_upper = 0.261799
+        self.middle_joint_1_lower = 0.0872665
+        self.middle_joint_1_upper = 0.8
 
-        self.index_joint_0_middle = (self.index_joint_0_lower +
-                                     self.index_joint_0_upper) * 0.5
-        self.middle_joint_0_middle = (self.middle_joint_0_lower +
-                                      self.middle_joint_0_upper) * 0.5
-        self.ring_joint_0_middle = (self.ring_joint_0_lower +
-                                    self.ring_joint_0_upper) * 0.5
-        self.index_joint_1_middle = (self.index_joint_1_lower +
-                                     self.index_joint_1_upper) * 0.5
-        self.middle_joint_1_middle = (self.middle_joint_1_lower +
-                                      self.middle_joint_1_upper) * 0.5
-        self.ring_joint_1_middle = (self.ring_joint_1_lower +
-                                    self.ring_joint_1_upper) * 0.5
+        self.ring_joint_0_lower = -0.261799
+        self.ring_joint_0_upper = 0.261799
+        self.ring_joint_1_lower = 0.0872665
+        self.ring_joint_1_upper = 0.8
+
+        self.little_joint_0_lower = -0.261799
+        self.little_joint_0_upper = 0.261799
+        self.little_joint_1_lower = 0.0872665
+        self.little_joint_1_upper = 0.8
+
+        # Compute the center points of the joint limits
         self.thumb_joint_0_middle = (self.thumb_joint_0_lower +
                                      self.thumb_joint_0_upper) * 0.5
         self.thumb_joint_1_middle = (self.thumb_joint_1_lower +
                                      self.thumb_joint_1_upper) * 0.5
+        self.index_joint_0_middle = (self.index_joint_0_lower +
+                                     self.index_joint_0_upper) * 0.5
+        self.index_joint_1_middle = (self.index_joint_1_lower +
+                                     self.index_joint_1_upper) * 0.5
+        self.middle_joint_0_middle = (self.middle_joint_0_lower +
+                                      self.middle_joint_0_upper) * 0.5
+        self.middle_joint_1_middle = (self.middle_joint_1_lower +
+                                      self.middle_joint_1_upper) * 0.5
+        self.ring_joint_0_middle = (self.ring_joint_0_lower +
+                                    self.ring_joint_0_upper) * 0.5
+        self.ring_joint_1_middle = (self.ring_joint_1_lower +
+                                    self.ring_joint_1_upper) * 0.5
+        self.little_joint_0_middle = (self.little_joint_0_lower +
+                                      self.little_joint_0_upper) * 0.5
+        self.little_joint_1_middle = (self.little_joint_1_lower +
+                                      self.little_joint_1_upper) * 0.5
 
-        self.index_joint_0_range = self.index_joint_0_upper - self.index_joint_0_lower
-        self.middle_joint_0_range = self.middle_joint_0_upper - self.middle_joint_0_lower
-        self.ring_joint_0_range = self.ring_joint_0_upper - self.ring_joint_0_lower
-        self.index_joint_1_range = self.index_joint_1_upper - self.index_joint_1_lower
-        self.middle_joint_1_range = self.middle_joint_1_upper - self.middle_joint_1_lower
-        self.ring_joint_1_range = self.ring_joint_1_upper - self.ring_joint_1_lower
+        # Compute the ranges of the joints
         self.thumb_joint_0_range = self.thumb_joint_0_upper - self.thumb_joint_0_lower
         self.thumb_joint_1_range = self.thumb_joint_1_upper - self.thumb_joint_1_lower
+        self.index_joint_0_range = self.index_joint_0_upper - self.index_joint_0_lower
+        self.index_joint_1_range = self.index_joint_1_upper - self.index_joint_1_lower
+        self.middle_joint_0_range = self.middle_joint_0_upper - self.middle_joint_0_lower
+        self.middle_joint_1_range = self.middle_joint_1_upper - self.middle_joint_1_lower
+        self.ring_joint_0_range = self.ring_joint_0_upper - self.ring_joint_0_lower
+        self.ring_joint_1_range = self.ring_joint_1_upper - self.ring_joint_1_lower
+        self.little_joint_0_range = self.little_joint_0_upper - self.little_joint_0_lower
+        self.little_joint_1_range = self.little_joint_1_upper - self.little_joint_1_lower
 
-        self.first_joint_lower_limit = 0.25
-        self.first_joint_upper_limit = 0.25
-        self.second_joint_lower_limit = 0.5
-        self.second_joint_upper_limit = 0.  #-0.1
+        # If these are set to 0.5 they don't affect the end-result. If they are smaller than 0.5 they decreae the joint sample range
+        # The uncommented values are the ones from the original UTAH code
+        self.thumb_1st_joint_lower_limit = 0.5  #-0.5
+        self.thumb_1st_joint_upper_limit = 0.5  #0.5
+        self.thumb_2nd_joint_lower_limit = 0.5  #0.25
+        self.thumb_2nd_joint_upper_limit = 0.5  #0.25
 
-        self.thumb_1st_joint_lower_limit = -0.5
-        self.thumb_1st_joint_upper_limit = 0.5
-        self.thumb_2nd_joint_lower_limit = 0.25
-        self.thumb_2nd_joint_upper_limit = 0.25
+        #
+        self.first_joint_lower_limit = 0.5  #0.25
+        self.first_joint_upper_limit = 0.5  #0.25
+        self.second_joint_lower_limit = 0.5  #0.5
+        self.second_joint_upper_limit = 0.5  #0.  #-0.1
 
-        self.index_joint_0_sample_lower = self.index_joint_0_middle - self.first_joint_lower_limit * self.index_joint_0_range
-        self.index_joint_0_sample_upper = self.index_joint_0_middle + self.first_joint_upper_limit * self.index_joint_0_range
-        self.middle_joint_0_sample_lower = self.middle_joint_0_middle - self.first_joint_lower_limit * self.middle_joint_0_range
-        self.middle_joint_0_sample_upper = self.middle_joint_0_middle + self.first_joint_upper_limit * self.middle_joint_0_range
-        self.ring_joint_0_sample_lower = self.ring_joint_0_middle - self.first_joint_lower_limit * self.ring_joint_0_range
-        self.ring_joint_0_sample_upper = self.ring_joint_0_middle + self.first_joint_upper_limit * self.ring_joint_0_range
-
-        self.index_joint_1_sample_lower = self.index_joint_1_middle - self.second_joint_lower_limit * self.index_joint_1_range
-        self.index_joint_1_sample_upper = self.index_joint_1_middle + self.second_joint_upper_limit * self.index_joint_1_range
-        self.middle_joint_1_sample_lower = self.middle_joint_1_middle - self.second_joint_lower_limit * self.middle_joint_1_range
-        self.middle_joint_1_sample_upper = self.middle_joint_1_middle + self.second_joint_upper_limit * self.middle_joint_1_range
-        self.ring_joint_1_sample_lower = self.ring_joint_1_middle - self.second_joint_lower_limit * self.ring_joint_1_range
-        self.ring_joint_1_sample_upper = self.ring_joint_1_middle + self.second_joint_upper_limit * self.ring_joint_1_range
-
+        # Sample ranges
         self.thumb_joint_0_sample_lower = self.thumb_joint_0_middle - self.thumb_1st_joint_lower_limit * self.thumb_joint_0_range
         self.thumb_joint_0_sample_upper = self.thumb_joint_0_middle + self.thumb_1st_joint_upper_limit * self.thumb_joint_0_range
         self.thumb_joint_1_sample_lower = self.thumb_joint_1_middle - self.thumb_2nd_joint_lower_limit * self.thumb_joint_1_range
         self.thumb_joint_1_sample_upper = self.thumb_joint_1_middle + self.thumb_2nd_joint_upper_limit * self.thumb_joint_1_range
 
+        self.index_joint_0_sample_lower = self.index_joint_0_middle - self.first_joint_lower_limit * self.index_joint_0_range
+        self.index_joint_0_sample_upper = self.index_joint_0_middle + self.first_joint_upper_limit * self.index_joint_0_range
+        self.index_joint_1_sample_lower = self.index_joint_1_middle - self.second_joint_lower_limit * self.index_joint_1_range
+        self.index_joint_1_sample_upper = self.index_joint_1_middle + self.second_joint_upper_limit * self.index_joint_1_range
 
+        self.middle_joint_0_sample_lower = self.middle_joint_0_middle - self.first_joint_lower_limit * self.middle_joint_0_range
+        self.middle_joint_0_sample_upper = self.middle_joint_0_middle + self.first_joint_upper_limit * self.middle_joint_0_range
+        self.middle_joint_1_sample_lower = self.middle_joint_1_middle - self.second_joint_lower_limit * self.middle_joint_1_range
+        self.middle_joint_1_sample_upper = self.middle_joint_1_middle + self.second_joint_upper_limit * self.middle_joint_1_range
+
+        self.ring_joint_0_sample_lower = self.ring_joint_0_middle - self.first_joint_lower_limit * self.ring_joint_0_range
+        self.ring_joint_0_sample_upper = self.ring_joint_0_middle + self.first_joint_upper_limit * self.ring_joint_0_range
+        self.ring_joint_1_sample_lower = self.ring_joint_1_middle - self.second_joint_lower_limit * self.ring_joint_1_range
+        self.ring_joint_1_sample_upper = self.ring_joint_1_middle + self.second_joint_upper_limit * self.ring_joint_1_range
+
+        self.little_joint_0_sample_lower = self.little_joint_0_middle - self.first_joint_lower_limit * self.little_joint_0_range
+        self.little_joint_0_sample_upper = self.little_joint_0_middle + self.first_joint_upper_limit * self.little_joint_0_range
+        self.little_joint_1_sample_lower = self.little_joint_1_middle - self.second_joint_lower_limit * self.little_joint_1_range
+        self.little_joint_1_sample_upper = self.little_joint_1_middle + self.second_joint_upper_limit * self.little_joint_1_range
+
+    def sample_hithand_preshape_joint_state(self):
+        """ Sample a random preshape for the hand joints within the desired joint limits (setup by self.setup_joint_angle_limits)
+        """
+        hithand_joint_state = JointState()
+        hithand_joint_state.name = [
+            'Right_Index_0', 'Right_Index_1', 'Right_Index_2', 'Right_Index_3',
+            'Right_Little_0', 'Right_Little_1', 'Right_Little_2',
+            'Right_Little_3', 'Right_Middle_0', 'Right_Middle_1',
+            'Right_Middle_2', 'Right_Middle_3', 'Right_Ring_0', 'Right_Ring_1',
+            'Right_Ring_2', 'Right_Ring_3', 'Right_Thumb_0', 'Right_Thumb_1',
+            'Right_Thumb_2', 'Right_Thumb_3'
+        ]
+        js_position = np.zeros(20)
+        js_position[0] = np.random.uniform(self.index_joint_0_sample_lower,
+                                           self.index_joint_0_sample_upper)
+        js_position[1] = np.random.uniform(self.index_joint_1_sample_lower,
+                                           self.index_joint_1_sample_upper)
+        js_position[4] = np.random.uniform(self.little_joint_0_sample_lower,
+                                           self.little_joint_0_sample_upper)
+        js_position[5] = np.random.uniform(self.little_joint_1_sample_lower,
+                                           self.little_joint_1_sample_upper)
+        js_position[8] = np.random.uniform(self.middle_joint_0_sample_lower,
+                                           self.middle_joint_0_sample_upper)
+        js_position[9] = np.random.uniform(self.middle_joint_1_sample_lower,
+                                           self.middle_joint_1_sample_upper)
+        js_position[12] = np.random.uniform(self.ring_joint_0_sample_lower,
+                                            self.ring_joint_0_sample_upper)
+        js_position[13] = np.random.uniform(self.ring_joint_1_sample_lower,
+                                            self.ring_joint_1_sample_upper)
+        js_position[16] = np.random.uniform(self.thumb_joint_0_sample_lower,
+                                            self.thumb_joint_0_sample_upper)
+        js_position[17] = np.random.uniform(self.thumb_joint_1_sample_lower,
+                                            self.thumb_joint_1_sample_upper)
+        hithand_joint_state.position = js_position.tolist()
+        rospy.loginfo('Random joint states of the hithand preshape: %s' %
+                      str(hithand_joint_state.position))
+        return hithand_joint_state
 
     def sample_uniformly_around_preshape_palm_pose(self, frame_id):
         ''' Get a random palm pose by sampling around the preshape palm pose
@@ -463,7 +524,8 @@ class GenerateHithandPreshape():
                     palm_pose_world.header.frame_id)
                 response.palm_goal_pose_world.append(sampled_palm_pose)
                 # Sample remaining joint values
-                hithant_joint_state = self.
+                hithand_joint_state = self.sample_hithand_preshape_joint_state(
+                )
 
     def generate_grasp_preshape(self):
         res = GraspPreshapeResponse()
