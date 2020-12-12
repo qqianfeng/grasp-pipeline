@@ -125,6 +125,87 @@ class GenerateHithandPreshape():
         self.segmented_object_normals = np.asarray(
             segmented_object_pcd.normals)
 
+    def setup_joint_angle_limits(self):
+        '''
+        Initializes a number of constants determing the joint limits for allegro
+        TODO: Automate this by using a URDF file and allow hand to be specified at launch
+        '''
+        self.index_joint_0_lower = -0.59
+        self.index_joint_0_upper = 0.57
+        self.middle_joint_0_lower = -0.59
+        self.middle_joint_0_upper = 0.57
+        self.ring_joint_0_lower = -0.59
+        self.ring_joint_0_upper = 0.57
+
+        self.index_joint_1_lower = -0.296
+        self.index_joint_1_upper = 0.71
+        self.middle_joint_1_lower = -0.296
+        self.middle_joint_1_upper = 0.71
+        self.ring_joint_1_lower = -0.296
+        self.ring_joint_1_upper = 0.71
+
+        self.thumb_joint_0_lower = 0.363
+        self.thumb_joint_0_upper = 1.55
+        self.thumb_joint_1_lower = -0.205
+        self.thumb_joint_1_upper = 1.263
+
+        self.index_joint_0_middle = (self.index_joint_0_lower +
+                                     self.index_joint_0_upper) * 0.5
+        self.middle_joint_0_middle = (self.middle_joint_0_lower +
+                                      self.middle_joint_0_upper) * 0.5
+        self.ring_joint_0_middle = (self.ring_joint_0_lower +
+                                    self.ring_joint_0_upper) * 0.5
+        self.index_joint_1_middle = (self.index_joint_1_lower +
+                                     self.index_joint_1_upper) * 0.5
+        self.middle_joint_1_middle = (self.middle_joint_1_lower +
+                                      self.middle_joint_1_upper) * 0.5
+        self.ring_joint_1_middle = (self.ring_joint_1_lower +
+                                    self.ring_joint_1_upper) * 0.5
+        self.thumb_joint_0_middle = (self.thumb_joint_0_lower +
+                                     self.thumb_joint_0_upper) * 0.5
+        self.thumb_joint_1_middle = (self.thumb_joint_1_lower +
+                                     self.thumb_joint_1_upper) * 0.5
+
+        self.index_joint_0_range = self.index_joint_0_upper - self.index_joint_0_lower
+        self.middle_joint_0_range = self.middle_joint_0_upper - self.middle_joint_0_lower
+        self.ring_joint_0_range = self.ring_joint_0_upper - self.ring_joint_0_lower
+        self.index_joint_1_range = self.index_joint_1_upper - self.index_joint_1_lower
+        self.middle_joint_1_range = self.middle_joint_1_upper - self.middle_joint_1_lower
+        self.ring_joint_1_range = self.ring_joint_1_upper - self.ring_joint_1_lower
+        self.thumb_joint_0_range = self.thumb_joint_0_upper - self.thumb_joint_0_lower
+        self.thumb_joint_1_range = self.thumb_joint_1_upper - self.thumb_joint_1_lower
+
+        self.first_joint_lower_limit = 0.25
+        self.first_joint_upper_limit = 0.25
+        self.second_joint_lower_limit = 0.5
+        self.second_joint_upper_limit = 0.  #-0.1
+
+        self.thumb_1st_joint_lower_limit = -0.5
+        self.thumb_1st_joint_upper_limit = 0.5
+        self.thumb_2nd_joint_lower_limit = 0.25
+        self.thumb_2nd_joint_upper_limit = 0.25
+
+        self.index_joint_0_sample_lower = self.index_joint_0_middle - self.first_joint_lower_limit * self.index_joint_0_range
+        self.index_joint_0_sample_upper = self.index_joint_0_middle + self.first_joint_upper_limit * self.index_joint_0_range
+        self.middle_joint_0_sample_lower = self.middle_joint_0_middle - self.first_joint_lower_limit * self.middle_joint_0_range
+        self.middle_joint_0_sample_upper = self.middle_joint_0_middle + self.first_joint_upper_limit * self.middle_joint_0_range
+        self.ring_joint_0_sample_lower = self.ring_joint_0_middle - self.first_joint_lower_limit * self.ring_joint_0_range
+        self.ring_joint_0_sample_upper = self.ring_joint_0_middle + self.first_joint_upper_limit * self.ring_joint_0_range
+
+        self.index_joint_1_sample_lower = self.index_joint_1_middle - self.second_joint_lower_limit * self.index_joint_1_range
+        self.index_joint_1_sample_upper = self.index_joint_1_middle + self.second_joint_upper_limit * self.index_joint_1_range
+        self.middle_joint_1_sample_lower = self.middle_joint_1_middle - self.second_joint_lower_limit * self.middle_joint_1_range
+        self.middle_joint_1_sample_upper = self.middle_joint_1_middle + self.second_joint_upper_limit * self.middle_joint_1_range
+        self.ring_joint_1_sample_lower = self.ring_joint_1_middle - self.second_joint_lower_limit * self.ring_joint_1_range
+        self.ring_joint_1_sample_upper = self.ring_joint_1_middle + self.second_joint_upper_limit * self.ring_joint_1_range
+
+        self.thumb_joint_0_sample_lower = self.thumb_joint_0_middle - self.thumb_1st_joint_lower_limit * self.thumb_joint_0_range
+        self.thumb_joint_0_sample_upper = self.thumb_joint_0_middle + self.thumb_1st_joint_upper_limit * self.thumb_joint_0_range
+        self.thumb_joint_1_sample_lower = self.thumb_joint_1_middle - self.thumb_2nd_joint_lower_limit * self.thumb_joint_1_range
+        self.thumb_joint_1_sample_upper = self.thumb_joint_1_middle + self.thumb_2nd_joint_upper_limit * self.thumb_joint_1_range
+
+
+
     def sample_uniformly_around_preshape_palm_pose(self, frame_id):
         ''' Get a random palm pose by sampling around the preshape palm pose
         for sampling grasp detection. 
@@ -363,10 +444,10 @@ class GenerateHithandPreshape():
 
         return faces_world_frame
 
-    def sample_grasp_preshape(self, req):
+    def sample_grasp_preshape(self):
         """ Grasp preshape service callback for sampling Hithand grasp preshapes.
         """
-        res = GraspPreshapeResponse()
+        response = GraspPreshapeResponse()
         # Compute bounding box faces
         bounding_box_faces = self.get_axis_aligned_bounding_box_faces()
         self.palm_goal_pose_world = []
@@ -380,8 +461,11 @@ class GenerateHithandPreshape():
             for j in xrange(self.num_samples_per_preshape):
                 sampled_palm_pose = self.sample_uniformly_around_preshape_palm_pose(
                     palm_pose_world.header.frame_id)
+                response.palm_goal_pose_world.append(sampled_palm_pose)
+                # Sample remaining joint values
+                hithant_joint_state = self.
 
-    def generate_grasp_preshape(self, req):
+    def generate_grasp_preshape(self):
         res = GraspPreshapeResponse()
         return res
 
@@ -391,9 +475,9 @@ class GenerateHithandPreshape():
         self.update_object_information(
         )  # Get new information on segmented object from rostopics/disk and store in instance attributes
         if req.sample:
-            return self.sample_grasp_preshape(req)
+            return self.sample_grasp_preshape()
         else:
-            return self.generate_grasp_preshape(req)
+            return self.generate_grasp_preshape()
 
     def create_hithand_preshape_server(self):
         rospy.Service('generate_hithand_preshape_service', GraspPreshape,
@@ -404,7 +488,7 @@ class GenerateHithandPreshape():
 
 if __name__ == '__main__':
     ghp = GenerateHithandPreshape()
-    #ghp.create_hithand_preshape_server()
-    ghp.get_axis_aligned_bounding_box_faces_and_center()
+    ghp.create_hithand_preshape_server()
+    #ghp.get_axis_aligned_bounding_box_faces()
 
     rospy.spin()

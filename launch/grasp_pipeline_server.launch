@@ -20,7 +20,7 @@
         <param name="sim" type="bool" value="$(arg sim)"/>
     </node>
 
-   <!-- !!!!!!!!!!!!!!!!!!!GENERATE GRASP PRESHAPE SERVER ?! KINDA DIFFICULT/ELABORATE/SOMETHING FOR LATER!!!!!!!!!!!!! /-->
+   <!-- Grasp preshape /-->
     <node name="generate_hithand_preshape_server_node" pkg="grasp_pipeline" 
         type="generate_hithand_preshape_server.py" output="screen">
       <param name="palm_dist_to_top_face_mean"   value="0.1"   type="double"/>
