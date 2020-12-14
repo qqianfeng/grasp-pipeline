@@ -8,28 +8,13 @@ import tf.transformations as tft
 from std_msgs.msg import Float32MultiArray
 from geometry_msgs.msg import PointStamped, PoseStamped
 from visualization_msgs.msg import Marker, MarkerArray
+from sensor_msgs.msg import JointState
 
 import numpy as np
 import copy
 import open3d as o3d
 
-
-
 DEBUG = True
-
-if DEBUG:
-    object_bounding_box_corner_points = np.array(
-        [[0.73576546, -0.05682119, 0.01387128],
-         [0.83193374, -0.05682119, 0.01387128],
-         [0.73576546, -0.01262708, 0.01387128],
-         [0.73576546, -0.05682119, 0.19168445],
-         [0.83193374, -0.01262708, 0.19168445],
-         [0.73576546, -0.01262708, 0.19168445],
-         [0.83193374, -0.05682119, 0.19168445],
-         [0.83193374, -0.01262708, 0.01387128]])
-    obbcp = object_bounding_box_corner_points
-    bbp1, bbp2, bbp3, bbp4 = obbcp[0, :], obbcp[1, :], obbcp[2, :], obbcp[3, :]
-    bbp5, bbp6, bbp7, bbp8 = obbcp[4, :], obbcp[5, :], obbcp[6, :], obbcp[7, :]
 
 
 class BoundingBoxFace():
@@ -58,29 +43,35 @@ class GenerateHithandPreshape():
     """
     def __init__(self):
         # Init node and publishers
-        rospy.init_node("generate_hithand_preshape_node")
-        self.service_is_called = False
-        self.bounding_box_center_pub = rospy.Publisher('/publish_box_points',
-                                        MarkerArray,
-                                        queue_size=1) # publishes the bounding box center points
-        self.tf_broadcaster_palm_poses = tf.TransformBroadcaster()
-        # Get parameters from the ROS parameter server
-        self.min_object_height = rospy.get_param(
-            '~min_object_height')  # object must be at least 5cm tall in order for side grasps to have a chance
-        self.palm_dist_to_top_face_mean = rospy.get_param(
-            '~palm_dist_to_top_face_mean')
-        self.palm_dist_to_side_face_mean = rospy.get_param(
-            '~palm_dist_to_side_face_mean')
-        self.palm_dist_normal_to_obj_var = rospy.get_param(
-            '~palm_dist_normal_to_obj_var')  # Determines how much variance is in the sampled palm distance in the normal direction
-        self.palm_position_3D_sample_var = rospy.get_param(
-            '~palm_position_3D_sample_var')  # Some extra noise on the samples 3D palm position
-        self.wrist_roll_orientation_var = rospy.get_param(
-            '~wrist_roll_orientation_var')  # Some extra noise on the samples 3D palm position
+        if not DEBUG:
+            rospy.init_node("generate_hithand_preshape_node")
+            self.service_is_called = False
+            self.bounding_box_center_pub = rospy.Publisher(
+                '/publish_box_points', MarkerArray,
+                queue_size=1)  # publishes the bounding box center points
+            self.tf_broadcaster_palm_poses = tf.TransformBroadcaster()
+            # Get parameters from the ROS parameter server
+            self.min_object_height = rospy.get_param(
+                '~min_object_height'
+            )  # object must be at least 5cm tall in order for side grasps to have a chance
+            self.palm_dist_to_top_face_mean = rospy.get_param(
+                '~palm_dist_to_top_face_mean')
+            self.palm_dist_to_side_face_mean = rospy.get_param(
+                '~palm_dist_to_side_face_mean')
+            self.palm_dist_normal_to_obj_var = rospy.get_param(
+                '~palm_dist_normal_to_obj_var'
+            )  # Determines how much variance is in the sampled palm distance in the normal direction
+            self.palm_position_3D_sample_var = rospy.get_param(
+                '~palm_position_3D_sample_var'
+            )  # Some extra noise on the samples 3D palm position
+            self.wrist_roll_orientation_var = rospy.get_param(
+                '~wrist_roll_orientation_var'
+            )  # Some extra noise on the samples 3D palm position
         self.use_bb_orient_to_determine_wrist_roll = True
 
         # Initialize object related instance variables
-                self.segmented_object_points = None
+        self.segmented_object_pcd = None
+        self.segmented_object_points = None
         self.segmented_object_normals = None
         self.object_size = None
         self.bounding_box_center = None
@@ -89,7 +80,7 @@ class GenerateHithandPreshape():
         self.bbp5, self.bbp6, self.bbp7, self.bbp8 = 4 * [None]
 
         # This stores the 6D palm pose in the world
-        self.palm_goal_pose_world = [] 
+        self.palm_goal_pose_world = []
 
         self.palm_pose_lower_limit = None
         self.palm_pose_upper_limit = None
@@ -232,28 +223,28 @@ class GenerateHithandPreshape():
         if self.service_is_called:
             # Publish the palm goal tf
             for i, palm_pose_world in enumerate(self.palm_goal_pose_world):
-                self.tf_broadcaster_palm_poses.sendTransform((palm_pose_world.pose.position.x,
-                                          palm_pose_world.pose.position.y,
-                                          palm_pose_world.pose.position.z),
-                                         (palm_pose_world.pose.orientation.x,
-                                          palm_pose_world.pose.orientation.y,
-                                          palm_pose_world.pose.orientation.z,
-                                          palm_pose_world.pose.orientation.w),
-                                         rospy.Time.now(), 'heu_' + str(i),
-                                         palm_pose_world.header.frame_id)
+                self.tf_broadcaster_palm_poses.sendTransform(
+                    (palm_pose_world.pose.position.x,
+                     palm_pose_world.pose.position.y,
+                     palm_pose_world.pose.position.z),
+                    (palm_pose_world.pose.orientation.x,
+                     palm_pose_world.pose.orientation.y,
+                     palm_pose_world.pose.orientation.z,
+                     palm_pose_world.pose.orientation.w), rospy.Time.now(),
+                    'heu_' + str(i), palm_pose_world.header.frame_id)
 
             # Broadcast experiment grasp poses
-            if self.exp_palm_pose is not None:
-                for i, exp_pose in enumerate(self.exp_palm_pose):
-                    self.tf_broadcaster_palm_poses.sendTransform(
-                        (exp_pose.pose.position.x, exp_pose.pose.position.y,
-                         exp_pose.pose.position.z),
-                        (exp_pose.pose.orientation.x,
-                         exp_pose.pose.orientation.y,
-                         exp_pose.pose.orientation.z,
-                         exp_pose.pose.orientation.w), rospy.Time.now(),
-                        'exp_' + str(i), exp_pose.header.frame_id)
-                        
+            # if self.exp_palm_pose is not None:
+            #     for i, exp_pose in enumerate(self.exp_palm_pose):
+            #         self.tf_broadcaster_palm_poses.sendTransform(
+            #             (exp_pose.pose.position.x, exp_pose.pose.position.y,
+            #              exp_pose.pose.position.z),
+            #             (exp_pose.pose.orientation.x,
+            #              exp_pose.pose.orientation.y,
+            #              exp_pose.pose.orientation.z,
+            #              exp_pose.pose.orientation.w), rospy.Time.now(),
+            #             'exp_' + str(i), exp_pose.header.frame_id)
+
     def publish_points(self, points_stamped, color=(1., 0., 0.)):
         markerArray = MarkerArray()
         for i, pnt in enumerate(points_stamped):
@@ -333,7 +324,10 @@ class GenerateHithandPreshape():
         palm_quaternion = tft.quaternion_from_euler(palm_euler[0],
                                                     palm_euler[1],
                                                     palm_euler[2])
-        sample_palm_pose.pose.orientation = palm_quaternion
+        sample_palm_pose.pose.orientation.x = palm_quaternion[0]
+        sample_palm_pose.pose.orientation.y = palm_quaternion[1]
+        sample_palm_pose.pose.orientation.z = palm_quaternion[2]
+        sample_palm_pose.pose.orientation.w = palm_quaternion[3]
 
         return sample_palm_pose
 
@@ -365,7 +359,7 @@ class GenerateHithandPreshape():
         rospy.loginfo('Grasp orientation = ' + str(quaternion))
         return quaternion
 
-    def find_palm_pose_from_bounding_box_centers(self, bounding_box_face):
+    def find_palm_pose_from_bounding_box_center(self, bounding_box_face):
         """ Finds the object point cloud's point closest to the center of a given bounding box face
         and generates a Hithand palm pose given the closest point's surface normal. For top faces the normal is not taken from the object pointcloud but computed as the distance between bounding box center and top face center
         """
@@ -441,9 +435,14 @@ class GenerateHithandPreshape():
         # Put this into a Stamped Pose for publishing
         palm_pose = PoseStamped()
         palm_pose.header.frame_id = 'world'
-        palm_pose.header.stamp = rospy.Time.now()
-        palm_pose.pose.position = palm_position
-        palm_pose.pose.orientation = palm_orientation_quat
+        palm_pose.header.stamp = rospy.Time.now() if not DEBUG else None
+        palm_pose.pose.position.x = palm_position[0]
+        palm_pose.pose.position.y = palm_position[1]
+        palm_pose.pose.position.z = palm_position[2]
+        palm_pose.pose.orientation.x = palm_orientation_quat[0]
+        palm_pose.pose.orientation.y = palm_orientation_quat[1]
+        palm_pose.pose.orientation.z = palm_orientation_quat[2]
+        palm_pose.pose.orientation.w = palm_orientation_quat[3]
         rospy.loginfo('Chosen palm position is ' +
                       str(palm_pose.pose.position))
         return palm_pose
@@ -516,11 +515,14 @@ class GenerateHithandPreshape():
             center_stamped_world.point.z = face.center[2]
             face_centers_world_frame.append(
                 copy.deepcopy(center_stamped_world))
-        self.publish_points(face_centers_world_frame)        
+        if not DEBUG: self.publish_points(face_centers_world_frame)
 
         # If the object is too short, only select top grasps.
         rospy.loginfo('##########################')
         rospy.loginfo('Obj_height: %s' % size_z)
+        if DEBUG:
+            points_array = np.array([bb.center for bb in faces_world_frame])
+            #self.visualize(points_array)
         if size_z < self.min_object_height:
             rospy.loginfo('Object is short, only use top grasps!')
             return [faces_world_frame[0]]
@@ -561,17 +563,47 @@ class GenerateHithandPreshape():
         self.segmented_object_normals = np.asarray(
             segmented_object_pcd.normals)
 
+    def visualize(self, points):
+        pcd_vis = o3d.geometry.PointCloud()
+        pcd_vis.points = o3d.utility.Vector3dVector(points)
+        pcd_vis.paint_uniform_color([1, 0, 0])
+        origin = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1)
+        bb = self.segmented_object_pcd.get_axis_aligned_bounding_box()
+        bb.color = (0, 1, 0)
+
+        #o3d.visualization.draw_geometries(
+        #    [origin, bb, self.segmented_object_pcd, pcd_vis])
+
+        vis = o3d.visualization.Visualizer()
+        vis.create_window()
+        vis.add_geometry(origin)
+        vis.add_geometry(bb)
+        vis.add_geometry(self.segmented_object_pcd)
+        vis.add_geometry(pcd_vis)
+        vis.get_render_option().load_from_json("save.json")
+        vis.run()
+        #vis.get_render_option().save_to_json("save.json")
+        print('Done')
+
     def sample_grasp_preshape(self):
         """ Grasp preshape service callback for sampling Hithand grasp preshapes.
         """
         response = GraspPreshapeResponse()
         # Compute bounding box faces
-        bounding_box_faces = self.get_axis_aligned_bounding_box_faces()
+        bounding_box_faces = self.get_axis_aligned_bounding_box_faces(
+        )  # Tested, seems to work fine (visualized)
         self.palm_goal_pose_world = []
         for i in xrange(len(bounding_box_faces)):
             # Get the desired palm pose given the point from the bounding box
-            palm_pose_world = self.find_palm_pose_from_bounding_box_centers(
-                bounding_box_faces)
+            palm_pose_world = self.find_palm_pose_from_bounding_box_center(
+                bounding_box_faces[i]
+            )  # Tested, seems to work fine, only visualized position
+            if DEBUG:
+                point = np.zeros([3, 2])
+                point[0, 1] = palm_pose_world.pose.position.x
+                point[1, 1] = palm_pose_world.pose.position.y
+                point[2, 1] = palm_pose_world.pose.position.z
+                self.visualize(point.T)
             self.palm_goal_pose_world.append(palm_pose_world)
 
             self.set_palm_rand_pose_limits(palm_pose_world)
@@ -613,9 +645,42 @@ class GenerateHithandPreshape():
 
 if __name__ == '__main__':
     ghp = GenerateHithandPreshape()
+    if DEBUG:
+        ghp.object_bounding_box_corner_points = np.array(
+            [[0.73576546, -0.05682119, 0.01387128],
+             [0.83193374, -0.05682119, 0.01387128],
+             [0.73576546, -0.01262708, 0.01387128],
+             [0.73576546, -0.05682119, 0.19168445],
+             [0.83193374, -0.01262708, 0.19168445],
+             [0.73576546, -0.01262708, 0.19168445],
+             [0.83193374, -0.05682119, 0.19168445],
+             [0.83193374, -0.01262708, 0.01387128]])
+        obbcp = ghp.object_bounding_box_corner_points
+        ghp.bbp1, ghp.bbp2, ghp.bbp3, ghp.bbp4 = obbcp[0, :], obbcp[
+            1, :], obbcp[2, :], obbcp[3, :]
+        ghp.bbp5, ghp.bbp6, ghp.bbp7, ghp.bbp8 = obbcp[4, :], obbcp[
+            5, :], obbcp[6, :], obbcp[7, :]
+        ghp.bounding_box_center = np.array(0.5 * (ghp.bbp1 + ghp.bbp5))
+
+        ghp.object_size = [0.2, 0.2, 0.2]
+        ghp.min_object_height = 0.03
+        ghp.palm_dist_to_top_face_mean = 0.1
+        ghp.palm_dist_to_side_face_mean = 0.07
+        ghp.palm_dist_normal_to_obj_var = 0.03
+        ghp.palm_position_3D_sample_var = 0.005
+        ghp.wrist_roll_orientation_var = 0.005
+
+        ghp.segmented_object_pcd = o3d.io.read_point_cloud(
+            '/home/vm/object.pcd')
+        ghp.segmented_object_points = np.asarray(
+            ghp.segmented_object_pcd.points)
+        ghp.segmented_object_normals = np.asarray(
+            ghp.segmented_object_pcd.normals)
+
+        ghp.sample_grasp_preshape()
+
     ghp.create_hithand_preshape_server()
-    #ghp.get_axis_aligned_bounding_box_faces()
     rate = rospy.Rate(100)
     while not rospy.is_shutdown():
-        ghp.broadcast_palm_and_obj()
+        ghp.broadcast_palm_poses()
         rate.sleep()
