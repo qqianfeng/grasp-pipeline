@@ -14,7 +14,7 @@ import numpy as np
 import copy
 import open3d as o3d
 
-DEBUG = True
+DEBUG = False
 
 
 class BoundingBoxFace():
@@ -52,20 +52,22 @@ class GenerateHithandPreshape():
             self.tf_broadcaster_palm_poses = tf.TransformBroadcaster()
             # Get parameters from the ROS parameter server
             self.min_object_height = rospy.get_param(
-                '~min_object_height'
+                'generate_hithand_preshape_server_node/min_object_height'
             )  # object must be at least 5cm tall in order for side grasps to have a chance
             self.palm_dist_to_top_face_mean = rospy.get_param(
-                '~palm_dist_to_top_face_mean')
+                'generate_hithand_preshape_server_node/palm_dist_to_top_face_mean'
+            )
             self.palm_dist_to_side_face_mean = rospy.get_param(
-                '~palm_dist_to_side_face_mean')
+                'generate_hithand_preshape_server_node/palm_dist_to_side_face_mean'
+            )
             self.palm_dist_normal_to_obj_var = rospy.get_param(
-                '~palm_dist_normal_to_obj_var'
+                'generate_hithand_preshape_server_node/palm_dist_normal_to_obj_var'
             )  # Determines how much variance is in the sampled palm distance in the normal direction
             self.palm_position_3D_sample_var = rospy.get_param(
-                '~palm_position_3D_sample_var'
+                'generate_hithand_preshape_server_node/palm_position_3D_sample_var'
             )  # Some extra noise on the samples 3D palm position
             self.wrist_roll_orientation_var = rospy.get_param(
-                '~wrist_roll_orientation_var'
+                'generate_hithand_preshape_server_node/wrist_roll_orientation_var'
             )  # Some extra noise on the samples 3D palm position
         self.use_bb_orient_to_determine_wrist_roll = True
 
@@ -607,17 +609,22 @@ class GenerateHithandPreshape():
             self.palm_goal_pose_world.append(palm_pose_world)
 
             self.set_palm_rand_pose_limits(palm_pose_world)
+            if DEBUG: point = np.zeros([3, self.num_samples_per_preshape])
+
             for j in xrange(self.num_samples_per_preshape):
                 sampled_palm_pose = self.sample_uniformly_around_preshape_palm_pose(
                     palm_pose_world.header.frame_id)
                 response.palm_goal_pose_world.append(sampled_palm_pose)
+                if DEBUG:
+                    point[0, j] = sampled_palm_pose.pose.position.x
+                    point[1, j] = sampled_palm_pose.pose.position.y
+                    point[2, j] = sampled_palm_pose.pose.position.z
                 # Sample remaining joint values
                 hithand_joint_state = self.sample_hithand_preshape_joint_state(
                 )
                 response.hithand_joint_state.append(hithand_joint_state)
                 response.is_top_grasp.append(bounding_box_faces[i].is_top)
-        # HIER NOCH IRGENDWAS MIT DER OBJECT POSE
-        rospy.logerr('ERROR MAN DIE OBJECT POSE MUSS NOCH GEPUBLISHED WERDEN')
+            self.visualize(point.T)
         self.service_is_called = True
 
         return response
@@ -669,6 +676,7 @@ if __name__ == '__main__':
         ghp.palm_dist_normal_to_obj_var = 0.03
         ghp.palm_position_3D_sample_var = 0.005
         ghp.wrist_roll_orientation_var = 0.005
+        ghp.num_samples_per_preshape = 5
 
         ghp.segmented_object_pcd = o3d.io.read_point_cloud(
             '/home/vm/object.pcd')

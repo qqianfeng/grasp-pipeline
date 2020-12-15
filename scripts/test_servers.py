@@ -152,6 +152,18 @@ class ServerUnitTester():
         result = 'SUCCEEDED' if res else 'FAILED'
         print(result)
 
+    def test_generate_hithand_preshape_server(self):
+        self.test_count = +1
+        print('Running test_generate_hithand_preshape_server, test number %d' %
+              self.test_count)
+        generate_hithand_preshape = rospy.ServiceProxy(
+            'generate_hithand_preshape_server', GraspPreshape)
+        req = GraspPreshapeRequest()
+        req.sample = True
+        res = generate_hithand_preshape(req)
+        print('Res')
+        ## Check what else should be happening here, what should be published etc and try to visualize it
+
 
 if __name__ == '__main__':
     # +++ Define variables for testing +++
@@ -183,8 +195,8 @@ if __name__ == '__main__':
     #    object_name, object_pose_array, object_model_name, dataset, model_type)
 
     # Test visual data save server
-    sut.test_save_visual_data_server(pc_save_path, depth_save_path,
-                                     color_save_path)
+    # sut.test_save_visual_data_server(pc_save_path, depth_save_path,
+    #                                  color_save_path)
 
     # Test display saved point cloud
     # sut.test_display_saved_point_cloud(pc_save_path)
@@ -199,4 +211,7 @@ if __name__ == '__main__':
     # sut.test_control_hithand_config_server(hithand_joint_states)
 
     # Test table object segmentation
-    sut.test_table_object_segmentation_server()
+    # sut.test_table_object_segmentation_server()
+
+    # Test hithand preshape generation server
+    sut.test_generate_hithand_preshape_server()
