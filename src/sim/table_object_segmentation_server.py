@@ -1,56 +1,45 @@
-from __future__ import print_function
-import roslibpy
+#!/usr/bin/env python
+import rospy
+from grasp_pipeline.srv import *
 import open3d as o3d
 import os
 import time
 import numpy as np
 from scipy.spatial.transform import Rotation
 import copy
+from std_msgs.msg import Float64MultiArray
+from geometry_msgs.msg import PoseStamped
 
-DEBUG = True
+DEBUG = False
 
 
 class TableObjectSegmenter():
     def __init__(self,
-                 client,
                  scene_point_cloud_path=None,
                  object_point_cloud_path=None):
         if not DEBUG:
-            self.client = client
-            table_object_segmentation_service = roslibpy.Service(
-                client, '/table_object_segmentation_start_server',
-                'std_srvs/SetBool')
-            table_object_segmentation_service.advertise(
-                self.handle_table_object_segmentation)
-            self.object_size_publisher = roslibpy.Topic(
-                client,
-                '/segmented_object_size',
-                'std_msgs/Float32MultiArray',
-                latch=True)
-            self.bounding_box_corner_publisher = roslibpy.Topic(
-                client,
+            rospy.init_node("table_object_segmentation_node")
+            self.object_size_pub = rospy.Publisher('/segmented_object_size',
+                                                   Float64MultiArray,
+                                                   latch=True,
+                                                   queue_size=1)
+            self.bounding_box_corner_pub = rospy.Publisher(
                 '/segmented_object_bounding_box_corner_points',
-                'std_msgs/Float32MultiArray',
-                latch=True)
+                Float64MultiArray,
+                latch=True,
+                queue_size=1)
             # for the camera position in 3D space w.r.t world
-            self.camera_tf_listener = roslibpy.Topic(
-                client, '/camera_color_optical_frame_in_world',
-                'geometry_msgs/PoseStamped')
-            self.camera_tf_listener.subscribe(self.callback_camera_tf)
+            self.camera_tf_listener = rospy.Subscriber(
+                '/camera_color_optical_frame_in_world',
+                PoseStamped,
+                self.callback_camera_tf,
+                queue_size=5)
             # Where to save the object point cloud and where to load it from
-            self.scene_cloud_path_listener = roslibpy.Topic(
-                client, '/scene_point_cloud_path', 'std_msgs/String')
-            self.scene_cloud_path_listener.subscribe(
-                self.callback_scene_cloud_path)
-            self.object_cloud_path_listener = roslibpy.Topic(
-                client, '/object_point_cloud_path', 'std_msgs/String')
-            self.object_cloud_path_listener.subscribe(
-                self.callback_object_cloud_path)
+            self.point_cloud_read_path = rospy.get_param(
+                'scene_point_cloud_path')
+            self.object_point_cloud_save_path = rospy.get_param(
+                'object_point_cloud_path')
 
-        print("Service advertised: /table_object_segmentation_start_server")
-        print(
-            "Publisher for object dimensions and bounding box corner coordinates started"
-        )
         self.bounding_box_corner_points = None
         self.colors = np.array(
             [
@@ -67,9 +56,6 @@ class TableObjectSegmenter():
         )  # this was just to understand the corner numbering logic, point 0 and point 4 in the list are cross diagonal, points 1,2,3 are attached to 0 in right handed sense, same for 5,6,7
         self.world_R_cam = None
         self.world_t_cam = None
-
-        self.object_point_cloud_save_path = object_point_cloud_path
-        self.point_cloud_read_path = scene_point_cloud_path
 
     # +++++++++++++++++ Part I: Helper functions ++++++++++++++++++++++++
     def custom_draw_scene(self, pcd):
@@ -97,15 +83,13 @@ class TableObjectSegmenter():
                            show_normal=False,
                            draw_box=False):
         if bounding_box == None:
-            o3d.visualization.draw_geometries([pcd],
-                                              point_show_normal=show_normal)
+            o3d.visualization.draw_geometries([pcd])
         else:
             boxes = self.construct_nine_box_objects()
             o3d.visualization.draw_geometries([
                 pcd, bounding_box, boxes[0], boxes[1], boxes[2], boxes[3],
                 boxes[4], boxes[5], boxes[6], boxes[7], boxes[8]
-            ],
-                                              point_show_normal=show_normal)
+            ])
 
     def pick_points(self, pcd, bounding_box):
         print("")
@@ -124,34 +108,18 @@ class TableObjectSegmenter():
     # +++++++++++++++++ Part II: Main business logic ++++++++++++++++++++++++
     def callback_camera_tf(self, msg):
         print("Entered callback camera tf")
-        orientation = msg['pose']['orientation']
-        position = msg['pose']['position']
-        quat = np.array([
-            orientation['x'], orientation['y'], orientation['z'],
-            orientation['w']
-        ])
-        rotation_matrix = Rotation(quat=quat).as_matrix()
-        self.camera_tf_listener.unsubscribe()
-        self.world_R_cam = rotation_matrix
-        self.world_t_cam = np.array(
-            [position['x'], position['y'], position['z']])
+        self.camera_tf_listener.unregister()
+        position = msg.pose.position
+        self.world_t_cam = np.array([position.x, position.y, position.z])
+
+        # quat = np.array(
+        #     [orientation.x, orientation.y, orientation.z, orientation.w])
+        # rotation_matrix = Rotation(quat=quat).as_matrix()
+        # self.world_R_cam = rotation_matrix
+        # orientation = msg.pose.orientation
         print("Unsubscribed camera_tf_listener")
 
-    def callback_object_cloud_path(self, msg):
-        print("Entered callback object cloud path")
-        self.object_point_cloud_save_path = msg['data']
-        print("I heard: %s" % msg['data'])
-        self.object_cloud_path_listener.unsubscribe()
-        print("Unsubscribed object_cloud_path_listener")
-
-    def callback_scene_cloud_path(self, msg):
-        print("Entered callback scene cloud path")
-        self.point_cloud_read_path = msg['data']
-        print("I heard: %s" % msg['data'])
-        self.scene_cloud_path_listener.unsubscribe()
-        print("Unsubscribedscene_cloud_path_listener ")
-
-    def handle_table_object_segmentation(self, req, res):
+    def handle_table_object_segmentation(self, req):
         while (self.object_point_cloud_save_path is
                None) or (self.point_cloud_read_path is None):
             print(
@@ -174,7 +142,7 @@ class TableObjectSegmenter():
         _, inliers = down_pcd.segment_plane(distance_threshold=0.01,
                                             ransac_n=3,
                                             num_iterations=30)
-        object_pcd = down_pcd.select_by_index(inliers, invert=True)
+        object_pcd = down_pcd.select_down_sample(inliers, invert=True)
         #print(time.time() - start)
         if DEBUG: self.custom_draw_object(object_pcd)
 
@@ -208,7 +176,7 @@ class TableObjectSegmenter():
         # Could also be sent over a topic
         if os.path.exists(self.object_point_cloud_save_path):
             os.remove(self.object_point_cloud_save_path)
-        o3d.io.write_point_cloud("/home/vm/object.pcd", object_pcd)
+        o3d.io.write_point_cloud(self.object_point_cloud_save_path, object_pcd)
         print(
             "Object.pcd saved successfully with normals oriented towards camera"
         )
@@ -216,37 +184,37 @@ class TableObjectSegmenter():
         # Publish and latch newly computed dimensions and bounding box points
         if not DEBUG:
             print("I will publish the size now:")
-            self.object_size_publisher.publish(
-                roslibpy.Message({'data': np.ndarray.tolist(object_size)}))
+            size_msg = Float64MultiArray()
+            size_msg.data = np.ndarray.tolist(object_size)
+            self.object_size_pub.publish(size_msg)
             print("I will publish the corner points now:")
-            # print(self.bounding_box_corner_points)
-            # self.bounding_box_corner_publisher.publish(
-            #     roslibpy.Message({
-            #         'data':
-            #         np.ndarray.tolist(self.bounding_box_corner_points)
-            #     }))
-            self.bounding_box_corner_publisher.publish(
-                roslibpy.Message({'data': np.ndarray.tolist(object_size)}))
+            print(self.bounding_box_corner_points)
+            corner_msg = Float64MultiArray()
+            corner_msg.data = np.ndarray.tolist(
+                np.ndarray.flatten(self.bounding_box_corner_points))
+            self.bounding_box_corner_pub.publish(corner_msg)
             print("I published them")
 
-        res['success'] = True
+        res = SegmentGraspObjectResponse()
+        res.success = True
 
-        return True
+        return res
+
+    def create_table_object_segmentation_server(self):
+        rospy.Service('table_object_segmentation', SegmentGraspObject,
+                      self.handle_table_object_segmentation)
+        rospy.loginfo('Servicetable_object_segmentation:')
+        rospy.loginfo(
+            'Ready to segment the table from the object point cloud.')
 
 
 if __name__ == "__main__":
-    client = None
-    if not DEBUG:
-        client = roslibpy.Ros(host='localhost', port=9090)
-        tos = TableObjectSegmenter(client)
-
+    tos = TableObjectSegmenter()
+    tos.create_table_object_segmentation_server()
     if DEBUG:
         tos = TableObjectSegmenter(
-            client,
             scene_point_cloud_path='/home/vm/test_cloud.pcd',
             object_point_cloud_path='/home/vm/object.pcd')
+        tos.handle_table_object_segmentation(None)
 
-        tos.handle_table_object_segmentation(None, dict({"success": True}))
-    else:
-        client.run_forever()
-        client.terminate()
+    rospy.spin()

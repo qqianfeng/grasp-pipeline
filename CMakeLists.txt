@@ -34,6 +34,7 @@ add_service_files(
     MoveArm.srv
     PalmGoalPoseWorld.srv
     SaveVisualData.srv
+    SegmentGraspObject.srv
     UpdateObjectGazebo.srv
 )
 

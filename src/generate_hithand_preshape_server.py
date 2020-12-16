@@ -5,7 +5,7 @@ from grasp_pipeline.srv import *
 import tf
 import tf.transformations as tft
 
-from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import Float64MultiArray
 from geometry_msgs.msg import PointStamped, PoseStamped
 from visualization_msgs.msg import Marker, MarkerArray
 from sensor_msgs.msg import JointState
@@ -540,13 +540,14 @@ class GenerateHithandPreshape():
         """
         # Size
         self.object_size = rospy.wait_for_message('/segmented_object_size',
-                                                  Float32MultiArray).data
+                                                  Float64MultiArray).data
         # Bounding box corner points and center
         # The 1. and 5. point of bounding_box_corner points are cross-diagonal
-        self.object_bounding_box_corner_points = np.array(
+        obbcp = np.array(
             rospy.wait_for_message(
                 '/segmented_object_bounding_box_corner_points',
-                Float32MultiArray).data)
+                Float64MultiArray).data)
+        self.object_bounding_box_corner_points = np.reshape(obbcp, (8, 3))
         self.bbp1 = self.object_bounding_box_corner_points[0, :]
         self.bbp2 = self.object_bounding_box_corner_points[1, :]
         self.bbp3 = self.object_bounding_box_corner_points[2, :]
@@ -630,12 +631,13 @@ class GenerateHithandPreshape():
         return response
 
     def generate_grasp_preshape(self):
-        res = GraspPreshapeResponse()
-        return res
+        raise NotImplementedError
 
     def handle_generate_hithand_preshape(self, req):
         """ Handler for the advertised service. Decides whether the hand preshape should be sampled or generated
         """
+        rospy.loginfo(
+            'I received the service call to generate hithand preshapes.')
         self.update_object_information(
         )  # Get new information on segmented object from rostopics/disk and store in instance attributes
         if req.sample:
@@ -676,7 +678,7 @@ if __name__ == '__main__':
         ghp.palm_dist_normal_to_obj_var = 0.03
         ghp.palm_position_3D_sample_var = 0.005
         ghp.wrist_roll_orientation_var = 0.005
-        ghp.num_samples_per_preshape = 5
+        ghp.num_samples_per_preshape = 50
 
         ghp.segmented_object_pcd = o3d.io.read_point_cloud(
             '/home/vm/object.pcd')
@@ -686,6 +688,10 @@ if __name__ == '__main__':
             ghp.segmented_object_pcd.normals)
 
         ghp.sample_grasp_preshape()
+
+    req = GraspPreshapeRequest()
+    req.sample = True
+    ghp.handle_generate_hithand_preshape(req)
 
     ghp.create_hithand_preshape_server()
     rate = rospy.Rate(100)

@@ -5,9 +5,12 @@
     <arg name="object_datasets_folder"  default="/home/vm/object_datasets"/>
     <arg name="object_point_cloud_path" default="/home/vm/object.pcd"/>
     <arg name="scene_point_cloud_path"  default="/home/vm/test_cloud.pcd"/>   
-    <arg name="launch_conda"            default="true"/>
+    <arg name="launch_conda"            default="false"/>
     <!-- +++++++++++++++++++++++++++++++++++++++++++++++++++ -->
-    
+    <param name="object_point_cloud_path" value="$(arg object_point_cloud_path)" type="string" />
+    <param name="scene_point_cloud_path" value="$(arg scene_point_cloud_path)" type="string" />
+
+    <!-- +++++++++++++++++++++++++++++++++++++++++++++++++++ -->
     <!-- Publish the paths of scene and object point cloud-->
     <node name="point_cloud_save_publisher_node" pkg="grasp_pipeline" type="publish_point_cloud_save_path.py" output="screen">
         <param name="object_point_cloud_path" value="$(arg object_point_cloud_path)" type="string" />
@@ -61,6 +64,9 @@
         <node name="camera_transform_broadcaster_node" pkg="grasp_pipeline" type="camera_transform_broadcaster.py" output="screen"/>
 
     </group>
+
+    <node name="table_object_segmentation_node" pkg="grasp_pipeline" type="table_object_segmentation_server.py" output="screen"/>
+
 
     <group if="$(arg launch_conda)">
 	  <node name="table_object_segmentation_node" pkg="grasp_pipeline" type="table_object_segmenter_conda.sh" output="screen"/>

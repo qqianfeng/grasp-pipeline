@@ -2,14 +2,14 @@
 import rospy
 from grasp_pipeline.srv import *
 import numpy as np
-
+import os
 from cv_bridge import CvBridge, CvBridgeError
 import cv2
 from sensor_msgs.msg import Image, PointCloud2, JointState
 from geometry_msgs.msg import PoseStamped
 import tf.transformations as tft
 from std_srvs.srv import SetBoolRequest, SetBool
-
+from std_msgs.msg import Float64MultiArray
 import open3d as o3d
 
 
@@ -123,17 +123,43 @@ class ServerUnitTester():
         result = 'SUCCEEDED' if res else 'FAILED'
         print(result)
 
-    def test_table_object_segmentation_server(self):
+    # def test_table_object_segmentation_server_py37_conda(self):
+    #     self.test_count = +1
+    #     print(
+    #         'Running test_table_object_segmentation_start_server, test number %d'
+    #         % self.test_count)
+    #     table_object_segmentation = rospy.ServiceProxy(
+    #         'table_object_segmentation_start_server', SetBool)
+    #     req = SetBoolRequest()
+    #     req.data = True
+    #     res = table_object_segmentation(req)
+    #     result = 'SUCCEEDED' if res else 'FAILED'
+    #     print(result)
+
+    def test_table_object_segmentation_server(self, object_pcd_path):
         self.test_count = +1
-        print(
-            'Running test_table_object_segmentation_start_server, test number %d'
-            % self.test_count)
+        print('Running test_table_object_segmentation_server, test number %d' %
+              self.test_count)
+        if os.path.exists(object_pcd_path):
+            os.remove(object_pcd_path)
         table_object_segmentation = rospy.ServiceProxy(
-            'table_object_segmentation_start_server', SetBool)
-        req = SetBoolRequest()
-        req.data = True
+            'table_object_segmentation', SegmentGraspObject)
+        req = SegmentGraspObjectRequest()
+        req.start = True
         res = table_object_segmentation(req)
-        result = 'SUCCEEDED' if res else 'FAILED'
+        result = 'SUCCEEDED' if res.success else 'FAILED'
+
+        assert os.path.exists(object_pcd_path)
+        msg = rospy.wait_for_message('/segmented_object_size',
+                                     Float64MultiArray,
+                                     timeout=5)
+        assert msg.data is not None
+        msg = rospy.wait_for_message(
+            '/segmented_object_bounding_box_corner_points',
+            Float64MultiArray,
+            timeout=5)
+        assert msg.data is not None
+
         print(result)
 
     def test_arm_moveit_planner_server(self):
@@ -142,6 +168,7 @@ class ServerUnitTester():
               self.test_count)
         res = True
         result = 'SUCCEEDED' if res else 'FAILED'
+
         print(result)
 
     def template_test(self):
@@ -186,6 +213,8 @@ if __name__ == '__main__':
     # Test control_hithand_config
     hithand_joint_states = JointState()
     hithand_joint_states.position = [0.2] * 20
+    # Test segment table and object
+    object_pcd_path = "/home/vm/object.pcd"
 
     # Tester
     sut = ServerUnitTester()
@@ -196,7 +225,7 @@ if __name__ == '__main__':
 
     # Test visual data save server
     # sut.test_save_visual_data_server(pc_save_path, depth_save_path,
-    #                                  color_save_path)
+    #                                 color_save_path)
 
     # Test display saved point cloud
     # sut.test_display_saved_point_cloud(pc_save_path)
@@ -211,7 +240,7 @@ if __name__ == '__main__':
     # sut.test_control_hithand_config_server(hithand_joint_states)
 
     # Test table object segmentation
-    # sut.test_table_object_segmentation_server()
+    sut.test_table_object_segmentation_server(object_pcd_path)
 
     # Test hithand preshape generation server
-    sut.test_generate_hithand_preshape_server()
+    # sut.test_generate_hithand_preshape_server()

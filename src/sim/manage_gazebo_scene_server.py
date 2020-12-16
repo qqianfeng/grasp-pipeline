@@ -20,8 +20,8 @@ class GazeboSceneManager():
     def delete_object(self, object_model_name):
         try:
             rospy.wait_for_service('/gazebo/delete_model')
-            delete_model = rospy.ServiceProxy(
-                '/gazebo/delete_model', DeleteModel)
+            delete_model = rospy.ServiceProxy('/gazebo/delete_model',
+                                              DeleteModel)
             delete_model(object_model_name)
         except rospy.ServiceException as e:
             print "Delete model service failed: %s" % e
@@ -31,13 +31,18 @@ class GazeboSceneManager():
             return
         self.delete_object(self.prev_object_model_name)
 
-    def spawn_object(self, object_name, object_model_name, object_pose_array, model_type, dataset):
+    def spawn_object(self, object_name, object_model_name, object_pose_array,
+                     model_type, dataset):
         rospy.wait_for_service('/gazebo/spawn_' + model_type + '_model')
         try:
-            with open(self.object_datasets_folder + dataset + '/models/' + object_model_name + '/' + object_name + '.' + model_type, 'r') as f:
+            with open(
+                    self.object_datasets_folder + dataset + '/models/' +
+                    object_model_name + '/' + object_name + '.' + model_type,
+                    'r') as f:
                 model_file = f.read()
-            quaternion = quaternion_from_euler(
-                object_pose_array[0], object_pose_array[1], object_pose_array[2])
+            quaternion = quaternion_from_euler(object_pose_array[0],
+                                               object_pose_array[1],
+                                               object_pose_array[2])
             initial_pose = Pose()
             initial_pose.position.x = object_pose_array[3]
             initial_pose.position.y = object_pose_array[4]
@@ -49,8 +54,8 @@ class GazeboSceneManager():
             rospy.loginfo('Spawning model: ' + object_model_name)
             spawn_model = rospy.ServiceProxy(
                 '/gazebo/spawn_' + model_type + '_model', SpawnModel)
-            spawn_model(object_model_name, model_file,
-                        '', initial_pose, 'world')
+            spawn_model(object_model_name, model_file, '', initial_pose,
+                        'world')
             self.prev_object_model_name = object_model_name
         except rospy.ServiceException as e:
             print "Service call failed: %s" % e
@@ -66,7 +71,7 @@ class GazeboSceneManager():
         response.success = True
         return response
 
-    def update_gazebo_object_server(self):
+    def create_update_gazebo_object_server(self):
         rospy.Service('update_gazebo_object', UpdateObjectGazebo,
                       self.handle_update_gazebo_object)
         rospy.loginfo('Service update_gazebo_object:')
@@ -75,5 +80,5 @@ class GazeboSceneManager():
 
 if __name__ == '__main__':
     manager = GazeboSceneManager()
-    manager.update_gazebo_object_server()
+    manager.create_update_gazebo_object_server()
     rospy.spin()
