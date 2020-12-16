@@ -10,6 +10,7 @@ from geometry_msgs.msg import PoseStamped
 import tf.transformations as tft
 from std_srvs.srv import SetBoolRequest, SetBool
 from std_msgs.msg import Float64MultiArray
+from visualization_msgs.msg import Marker, MarkerArray
 import open3d as o3d
 
 
@@ -112,8 +113,8 @@ class ServerUnitTester():
         self.test_count += 1
         print('Running test_control_hithand_config_server, test number %d' %
               self.test_count)
-        control_hithand_config = rospy.ServiceProxy(
-            'control_hithand_config_server', ControlHithand)
+        control_hithand_config = rospy.ServiceProxy('control_hithand_config',
+                                                    ControlHithand)
         req = ControlHithandRequest(
             hithand_target_joint_state=hithand_joint_states)
         res = control_hithand_config(req)
@@ -184,12 +185,16 @@ class ServerUnitTester():
         print('Running test_generate_hithand_preshape_server, test number %d' %
               self.test_count)
         generate_hithand_preshape = rospy.ServiceProxy(
-            'generate_hithand_preshape_server', GraspPreshape)
+            'generate_hithand_preshape', GraspPreshape)
         req = GraspPreshapeRequest()
         req.sample = True
         res = generate_hithand_preshape(req)
-        print('Res')
+        result = 'SUCCEEDED' if res else 'FAILED'
         ## Check what else should be happening here, what should be published etc and try to visualize it
+        msg = rospy.wait_for_message('/publish_box_points',
+                                     MarkerArray,
+                                     timeout=5)
+        print(result)
 
 
 if __name__ == '__main__':
@@ -243,4 +248,4 @@ if __name__ == '__main__':
     sut.test_table_object_segmentation_server(object_pcd_path)
 
     # Test hithand preshape generation server
-    # sut.test_generate_hithand_preshape_server()
+    sut.test_generate_hithand_preshape_server()

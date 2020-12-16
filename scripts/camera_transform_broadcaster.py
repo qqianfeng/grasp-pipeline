@@ -11,7 +11,8 @@ if __name__ == '__main__':
     listener = tf2_ros.TransformListener(tfBuffer)
     rate = rospy.Rate(1)
     transform_pub = rospy.Publisher('/camera_color_optical_frame_in_world',
-                                    PoseStamped)
+                                    PoseStamped,
+                                    queue_size=5)
     pose_color = PoseStamped()
     rospy.sleep(0.5)
     trans = tfBuffer.lookup_transform('camera_color_optical_frame', 'world',

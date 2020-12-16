@@ -41,6 +41,8 @@ class TableObjectSegmenter():
                 'object_point_cloud_path')
 
         self.bounding_box_corner_points = None
+        self.world_R_cam = None
+        self.world_t_cam = None
         self.colors = np.array(
             [
                 [0, 0, 0],  #black,       left/front/up
@@ -54,8 +56,6 @@ class TableObjectSegmenter():
                 [0.6, 0.2, 0.4]  #purple/ red-ish
             ]
         )  # this was just to understand the corner numbering logic, point 0 and point 4 in the list are cross diagonal, points 1,2,3 are attached to 0 in right handed sense, same for 5,6,7
-        self.world_R_cam = None
-        self.world_t_cam = None
 
     # +++++++++++++++++ Part I: Helper functions ++++++++++++++++++++++++
     def custom_draw_scene(self, pcd):
@@ -107,16 +107,12 @@ class TableObjectSegmenter():
 
     # +++++++++++++++++ Part II: Main business logic ++++++++++++++++++++++++
     def callback_camera_tf(self, msg):
+        """ Get the camera transform from ROS and extract the camera 3D position for visualization purposes.
+        """
         print("Entered callback camera tf")
         self.camera_tf_listener.unregister()
         position = msg.pose.position
         self.world_t_cam = np.array([position.x, position.y, position.z])
-
-        # quat = np.array(
-        #     [orientation.x, orientation.y, orientation.z, orientation.w])
-        # rotation_matrix = Rotation(quat=quat).as_matrix()
-        # self.world_R_cam = rotation_matrix
-        # orientation = msg.pose.orientation
         print("Unsubscribed camera_tf_listener")
 
     def handle_table_object_segmentation(self, req):

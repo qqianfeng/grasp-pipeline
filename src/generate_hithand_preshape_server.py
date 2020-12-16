@@ -46,10 +46,12 @@ class GenerateHithandPreshape():
         if not DEBUG:
             rospy.init_node("generate_hithand_preshape_node")
             self.service_is_called = False
+
             self.bounding_box_center_pub = rospy.Publisher(
-                '/publish_box_points', MarkerArray,
-                queue_size=1)  # publishes the bounding box center points
+                '/publish_box_points', MarkerArray, queue_size=1,
+                latch=True)  # publishes the bounding box center points
             self.tf_broadcaster_palm_poses = tf.TransformBroadcaster()
+
             # Get parameters from the ROS parameter server
             self.min_object_height = rospy.get_param(
                 'generate_hithand_preshape_server_node/min_object_height'
@@ -69,6 +71,9 @@ class GenerateHithandPreshape():
             self.wrist_roll_orientation_var = rospy.get_param(
                 'generate_hithand_preshape_server_node/wrist_roll_orientation_var'
             )  # Some extra noise on the samples 3D palm position
+            self.num_samples_per_preshape = rospy.get_param(
+                'generate_hithand_preshape_server_node/num_samples_per_preshape'
+            )  # How many samples should be generated
         self.use_bb_orient_to_determine_wrist_roll = True
 
         # Initialize object related instance variables
@@ -87,7 +92,6 @@ class GenerateHithandPreshape():
         self.palm_pose_lower_limit = None
         self.palm_pose_upper_limit = None
 
-        self.num_samples_per_preshape = 50
         # Set up the joint angle limits for sampling
         self.setup_joint_angle_limits()
 
@@ -248,6 +252,7 @@ class GenerateHithandPreshape():
             #             'exp_' + str(i), exp_pose.header.frame_id)
 
     def publish_points(self, points_stamped, color=(1., 0., 0.)):
+        rospy.loginfo('Publishing the box center points now!')
         markerArray = MarkerArray()
         for i, pnt in enumerate(points_stamped):
             marker = Marker()
@@ -305,8 +310,8 @@ class GenerateHithandPreshape():
         js_position[17] = np.random.uniform(self.thumb_joint_1_sample_lower,
                                             self.thumb_joint_1_sample_upper)
         hithand_joint_state.position = js_position.tolist()
-        rospy.loginfo('Random joint states of the hithand preshape: %s' %
-                      str(hithand_joint_state.position))
+        # rospy.loginfo('Random joint states of the hithand preshape: %s' %
+        #               str(hithand_joint_state.position))
         return hithand_joint_state
 
     def sample_uniformly_around_preshape_palm_pose(self, frame_id):
@@ -540,14 +545,17 @@ class GenerateHithandPreshape():
         """
         # Size
         self.object_size = rospy.wait_for_message('/segmented_object_size',
-                                                  Float64MultiArray).data
+                                                  Float64MultiArray,
+                                                  timeout=5).data
         # Bounding box corner points and center
         # The 1. and 5. point of bounding_box_corner points are cross-diagonal
         obbcp = np.array(
             rospy.wait_for_message(
                 '/segmented_object_bounding_box_corner_points',
-                Float64MultiArray).data)
+                Float64MultiArray,
+                timeout=5).data)
         self.object_bounding_box_corner_points = np.reshape(obbcp, (8, 3))
+
         self.bbp1 = self.object_bounding_box_corner_points[0, :]
         self.bbp2 = self.object_bounding_box_corner_points[1, :]
         self.bbp3 = self.object_bounding_box_corner_points[2, :]
@@ -591,6 +599,7 @@ class GenerateHithandPreshape():
     def sample_grasp_preshape(self):
         """ Grasp preshape service callback for sampling Hithand grasp preshapes.
         """
+        rospy.loginfo('Sampling grasp preshapes')
         response = GraspPreshapeResponse()
         # Compute bounding box faces
         bounding_box_faces = self.get_axis_aligned_bounding_box_faces(
@@ -616,6 +625,8 @@ class GenerateHithandPreshape():
                 sampled_palm_pose = self.sample_uniformly_around_preshape_palm_pose(
                     palm_pose_world.header.frame_id)
                 response.palm_goal_pose_world.append(sampled_palm_pose)
+                self.palm_goal_pose_world.append(sampled_palm_pose)
+
                 if DEBUG:
                     point[0, j] = sampled_palm_pose.pose.position.x
                     point[1, j] = sampled_palm_pose.pose.position.y
@@ -625,7 +636,7 @@ class GenerateHithandPreshape():
                 )
                 response.hithand_joint_state.append(hithand_joint_state)
                 response.is_top_grasp.append(bounding_box_faces[i].is_top)
-            self.visualize(point.T)
+            if DEBUG: self.visualize(point.T)
         self.service_is_called = True
 
         return response
@@ -646,7 +657,7 @@ class GenerateHithandPreshape():
             return self.generate_grasp_preshape()
 
     def create_hithand_preshape_server(self):
-        rospy.Service('generate_hithand_preshape_service', GraspPreshape,
+        rospy.Service('generate_hithand_preshape', GraspPreshape,
                       self.handle_generate_hithand_preshape)
         rospy.loginfo('Service generate_hithand_preshape:')
         rospy.loginfo('Ready to generate the grasp preshape.')
@@ -688,10 +699,6 @@ if __name__ == '__main__':
             ghp.segmented_object_pcd.normals)
 
         ghp.sample_grasp_preshape()
-
-    req = GraspPreshapeRequest()
-    req.sample = True
-    ghp.handle_generate_hithand_preshape(req)
 
     ghp.create_hithand_preshape_server()
     rate = rospy.Rate(100)

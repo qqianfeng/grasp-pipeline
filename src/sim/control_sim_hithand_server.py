@@ -89,7 +89,7 @@ class ControlHithandConfig():
         return res
 
     def create_control_hithand_config_server(self):
-        rospy.Service('control_hithand_config_server', ControlHithand,
+        rospy.Service('control_hithand_config', ControlHithand,
                       self.handle_control_hithand)
         rospy.loginfo('Service control_hithand_config:')
         rospy.loginfo('Ready to control hithand to speficied configurations.')
