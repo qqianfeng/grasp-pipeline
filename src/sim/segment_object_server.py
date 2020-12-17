@@ -35,9 +35,9 @@ class ObjectSegmenter():
                 self.callback_camera_tf,
                 queue_size=5)
             # Where to save the object point cloud and where to load it from
-            self.point_cloud_read_path = rospy.get_param(
+            self.object_point_cloud_path = rospy.get_param(
                 'scene_point_cloud_path')
-            self.object_point_cloud_save_path = rospy.get_param(
+            self.scene_point_cloud_path = rospy.get_param(
                 'object_point_cloud_path')
 
         self.bounding_box_corner_points = None
@@ -116,15 +116,17 @@ class ObjectSegmenter():
         print("Unsubscribed camera_tf_listener")
 
     def handle_segment_object(self, req):
-        while (self.object_point_cloud_save_path is
-               None) or (self.point_cloud_read_path is None):
+        self.scene_point_cloud_path = req.scene_point_cloud_path
+        self.object_point_cloud_path = req.object_point_cloud_path
+        while (self.scene_point_cloud_path is
+               None) or (self.object_point_cloud_path is None):
             print(
                 "I haven't received the pointcloud paths from the corrsponding topic. Stuck in a while loop until they are received."
             )
             time.sleep(2)
 
         print("handle_segment_object received the service call")
-        pcd = o3d.io.read_point_cloud(self.point_cloud_read_path)
+        pcd = o3d.io.read_point_cloud(self.object_point_cloud_path)
 
         if self.world_t_cam is None:
             self.world_t_cam = [0.8275, -0.996, 0.36]
@@ -175,9 +177,9 @@ class ObjectSegmenter():
 
         # In the end the object pcd, bounding box corner points, bounding box size information need to be stored to disk
         # Could also be sent over a topic
-        if os.path.exists(self.object_point_cloud_save_path):
-            os.remove(self.object_point_cloud_save_path)
-        o3d.io.write_point_cloud(self.object_point_cloud_save_path, object_pcd)
+        if os.path.exists(self.scene_point_cloud_path):
+            os.remove(self.scene_point_cloud_path)
+        o3d.io.write_point_cloud(self.scene_point_cloud_path, object_pcd)
         print(
             "Object.pcd saved successfully with normals oriented towards camera"
         )

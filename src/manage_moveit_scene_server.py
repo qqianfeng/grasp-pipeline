@@ -11,14 +11,13 @@ import roslib.packages as rp
 class ManageSceneInMoveit():
     def __init__(self):
         rospy.init_node('manage_moveit_scene_node')
-        self.use_sim = rospy.get_param('~sim', False)
+        self.use_sim = rospy.get_param('~sim')
 
     def handle_create_moveit_scene(self, req):
         scene = PlanningSceneInterface()
         rospy.sleep(0.5)
         print req.object_mesh_path
-        scene.add_mesh(
-            'obj_mesh', req.object_pose_world, req.object_mesh_path)
+        scene.add_mesh('obj_mesh', req.object_pose_world, req.object_mesh_path)
         rospy.sleep(4)
 
         response = ManageMoveitSceneResponse()

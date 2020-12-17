@@ -106,11 +106,7 @@ def cloud_from_o3d_to_ros(o3d_cloud, frame_id="camera_depth_optical_frame"):
 
 class VisualDataSaver():
     def __init__(self):
-        rospy.init_node("save_visual_data_server")
-        rospy.Service('save_visual_data', SaveVisualData,
-                      self.handle_visual_data_saver)
-        rospy.loginfo('Service save_visual_data:')
-        rospy.loginfo('Ready to save your awesome visual data.')
+        rospy.init_node("save_visual_data_server_node")
         self.bridge = CvBridge()
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
@@ -180,6 +176,13 @@ class VisualDataSaver():
         response.save_visual_data_success = True
         return response
 
+    def create_save_visual_data_service(self):
+        rospy.Service('save_visual_data', SaveVisualData,
+                      self.handle_visual_data_saver)
+        rospy.loginfo('Service save_visual_data:')
+        rospy.loginfo('Ready to save your awesome visual data.')
+
 if __name__ == "__main__":
     Saver = VisualDataSaver()
+    Saver.create_save_visual_data_service()
     rospy.spin()

@@ -5,7 +5,9 @@
     <arg name="sim"                     default="true"/>
     <arg name="object_datasets_folder"  default="/home/vm/object_datasets"/>
     <arg name="object_point_cloud_path" default="/home/vm/object.pcd"/>
-    <arg name="scene_point_cloud_path"  default="/home/vm/test_cloud.pcd"/>   
+    <arg name="scene_point_cloud_path"  default="/home/vm/scene.pcd"/>
+    <arg name="color_img_save_path"     default="/home/vm/scene.ppm"/>
+    <arg name="depth_img_save_path"     default="/home/vm/depth.pgm"/>
     <arg name="launch_conda"            default="false"/>
     <!-- +++++++++++++++++++++++++++++++++++++++++++++++++++ -->
     <param name="object_point_cloud_path" value="$(arg object_point_cloud_path)" type="string" />

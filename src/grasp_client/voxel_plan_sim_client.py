@@ -3,14 +3,14 @@ import rospy
 from grasp_sim_client import GraspClient
 
 if __name__ == '__main__':
-    # Create the generic GraspClient, wrapper around all sorts of functionalities
-    dc_client = GraspClient()
-
     # Specify the object to be grasped, its pose, dataset, type, name etc.
     object_name = 'mustard_bottle'
     object_model_name = '006_mustard_bottle'
     model_type = 'sdf'
     dataset = 'ycb'
+
+    # Create the generic GraspClient, wrapper around all sorts of functionalities
+    dc_client = GraspClient()
 
     # +++++++ Main grasping logic +++++++++++
     rospy.loginfo('Trying to grasp object: %s' % object_name)
@@ -21,6 +21,9 @@ if __name__ == '__main__':
     # Update gazebo object, delete old object and spawn new one
     dc_client.update_gazebo_object_client(
         object_name, object_pose, object_model_name, model_type, dataset)
+
+    # First take a shot of the scene and store RGB, depth and point cloud to disk
+    dc_client.save_visual_data_and_segment_object()
 
     # Call a service to segment the object point_cloud and store the result
     dc_client.segment_object_client()

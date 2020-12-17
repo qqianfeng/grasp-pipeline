@@ -3,6 +3,7 @@ import rospy
 from geometry_msgs.msg import PoseStamped
 import tf.transformations as tft
 from grasp_pipeline.srv import *
+from sensor_msgs.msg import Image, PointCloud2, JointState
 
 import numpy as np
 
@@ -10,12 +11,21 @@ import numpy as np
 class GraspClient():
     def __init__(self):
         rospy.init_node('grasp_client')
-        self.datasets_base_path = rospy.get_param('datasets_base_folder')
+        self.object_datasets_folder = rospy.get_param('object_datasets_folder')
+        self.color_img_save_path = rospy.get_param('color_img_save_path')
+        self.depth_img_save_path = rospy.get_param('depth_img_save_path')
+        self.object_point_cloud_path = rospy.get_param('object_point_cloud_path')
+        self.scene_point_cloud_path = rospy.get_param('scene_point_cloud_path')
+
         # save the mesh path of the currently spawned model
         self.spawned_object_name = None
         self.spawned_object_mesh_path = None
         self.spawned_object_pose = None
         self._setup_workspace_boundaries()
+
+        self.depth_img = None
+        self.color_img = None
+        self.point_cloud = None
 
         self.heuristic_preshapes = None # This variable stores all the information on multiple heuristically sampled grasping pre shapes
         # The chosen variables store one specific preshape (palm_pose, hithand_joint_state, is_top_grasp)
@@ -137,7 +147,7 @@ class GraspClient():
                                                       UpdateObjectGazebo)
             res = update_gazebo_object(object_name, object_pose_array,
                                        object_model_name, model_type, dataset)
-            self.spawned_object_mesh_path = self.datasets_base_path + '/' + dataset + \
+            self.spawned_object_mesh_path = self.object_datasets_folder + '/' + dataset + \
                 '/models/' + object_model_name + '/google_16k/nontextured.stl'
             self.spawned_object_name = object_name
         except rospy.ServiceException, e:
@@ -202,6 +212,46 @@ class GraspClient():
             rospy.logerr('No object found from segmentation!')
             return False
         return True
+
+    def save_visual_data_client():
+        rospy.loginfo('Waiting for service save_visual_data.')
+        rospy.wait_for_service('save_visual_data')
+        rospy.loginfo('Calling service save_visual_data.')
+        try:
+            save_visual_data = rospy.ServiceProxy('save_visual_data', SaveVisualData)
+            req = SaveVisualDataRequest()
+            req.color_img = self.color_img
+            req.depth_img = self.depth_img
+            req.point_cloud = self.point_cloud
+            req.color_img_save_path = self.color_img_save_path
+            req.depth_img_save_path = self.depth_img_save_path
+            req.point_cloud_save_path = self.scene_point_cloud_path
+            res = save_visual_data(req)
+        except rospy.ServiceException, e:
+            rospy.loginfo('Service save_visual_data call failed: %s' % e)
+        rospy.loginfo('Service save_visual_data is executed.')
+
+    def segment_object_client():
+        rospy.loginfo('Waiting for service segment_object.')
+        rospy.wait_for_service('segment_object')
+        rospy.loginfo('Calling service segment_object.')
+        try:
+            segment_object = rospy.ServiceProxy('segment_object', SegmentGraspObject)
+            req = SegmentGraspObjectRequest()
+            req.start = True
+            res = segment_object(req)
+        except rospy.ServiceException, e:
+            rospy.loginfo('Service segment_object call failed: %s' % e)
+        rospy.loginfo('Service segment_object is executed.')        
+
+    def save_visual_data_and_segment_object():
+        self.depth_img = rospy.wait_for_message("/camera/depth/image_raw", Image)
+        self.color_img = rospy.wait_for_message("/camera/color/image_raw", Image)
+        self.point_cloud = rospy.wait_for_message("/depth_registered/points",
+                                         PointCloud2)
+        rospy.loginfo('Received depth, color and point cloud messages')
+
+        self.save_visual_data_client()
 
     # ++++++++ PART III: The third part consists of all the main logic/orchestration of Parts I and II ++++++++++++
     def grasp_and_lift_object(self, object_pose_stamped):
