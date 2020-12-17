@@ -2,7 +2,6 @@
 
 <launch>
     <!-- +++++++NOTE: The different paths in the args must be modified for your machine. ++++++++ -->
-
     <arg name="sim"                     default="true"/>
     <arg name="object_datasets_folder"  default="/home/vm/object_datasets"/>
     <arg name="object_point_cloud_path" default="/home/vm/object.pcd"/>
@@ -16,6 +15,7 @@
     <!-- Publish the paths of scene and object point cloud-->
     <node name="point_cloud_save_publisher_node" pkg="grasp_pipeline" type="publish_point_cloud_save_path.py" output="screen"/>
 
+
     <!-- Manage moveit scene -->
     <node name="manage_moveit_scene_node" pkg="grasp_pipeline"
         type="manage_moveit_scene_server.py" output="screen">
@@ -26,18 +26,20 @@
    <!-- Grasp preshape -->
     <node name="generate_hithand_preshape_server_node" pkg="grasp_pipeline" 
         type="generate_hithand_preshape_server.py" output="screen">
-      <param name="num_samples_per_preshape"     value="5"     type="double"/>
-      <param name="palm_dist_to_top_face_mean"   value="0.1"   type="double"/>
-      <param name="palm_dist_to_side_face_mean"  value="0.07"  type="double"/>
-      <param name="palm_dist_normal_to_obj_var"  value="0.03"  type="double"/>
-      <param name="palm_position_3D_sample_var"  value="0.005" type="double"/>
+      <param name="num_samples_per_preshape"     value="5"     type="double"/> <!-- How many samples of slightly different poses will be generated. Always assumes the bounding box face center point + some distance outward in the object point normal direction as reference and samples the preshapes around that by adding some 3D noise specified in subsequent variables-->
+      <param name="palm_dist_to_top_face_mean"   value="0.1"   type="double"/> <!-- When sampling poses around the top bounding box face center points how much do you on average go outward in the normal direction-->
+      <param name="palm_dist_to_side_face_mean"  value="0.07"  type="double"/> <!-- When sampling poses around the side bounding box face center points how much do you on average go outward in the normal direction-->
+      <param name="palm_dist_normal_to_obj_var"  value="0.03"  type="double"/> <!-- Variance for previous explained "going outward in normal direction"-->
+      <param name="palm_position_3D_sample_var"  value="0.005" type="double"/> <!-- Add some extra zero mean 3D position noise-->
       <param name="wrist_roll_orientation_var"   value="0.005" type="double"/>
       <param name="hand_roll_angle_sample_var"   value="0.005" type="double"/>
       <param name="min_object_height"            value="0.03"  type="double"/>
     </node> 
 
+
     <!-- Moveit planner node for panda arm -->
     <!--<node name="arm_moveit_planner_server_node" pkg="grasp_pipeline" type="arm_moveit_planner_server.py" output="screen"/> -->
+
 
     <!-- Save visual data node -->
     <node name="save_visual_data_node" pkg="grasp_pipeline" type="save_visual_data_server.py" output="screen"/>
@@ -53,12 +55,13 @@
 
     </group>
 
+
     <!--Launch node which advertises service to segment the table from an object -->
     <node name="table_object_segmentation_node" pkg="grasp_pipeline" type="table_object_segmentation_server.py" output="screen"/>
 
     <!-- This launches the old segmenter written in python 3 -->
-    <group if="$(arg launch_conda)">
+    <!-- <group if="$(arg launch_conda)">
 	  <node name="table_object_segmentation_node" pkg="grasp_pipeline" type="table_object_segmenter_conda.sh" output="screen"/>
-    </group>
+    </group> -->
    
 </launch>
