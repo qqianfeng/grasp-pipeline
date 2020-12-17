@@ -5,19 +5,21 @@ from sensor_msgs.msg import JointState
 from geometry_msgs.msg import Pose, Quaternion
 import numpy as np
 import moveit_msgs.msg
-
+from copy import deepcopy
 # IDEA FOR LATER: Find a low-dimensional manifold for optimal hithand grasp, learn the manifold
+
+DEBUG = False
 
 
 class ControlHithandConfig():
     def __init__(self, publish_prefix='/hithand'):
+
         rospy.init_node('control_hithand_config_node')
-        self.hithand_joint_cmd_pub = rospy.Publisher(publish_prefix +
-                                                     '/joint_cmd',
-                                                     JointState,
-                                                     queue_size=1)
-        rospy.Subscriber('hithand/joint_states', JointState,
-                         self.get_hithand_current_joint_state_cb)
+        self.hithand_joint_cmd_pub = rospy.Publisher(
+            publish_prefix + '/joint_cmd', JointState, queue_size=1)
+        self.hithand_current_joint_states_sub = rospy.Subscriber(
+            'hithand/joint_states', JointState,
+            self.callback_hithand_current_joint_state)
         self.hithand_init_joint_state = None
         self.hithand_current_joint_state = None
         self.hithand_target_joint_state = None
@@ -26,7 +28,7 @@ class ControlHithandConfig():
         self.reach_gap_thresh = 0.1
         self.dof = 20
 
-    def get_hithand_current_joint_state_cb(self, hithand_joint_state):
+    def callback_hithand_current_joint_state(self, hithand_joint_state):
         if self.hithand_init_joint_state is None:
             self.hithand_init_joint_state = hithand_joint_state
         self.hithand_current_joint_state = hithand_joint_state
@@ -36,7 +38,7 @@ class ControlHithandConfig():
         rospy.loginfo('Service control_hithand_config:')
         rospy.loginfo('Joint control command published')
         jc = JointState()
-        jc.name = self.hithand_target_joint_state.name
+        #jc.name = self.hithand_target_joint_state.name
         target_joint_angles = np.array(
             self.hithand_target_joint_state.position)
         init_joint_angles = np.array(self.hithand_init_joint_state.position)
@@ -56,7 +58,7 @@ class ControlHithandConfig():
         rospy.loginfo('Joint control command published')
 
         jc = JointState()
-        jc.name = self.hithand_init_joint_state.name
+        #jc.name = self.hithand_init_joint_state.name
         target_joint_angles = np.zeros(self.dof)
         init_joint_angles = np.array(self.hithand_init_joint_state.position)
         delta = (target_joint_angles - init_joint_angles) / \
@@ -97,5 +99,16 @@ class ControlHithandConfig():
 
 if __name__ == '__main__':
     chc = ControlHithandConfig()
+    if DEBUG:  # This is intended to simulate a service call for local debugging
+        hithand_joint_state = JointState()
+        js_0 = deepcopy(hithand_joint_state)
+        js_position = 0.1 * np.ones(20)
+        js_position = np.zeros(20)
+        hithand_joint_state.position = js_position.tolist()
+
+        req = ControlHithandRequest()
+        req.hithand_target_joint_state = hithand_joint_state
+        req.go_home = False
+        chc.handle_control_hithand(req)
     chc.create_control_hithand_config_server()
     rospy.spin()

@@ -109,18 +109,38 @@ class ServerUnitTester():
         result = 'SUCCEEDED' if res else 'FAILED'
         print(result)
 
-    def test_control_hithand_config_server(self, hithand_joint_states):
+    def test_control_hithand_config_server(self, hithand_target_joint_state):
         self.test_count += 1
         print('Running test_control_hithand_config_server, test number %d' %
               self.test_count)
         control_hithand_config = rospy.ServiceProxy('control_hithand_config',
                                                     ControlHithand)
+        # Control the hithand to the desired joint state
         req = ControlHithandRequest(
-            hithand_target_joint_state=hithand_joint_states)
+            hithand_target_joint_state=hithand_target_joint_state)
         res = control_hithand_config(req)
+        # Check if the joint angles are within a small range of the desired angles
+        hithand_current_joint_state = rospy.wait_for_message(
+            '/hithand/joint_states', JointState)
+        reach_gap = np.array(hithand_target_joint_state.position) - \
+            np.array(hithand_current_joint_state.position)
+        rospy.loginfo('Gap between desired and actual joint position: ')
+        rospy.loginfo('\n' + str(reach_gap))
+        assert np.min(np.abs(reach_gap)) < 0.1
+        rospy.loginfo('All gaps are smaller than 0.1')
 
+        # Control the hithand back home
         req = ControlHithandRequest(go_home=True)
         res = control_hithand_config(req)
+        # Check if the joint angles are within a small range of the desired angles
+        hithand_current_joint_state = rospy.wait_for_message(
+            '/hithand/joint_states', JointState)
+        reach_gap = np.array(hithand_current_joint_state.position)
+        rospy.loginfo('Gap between desired and actual joint position: ')
+        rospy.loginfo('\n' + str(reach_gap))
+        assert np.min(np.abs(reach_gap)) < 0.1
+        rospy.loginfo('All gaps are smaller than 0.1')
+
         result = 'SUCCEEDED' if res else 'FAILED'
         print(result)
 
@@ -242,10 +262,10 @@ if __name__ == '__main__':
     # sut.test_clean_moveit_scene_server()
 
     # Test hithand control preshape/config
-    # sut.test_control_hithand_config_server(hithand_joint_states)
+    sut.test_control_hithand_config_server(hithand_joint_states)
 
     # Test table object segmentation
-    sut.test_table_object_segmentation_server(object_pcd_path)
+    # sut.test_table_object_segmentation_server(object_pcd_path)
 
     # Test hithand preshape generation server
-    sut.test_generate_hithand_preshape_server()
+    # sut.test_generate_hithand_preshape_server()

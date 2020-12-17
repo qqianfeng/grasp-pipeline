@@ -4,7 +4,7 @@ from grasp_sim_client import GraspClient
 
 if __name__ == '__main__':
     # Create the generic GraspClient, wrapper around all sorts of functionalities
-    datasets_base_path = '/home/vm/object_datasets'
+    datasets_base_path = '/home/vm/object_datasets'  # NOTE: should come from the param server
     dc_client = GraspClient(datasets_base_path)
 
     # Specify the object to be grasped, its pose, dataset, type, name etc.
@@ -24,10 +24,11 @@ if __name__ == '__main__':
                                           object_model_name, model_type,
                                           dataset)
 
-    # Generate hithand preshape
+    # Generate hithand preshape, this is crucial. Samples a preshape, stores it in an instance variable
+    #  of the GraspClient such that it can be used in the next API to generate a plan for the arm and move the hithand to the desired preshape
     hithand_preshape = dc_client.generate_hithand_preshape_client()
 
     # Grasp and lift object
     grasp_arm_plan = dc_client.grasp_and_lift_object(
         object_pose
-    )  # object_pose is given to function in order for moveit scene server to spawn it in the right place
+    )  # object_pose is given to function in order for moveit scene server to spawn it in the right place, this is needed for planning

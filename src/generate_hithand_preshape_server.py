@@ -218,8 +218,9 @@ class GenerateHithandPreshape():
         # Add/ subtract these from the pose to get lower and upper limits
         pos_range = 0.05
         ort_range = 0.05 * np.pi
-        upper_limit_range = np.array(
-            [pos_range, pos_range, pos_range, ort_range, ort_range, ort_range])
+        upper_limit_range = np.array([
+            pos_range, pos_range, pos_range, ort_range, ort_range, ort_range
+        ])
         lower_limit_range = (-1) * upper_limit_range
         self.palm_pose_lower_limit = preshape_palm_pose_config + lower_limit_range
         self.palm_pose_upper_limit = preshape_palm_pose_config + upper_limit_range
@@ -280,14 +281,14 @@ class GenerateHithandPreshape():
         """ Sample a random preshape for the hand joints within the desired joint limits (setup by self.setup_joint_angle_limits)
         """
         hithand_joint_state = JointState()
-        hithand_joint_state.name = [
-            'Right_Index_0', 'Right_Index_1', 'Right_Index_2', 'Right_Index_3',
-            'Right_Little_0', 'Right_Little_1', 'Right_Little_2',
-            'Right_Little_3', 'Right_Middle_0', 'Right_Middle_1',
-            'Right_Middle_2', 'Right_Middle_3', 'Right_Ring_0', 'Right_Ring_1',
-            'Right_Ring_2', 'Right_Ring_3', 'Right_Thumb_0', 'Right_Thumb_1',
-            'Right_Thumb_2', 'Right_Thumb_3'
-        ]
+        # hithand_joint_state.name = [
+        #     'Right_Index_0', 'Right_Index_1', 'Right_Index_2', 'Right_Index_3',
+        #     'Right_Little_0', 'Right_Little_1', 'Right_Little_2',
+        #     'Right_Little_3', 'Right_Middle_0', 'Right_Middle_1',
+        #     'Right_Middle_2', 'Right_Middle_3', 'Right_Ring_0', 'Right_Ring_1',
+        #     'Right_Ring_2', 'Right_Ring_3', 'Right_Thumb_0', 'Right_Thumb_1',
+        #     'Right_Thumb_2', 'Right_Thumb_3'
+        # ]
         js_position = np.zeros(20)
         js_position[0] = np.random.uniform(self.index_joint_0_sample_lower,
                                            self.index_joint_0_sample_upper)
@@ -328,9 +329,8 @@ class GenerateHithandPreshape():
                 sample_palm_pose.pose.position.z = sample_palm_pose_array[:3]
 
         palm_euler = sample_palm_pose_array[3:]
-        palm_quaternion = tft.quaternion_from_euler(palm_euler[0],
-                                                    palm_euler[1],
-                                                    palm_euler[2])
+        palm_quaternion = tft.quaternion_from_euler(
+            palm_euler[0], palm_euler[1], palm_euler[2])
         sample_palm_pose.pose.orientation.x = palm_quaternion[0]
         sample_palm_pose.pose.orientation.y = palm_quaternion[1]
         sample_palm_pose.pose.orientation.z = palm_quaternion[2]
@@ -391,9 +391,8 @@ class GenerateHithandPreshape():
             #find the closest point in the point cloud
             m = self.segmented_object_points.shape[0]
             center_aug = np.tile(bounding_box_face.center, (m, 1))
-            squared_dist = np.sum(np.square(self.segmented_object_points -
-                                            center_aug),
-                                  axis=1)
+            squared_dist = np.sum(
+                np.square(self.segmented_object_points - center_aug), axis=1)
             min_idx = np.argmin(squared_dist)
             closest_point = self.segmented_object_points[min_idx, :]
             rospy.loginfo('Found closest point ' + str(closest_point) +
@@ -522,7 +521,8 @@ class GenerateHithandPreshape():
             center_stamped_world.point.z = face.center[2]
             face_centers_world_frame.append(
                 copy.deepcopy(center_stamped_world))
-        if not DEBUG: self.publish_points(face_centers_world_frame)
+        if not DEBUG:
+            self.publish_points(face_centers_world_frame)
 
         # If the object is too short, only select top grasps.
         rospy.loginfo('##########################')
@@ -619,7 +619,8 @@ class GenerateHithandPreshape():
             self.palm_goal_pose_world.append(palm_pose_world)
 
             self.set_palm_rand_pose_limits(palm_pose_world)
-            if DEBUG: point = np.zeros([3, self.num_samples_per_preshape])
+            if DEBUG:
+                point = np.zeros([3, self.num_samples_per_preshape])
 
             for j in xrange(self.num_samples_per_preshape):
                 sampled_palm_pose = self.sample_uniformly_around_preshape_palm_pose(
@@ -636,7 +637,8 @@ class GenerateHithandPreshape():
                 )
                 response.hithand_joint_state.append(hithand_joint_state)
                 response.is_top_grasp.append(bounding_box_faces[i].is_top)
-            if DEBUG: self.visualize(point.T)
+            if DEBUG:
+                self.visualize(point.T)
         self.service_is_called = True
 
         return response

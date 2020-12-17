@@ -109,15 +109,31 @@ class GraspClient():
         rospy.loginfo('Waiting for service control_hithand_config.')
         rospy.wait_for_service('control_hithand_config_server')
         rospy.loginfo('Calling service control_hithand_config.')
-        req = ControlHithandRequest()
-        if go_home:
-            req.go_home = True
-        elif close_hand:
-            req.close_hand = True
-        raise NotImplementedError
+        try:
+            req = ControlHithandRequest()
+            control_hithand_config = rospy.ServiceProxy(
+                'control_hithand_config', ControlHithand)
+            if go_home:
+                req.go_home = True
+            elif close_hand:
+                req.close_hand = True
+            else:
+                req.hithand_target_joint_state = None
+                raise NotImplementedError  # Here we set the desires hithand preshape which comes from the response of the hithand_preshape_client
+            # Buht how is the logic here for data gathering? Execute all of the samples and record responses right?
+        except rospy.ServiceException as e:
+            rospy.loginfo('Service control_hithand_config call failed: %s' % e)
+        rospy.loginfo('Service control_allegro_config is executed %s.' %
+                      str(self.control_response))
 
     def generate_hithand_preshape_client(self):
-        raise NotImplementedError
+        rospy.loginfo('Waiting for service generate_hithand_preshape.')
+        rospy.wait_for_service('generate_hithand_preshape')
+        rospy.loginfo('Calling service generate_hithand_preshape.')
+        try:
+            generate_hithand_preshape = rospy.ServiceProxy('generate_hithand_preshape', GraspPreshape)
+            req = GraspPreshapeRequest()
+            req.sample = True
 
     # ++++++++ PART III: The third part consists of all the main logic/orchestration of Parts I and II ++++++++++++
     def grasp_and_lift_object(self, object_pose_stamped):
