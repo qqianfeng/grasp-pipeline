@@ -159,12 +159,12 @@ class ServerUnitTester():
 
     def test_table_object_segmentation_server(self, object_pcd_path):
         self.test_count = +1
-        print('Running test_table_object_segmentation_server, test number %d' %
+        print('Running test_segment_object_server, test number %d' %
               self.test_count)
         if os.path.exists(object_pcd_path):
             os.remove(object_pcd_path)
-        table_object_segmentation = rospy.ServiceProxy(
-            'table_object_segmentation', SegmentGraspObject)
+        table_object_segmentation = rospy.ServiceProxy('segment_object',
+                                                       SegmentGraspObject)
         req = SegmentGraspObjectRequest()
         req.start = True
         res = table_object_segmentation(req)
@@ -183,6 +183,22 @@ class ServerUnitTester():
 
         print(result)
 
+    def test_generate_hithand_preshape_server(self):
+        self.test_count = +1
+        print('Running test_generate_hithand_preshape_server, test number %d' %
+              self.test_count)
+        generate_hithand_preshape = rospy.ServiceProxy(
+            'generate_hithand_preshape', GraspPreshape)
+        req = GraspPreshapeRequest()
+        req.sample = True
+        res = generate_hithand_preshape(req)
+        result = 'SUCCEEDED' if res else 'FAILED'
+        ## Check what else should be happening here, what should be published etc and try to visualize it
+        msg = rospy.wait_for_message('/publish_box_points',
+                                     MarkerArray,
+                                     timeout=5)
+        print(result)
+
     def test_arm_moveit_planner_server(self):
         self.test_count += 1
         print('Running test_manage_gazebo_scene_server, test number %d' %
@@ -198,22 +214,6 @@ class ServerUnitTester():
               self.test_count)
         res = True
         result = 'SUCCEEDED' if res else 'FAILED'
-        print(result)
-
-    def test_generate_hithand_preshape_server(self):
-        self.test_count = +1
-        print('Running test_generate_hithand_preshape_server, test number %d' %
-              self.test_count)
-        generate_hithand_preshape = rospy.ServiceProxy(
-            'generate_hithand_preshape', GraspPreshape)
-        req = GraspPreshapeRequest()
-        req.sample = True
-        res = generate_hithand_preshape(req)
-        result = 'SUCCEEDED' if res else 'FAILED'
-        ## Check what else should be happening here, what should be published etc and try to visualize it
-        msg = rospy.wait_for_message('/publish_box_points',
-                                     MarkerArray,
-                                     timeout=5)
         print(result)
 
 

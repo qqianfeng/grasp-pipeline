@@ -17,6 +17,12 @@ class GraspClient():
         self.spawned_object_pose = None
         self._setup_workspace_boundaries()
 
+        self.heuristic_preshapes = None # This variable stores all the information on multiple heuristically sampled grasping pre shapes
+        # The chosen variables store one specific preshape (palm_pose, hithand_joint_state, is_top_grasp)
+        self.chosen_palm_pose = None
+        self.chosen_hithand_joint_state = None
+        self.chosen_is_top_grasp = None
+
     # +++++++ PART I: First part are all the "helper functions" w/o interface to any other nodes/services ++++++++++
     def _setup_workspace_boundaries(self):
         """Sets the boundaries in which an object can be spawned and placed.
@@ -62,6 +68,41 @@ class GraspClient():
         self.spawned_object_pose = object_pose_stamped
         return object_pose_stamped
 
+    def choose_specific_gasp_preshape(self, grasp_type):
+        """ This chooses one specific grasp preshape from the preshapes in self.heuristic_preshapes.
+
+
+        """
+        if self.heuristic_preshapes == None:
+            rospy.logerr("generate_hithand_preshape_service needs to be called before calling this in order to generate the needed preshapes!")
+            raise Exception
+
+        number_of_preshapes = len(self.heuristic_preshapes.hithand_joint_state)
+        if grasp_type == 'unspecified':
+            grasp_idx = np.random.randint(0, number_of_preshapes)
+
+        # determine the indices of the grasp_preshapes corresponding to top grasps
+        top_grasp_idxs = []
+        side_grasp_idxs = []
+        for i in xrange(number_of_preshapes):
+            if heuristic_preshapes.is_top_grasp[i]:
+                top_grasp_idxs.append(i) 
+            else:
+                side_grasp_idxs.append(i)
+                
+        elif grasp_type == 'side':
+            rand_int = np.random.randint(0, len(side_grasp_idxs))
+            grasp_idx = side_grasp_idxs[rand_int]
+        elif grasp_type == 'top':
+            rand_int = np.random.randint(0, len(top_grasp_idxs))
+            grasp_idx = side_grasp_idxs[rand_int]     
+        self.chosen_palm_pose = self.heuristic_preshapes.palm_goal_pose_world[grasp_idx]
+        self.chosen_hithand_joint_state = self.heuristic_preshapes.hithand_joint_state[grasp_idx]
+        self.chosen_is_top_grasp = self.heuristic_preshapes.is_top_grasp[grasp_idx]      
+
+        
+
+        
     # ++++++++ PART II: Second part consist of all clients that interact with different nodes/services ++++++++++++
     def create_moveit_scene_client(self, object_pose):
         rospy.loginfo('Waiting for service create_moveit_scene.')
@@ -118,8 +159,8 @@ class GraspClient():
             elif close_hand:
                 req.close_hand = True
             else:
-                req.hithand_target_joint_state = None
-                raise NotImplementedError  # Here we set the desires hithand preshape which comes from the response of the hithand_preshape_client
+                req.hithand_target_joint_state = self.chosen_hithand_joint_state
+                res = control_hithand_config(req)
             # Buht how is the logic here for data gathering? Execute all of the samples and record responses right?
         except rospy.ServiceException as e:
             rospy.loginfo('Service control_hithand_config call failed: %s' % e)
@@ -127,6 +168,8 @@ class GraspClient():
                       str(self.control_response))
 
     def generate_hithand_preshape_client(self):
+        """ Generates 
+        """
         rospy.loginfo('Waiting for service generate_hithand_preshape.')
         rospy.wait_for_service('generate_hithand_preshape')
         rospy.loginfo('Calling service generate_hithand_preshape.')
@@ -134,6 +177,31 @@ class GraspClient():
             generate_hithand_preshape = rospy.ServiceProxy('generate_hithand_preshape', GraspPreshape)
             req = GraspPreshapeRequest()
             req.sample = True
+            self.heuristic_preshapes = generate_hithand_preshape(req)
+       except rospy.ServiceException, e:
+            rospy.loginfo('Service generate_hithand_preshape call failed: %s' % e)
+        rospy.loginfo('Service generate_hithand_preshape is executed.')
+
+    def segment_object_client(self):
+        rospy.loginfo('Waiting for service segment_object.')
+        rospy.wait_for_service('segment_object')
+        rospy.loginfo('Calling service segment_object.')
+        try:
+            object_segment_proxy = rospy.ServiceProxy('segment_object',
+                                                      SegmentGraspObject)
+            req = SegmentGraspObjectRequest()
+            self.object_segment_response = object_segment_proxy(
+                object_segment_request)
+            if align_obj_frame:
+                self.object_segment_response.obj = \
+                        align_obj.align_object(self.object_segment_response.obj, self.listener)
+        except rospy.ServiceException, e:
+            rospy.loginfo('Service object_segmenter call failed: %s' % e)
+        rospy.loginfo('Service object_segmenter is executed.')
+        if not self.object_segment_response.object_found:
+            rospy.logerr('No object found from segmentation!')
+            return False
+        return True
 
     # ++++++++ PART III: The third part consists of all the main logic/orchestration of Parts I and II ++++++++++++
     def grasp_and_lift_object(self, object_pose_stamped):

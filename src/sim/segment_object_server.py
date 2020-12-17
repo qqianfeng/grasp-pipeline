@@ -13,12 +13,12 @@ from geometry_msgs.msg import PoseStamped
 DEBUG = False
 
 
-class TableObjectSegmenter():
+class ObjectSegmenter():
     def __init__(self,
                  scene_point_cloud_path=None,
                  object_point_cloud_path=None):
         if not DEBUG:
-            rospy.init_node("table_object_segmentation_node")
+            rospy.init_node("object_segmentation_node")
             self.object_size_pub = rospy.Publisher('/segmented_object_size',
                                                    Float64MultiArray,
                                                    latch=True,
@@ -126,13 +126,16 @@ class TableObjectSegmenter():
         print("handle_table_object_segmentation received the service call")
         pcd = o3d.io.read_point_cloud(self.point_cloud_read_path)
 
-        if self.world_t_cam is None: self.world_t_cam = [0.8275, -0.996, 0.36]
-        if DEBUG: self.custom_draw_scene(pcd)
+        if self.world_t_cam is None:
+            self.world_t_cam = [0.8275, -0.996, 0.36]
+        if DEBUG:
+            self.custom_draw_scene(pcd)
         #start = time.time()
 
         # downsample point cloud
         down_pcd = pcd.voxel_down_sample(voxel_size=0.005)  # downsample
-        if DEBUG: self.custom_draw_scene(down_pcd)
+        if DEBUG:
+            self.custom_draw_scene(down_pcd)
 
         # segment plane
         _, inliers = down_pcd.segment_plane(distance_threshold=0.01,
@@ -140,7 +143,8 @@ class TableObjectSegmenter():
                                             num_iterations=30)
         object_pcd = down_pcd.select_down_sample(inliers, invert=True)
         #print(time.time() - start)
-        if DEBUG: self.custom_draw_object(object_pcd)
+        if DEBUG:
+            self.custom_draw_object(object_pcd)
 
         # compute bounding box and size
         object_bounding_box = object_pcd.get_axis_aligned_bounding_box()
@@ -149,7 +153,8 @@ class TableObjectSegmenter():
         self.bounding_box_corner_points = np.asarray(
             object_bounding_box.get_box_points())
         print(self.bounding_box_corner_points)
-        if DEBUG: self.custom_draw_object(object_pcd, object_bounding_box)
+        if DEBUG:
+            self.custom_draw_object(object_pcd, object_bounding_box)
 
         # compute normals of object
         object_pcd.estimate_normals(
@@ -197,20 +202,20 @@ class TableObjectSegmenter():
         return res
 
     def create_table_object_segmentation_server(self):
-        rospy.Service('table_object_segmentation', SegmentGraspObject,
+        rospy.Service('segment_object', SegmentGraspObject,
                       self.handle_table_object_segmentation)
-        rospy.loginfo('Servicetable_object_segmentation:')
+        rospy.loginfo('Service segment_object:')
         rospy.loginfo(
             'Ready to segment the table from the object point cloud.')
 
 
 if __name__ == "__main__":
-    tos = TableObjectSegmenter()
-    tos.create_table_object_segmentation_server()
+    oseg = ObjectSegmenter()
+    oseg.create_table_object_segmentation_server()
     if DEBUG:
-        tos = TableObjectSegmenter(
+        oseg = ObjectSegmenter(
             scene_point_cloud_path='/home/vm/test_cloud.pcd',
             object_point_cloud_path='/home/vm/object.pcd')
-        tos.handle_table_object_segmentation(None)
+        oseg.handle_table_object_segmentation(None)
 
     rospy.spin()
