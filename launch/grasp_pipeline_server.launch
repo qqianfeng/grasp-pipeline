@@ -1,6 +1,8 @@
 <?xml version="1.0"?>
 
 <launch>
+    <!-- +++++++NOTE: The different paths in the args must be modified for your machine. ++++++++ -->
+
     <arg name="sim"                     default="true"/>
     <arg name="object_datasets_folder"  default="/home/vm/object_datasets"/>
     <arg name="object_point_cloud_path" default="/home/vm/object.pcd"/>
@@ -8,30 +10,17 @@
     <arg name="launch_conda"            default="false"/>
     <!-- +++++++++++++++++++++++++++++++++++++++++++++++++++ -->
     <param name="object_point_cloud_path" value="$(arg object_point_cloud_path)" type="string" />
-    <param name="scene_point_cloud_path" value="$(arg scene_point_cloud_path)" type="string" />
-
+    <param name="scene_point_cloud_path"  value="$(arg scene_point_cloud_path)" type="string" />
+    <param name="object_datasets_folder"  value="$(arg object_datasets_folder)" type="string" />
     <!-- +++++++++++++++++++++++++++++++++++++++++++++++++++ -->
     <!-- Publish the paths of scene and object point cloud-->
-    <node name="point_cloud_save_publisher_node" pkg="grasp_pipeline" type="publish_point_cloud_save_path.py" output="screen">
-        <param name="object_point_cloud_path" value="$(arg object_point_cloud_path)" type="string" />
-        <param name="scene_point_cloud_path" value="$(arg scene_point_cloud_path)" type="string" />
-    </node>
+    <node name="point_cloud_save_publisher_node" pkg="grasp_pipeline" type="publish_point_cloud_save_path.py" output="screen"/>
 
     <!-- Manage moveit scene -->
     <node name="manage_moveit_scene_node" pkg="grasp_pipeline"
         type="manage_moveit_scene_server.py" output="screen">
         <param name="sim" type="bool" value="$(arg sim)"/>
     </node>
-
-
-    <!-- <param name="generate_hithand_preshape_server_node/palm_dist_to_top_face_mean"   value="0.1"   type="double"/>
-    <param name="generate_hithand_preshape_server_node/palm_dist_to_side_face_mean"  value="0.07"  type="double"/>
-    <param name="generate_hithand_preshape_server_node/palm_dist_normal_to_obj_var"  value="0.03"  type="double"/>
-    <param name="generate_hithand_preshape_server_node/palm_position_3D_sample_var"  value="0.005" type="double"/>
-    <param name="generate_hithand_preshape_server_node/wrist_roll_orientation_var"   value="0.005" type="double"/>
-    <param name="generate_hithand_preshape_server_node/hand_roll_angle_sample_var"   value="0.005" type="double"/>
-    <param name="generate_hithand_preshape_server_node/min_object_height"            value="0.03"  type="double"/> -->
-
 
 
    <!-- Grasp preshape -->
@@ -56,9 +45,7 @@
 
     <group if="$(arg sim)">
         <!-- Gazebo scene manager -->
-        <node name="manage_gazebo_scene_node" pkg="grasp_pipeline" type="manage_gazebo_scene_server.py" output="screen">
-            <param name="object_datasets_folder" value="$(arg object_datasets_folder)"/>
-        </node>
+        <node name="manage_gazebo_scene_node" pkg="grasp_pipeline" type="manage_gazebo_scene_server.py" output="screen"/>
         <!-- Hithand control manager -->
         <node name="control_hithand_config_node" pkg="grasp_pipeline" type="control_sim_hithand_server.py" output="screen"/>
         <!-- Camera transformation broadcaster -->

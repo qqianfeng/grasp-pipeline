@@ -8,9 +8,9 @@ import numpy as np
 
 
 class GraspClient():
-    def __init__(self, datasets_base_path):
+    def __init__(self):
         rospy.init_node('grasp_client')
-        self.datasets_base_path = datasets_base_path
+        self.datasets_base_path = rospy.get_param('datasets_base_folder')
         # save the mesh path of the currently spawned model
         self.spawned_object_name = None
         self.spawned_object_mesh_path = None

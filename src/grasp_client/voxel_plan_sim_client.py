@@ -4,8 +4,7 @@ from grasp_sim_client import GraspClient
 
 if __name__ == '__main__':
     # Create the generic GraspClient, wrapper around all sorts of functionalities
-    datasets_base_path = '/home/vm/object_datasets'  # NOTE: should come from the param server
-    dc_client = GraspClient(datasets_base_path)
+    dc_client = GraspClient()
 
     # Specify the object to be grasped, its pose, dataset, type, name etc.
     object_name = 'mustard_bottle'

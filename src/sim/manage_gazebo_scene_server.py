@@ -15,7 +15,7 @@ class GazeboSceneManager():
         rospy.loginfo('Node: manage_gazebo_scene_server')
         self.prev_object_model_name = None
         self.object_datasets_folder = rospy.get_param(
-            '~object_datasets_folder') + '/'
+            'object_datasets_folder') + '/'
 
     def delete_object(self, object_model_name):
         try:

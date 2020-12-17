@@ -115,7 +115,7 @@ class ObjectSegmenter():
         self.world_t_cam = np.array([position.x, position.y, position.z])
         print("Unsubscribed camera_tf_listener")
 
-    def handle_table_object_segmentation(self, req):
+    def handle_segment_object(self, req):
         while (self.object_point_cloud_save_path is
                None) or (self.point_cloud_read_path is None):
             print(
@@ -123,7 +123,7 @@ class ObjectSegmenter():
             )
             time.sleep(2)
 
-        print("handle_table_object_segmentation received the service call")
+        print("handle_segment_object received the service call")
         pcd = o3d.io.read_point_cloud(self.point_cloud_read_path)
 
         if self.world_t_cam is None:
@@ -201,9 +201,9 @@ class ObjectSegmenter():
 
         return res
 
-    def create_table_object_segmentation_server(self):
+    def create_segment_object_server(self):
         rospy.Service('segment_object', SegmentGraspObject,
-                      self.handle_table_object_segmentation)
+                      self.handle_segment_object)
         rospy.loginfo('Service segment_object:')
         rospy.loginfo(
             'Ready to segment the table from the object point cloud.')
@@ -211,11 +211,11 @@ class ObjectSegmenter():
 
 if __name__ == "__main__":
     oseg = ObjectSegmenter()
-    oseg.create_table_object_segmentation_server()
+    oseg.create_segment_object_server()
     if DEBUG:
         oseg = ObjectSegmenter(
             scene_point_cloud_path='/home/vm/test_cloud.pcd',
             object_point_cloud_path='/home/vm/object.pcd')
-        oseg.handle_table_object_segmentation(None)
+        oseg.handle_segment_object(None)
 
     rospy.spin()
