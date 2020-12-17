@@ -76,12 +76,9 @@ class GraspClient():
         rospy.loginfo(object_pose)
         object_pose_stamped = self.get_pose_stamped_from_array(object_pose)
         self.spawned_object_pose = object_pose_stamped
-        return object_pose_stamped
 
     def choose_specific_gasp_preshape(self, grasp_type):
         """ This chooses one specific grasp preshape from the preshapes in self.heuristic_preshapes.
-
-
         """
         if self.heuristic_preshapes == None:
             rospy.logerr("generate_hithand_preshape_service needs to be called before calling this in order to generate the needed preshapes!")
@@ -114,7 +111,7 @@ class GraspClient():
 
         
     # ++++++++ PART II: Second part consist of all clients that interact with different nodes/services ++++++++++++
-    def create_moveit_scene_client(self, object_pose):
+    def create_moveit_scene_client(self):
         rospy.loginfo('Waiting for service create_moveit_scene.')
         rospy.wait_for_service('create_moveit_scene')
         rospy.loginfo('Calling service create_moveit_scene.')
@@ -122,26 +119,25 @@ class GraspClient():
             create_moveit_scene = rospy.ServiceProxy('create_moveit_scene',
                                                      ManageMoveitScene)
             # print(self.spawned_object_mesh_path)
-            create_scene_request = ManageMoveitSceneRequest(
-                create_scene=True,
-                object_mesh_path=self.spawned_object_mesh_path,
-                object_pose_world=object_pose)
+            req = ManageMoveitSceneRequest()
+            req.create_scene = True
+            req.object_mesh_path = self.spawned_object_mesh_path
+            req.object_pose_world = self.spawned_object_pose
             self.create_scene_response = create_moveit_scene(
-                create_scene_request)
+                req)
             #print self.create_scene_response
         except rospy.ServiceException, e:
             rospy.loginfo('Service create_moveit_scene call failed: %s' % e)
         rospy.loginfo('Service create_moveit_scene is executed %s.' %
                       str(self.create_scene_response))
 
-    def update_gazebo_object_client(self, object_name, object_pose,
-                                    object_model_name, model_type, dataset):
+    def update_gazebo_object_client(self, object_name, object_model_name, model_type, dataset):
         """Gazebo management client, deletes previous object and spawns new object
         """
         rospy.loginfo('Waiting for service update_gazebo_object.')
         rospy.wait_for_service('update_gazebo_object')
         rospy.loginfo('Calling service update_gazebo_object.')
-        object_pose_array = self.get_pose_array_from_stamped(object_pose)
+        object_pose_array = self.get_pose_array_from_stamped(self.spawned_object_pose)
         try:
             update_gazebo_object = rospy.ServiceProxy('update_gazebo_object',
                                                       UpdateObjectGazebo)
@@ -176,6 +172,7 @@ class GraspClient():
             rospy.loginfo('Service control_hithand_config call failed: %s' % e)
         rospy.loginfo('Service control_allegro_config is executed %s.' %
                       str(self.control_response))
+
 
     def generate_hithand_preshape_client(self):
         """ Generates 
@@ -239,6 +236,8 @@ class GraspClient():
             segment_object = rospy.ServiceProxy('segment_object', SegmentGraspObject)
             req = SegmentGraspObjectRequest()
             req.start = True
+            req.scene_point_cloud_path = self.scene_point_cloud_path
+            req.object_point_cloud_path = self.object_point_cloud_path
             res = segment_object(req)
         except rospy.ServiceException, e:
             rospy.loginfo('Service segment_object call failed: %s' % e)
@@ -252,11 +251,25 @@ class GraspClient():
         rospy.loginfo('Received depth, color and point cloud messages')
 
         self.save_visual_data_client()
+        self.segment_object_client()
 
     # ++++++++ PART III: The third part consists of all the main logic/orchestration of Parts I and II ++++++++++++
-    def grasp_and_lift_object(self, object_pose_stamped):
-        self.create_moveit_scene_client(object_pose_stamped)
+    def spawn_object_in_gazebo_random_pose(self,  object_name,
+                                    object_model_name, model_type, dataset)
+    # Generate a random valid object pose
+    self.generate_random_object_pose_for_experiment()
+    # Update gazebo object, delete old object and spawn new one
+    self.update_gazebo_object_client(
+        object_name, object_model_name, model_type, dataset)
 
+    def generate_hithand_preshape(self, grasp_type):
+        """ First generate multiple grasp preshapes and then choose one specific one for grasp execution.
+        """
+        self.generate_hithand_preshape_client()
+        self.choose_specific_preshape(grasp_type=grasp_type)    
+    
+    def grasp_and_lift_object(self):
+        self.create_moveit_scene_client()58472
         self.control_hithand_config_client()
 
         grasp_arm_plan = None
