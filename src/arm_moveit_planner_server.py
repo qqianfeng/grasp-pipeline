@@ -8,7 +8,7 @@ import moveit_commander
 import numpy as np
 from trac_ik_python.trac_ik import IK
 
-DEBUG = True
+DEBUG = False
 
 
 class CartesianPoseMoveitPlanner():
