@@ -33,6 +33,8 @@ class GraspClient():
         self.chosen_hithand_joint_state = None
         self.chosen_is_top_grasp = None
 
+        self.panda_planned_joint_trajectory = None
+
     # +++++++ PART I: First part are all the "helper functions" w/o interface to any other nodes/services ++++++++++
     def _setup_workspace_boundaries(self):
         """Sets the boundaries in which an object can be spawned and placed.
@@ -125,13 +127,14 @@ class GraspClient():
                 req.palm_goal_pose_world = place_goal_pose
             else:
                 req.palm_goal_pose_world = self.mount_desired_world.pose
-            self.planning_response = moveit_cartesian_pose_planner(req)
+            planning_response = moveit_cartesian_pose_planner(req)
         except rospy.ServiceException, e:
             rospy.loginfo(
                 'Service arm_moveit_cartesian_pose_planner call failed: %s' % e)
         rospy.loginfo('Service arm_moveit_cartesian_pose_planner is executed %s.' %
-                      str(self.planning_response.success))
-        return self.planning_response.success
+                      str(planning_response.success))
+        self.panda_planned_joint_trajectory = planning_response.plan_traj
+        return planning_response.success
     
     def create_moveit_scene_client(self):
         rospy.loginfo('Waiting for service create_moveit_scene.')
@@ -232,7 +235,7 @@ class GraspClient():
             return False
         return True
 
-    def save_visual_data_client():
+    def save_visual_data_client(self):
         rospy.loginfo('Waiting for service save_visual_data.')
         rospy.wait_for_service('save_visual_data')
         rospy.loginfo('Calling service save_visual_data.')
@@ -250,7 +253,7 @@ class GraspClient():
             rospy.loginfo('Service save_visual_data call failed: %s' % e)
         rospy.loginfo('Service save_visual_data is executed.')
 
-    def segment_object_client():
+    def segment_object_client(self):
         rospy.loginfo('Waiting for service segment_object.')
         rospy.wait_for_service('segment_object')
         rospy.loginfo('Calling service segment_object.')
@@ -265,15 +268,18 @@ class GraspClient():
             rospy.loginfo('Service segment_object call failed: %s' % e)
         rospy.loginfo('Service segment_object is executed.')        
 
-    def save_visual_data_and_segment_object():
-        self.depth_img = rospy.wait_for_message("/camera/depth/image_raw", Image)
-        self.color_img = rospy.wait_for_message("/camera/color/image_raw", Image)
-        self.point_cloud = rospy.wait_for_message("/depth_registered/points",
-                                         PointCloud2)
-        rospy.loginfo('Received depth, color and point cloud messages')
+    def execute_joint_trajectory_client(self):
+         rospy.loginfo('Waiting for service execute_joint_trajectory.')
+        rospy.wait_for_service('execute_joint_trajectory')
+        rospy.loginfo('Calling service execute_joint_trajectory.')
+        try:
+            execute_joint_trajectory = rospy.ServiceProxy('execute_joint_trajectory', ExecuteJointTrajectory)
+            req = SegmentGraspObjectRequest()
 
-        self.save_visual_data_client()
-        self.segment_object_client()
+            res = execute_joint_trajectory(req)
+        except rospy.ServiceException, e:
+            rospy.loginfo('Service execute_joint_trajectory call failed: %s' % e)
+        rospy.loginfo('Service execute_joint_trajectory is executed.')         
 
     # ++++++++ PART III: The third part consists of all the main logic/orchestration of Parts I and II ++++++++++++
     def spawn_object_in_gazebo_random_pose(self,  object_name,
@@ -284,6 +290,16 @@ class GraspClient():
         self.update_gazebo_object_client(
             object_name, object_model_name, model_type, dataset)
 
+    def save_visual_data_and_segment_object():
+        self.depth_img = rospy.wait_for_message("/camera/depth/image_raw", Image)
+        self.color_img = rospy.wait_for_message("/camera/color/image_raw", Image)
+        self.point_cloud = rospy.wait_for_message("/depth_registered/points",
+                                         PointCloud2)
+        rospy.loginfo('Received depth, color and point cloud messages')
+
+        self.save_visual_data_client()
+        self.segment_object_client()
+
     def generate_hithand_preshape(self, grasp_type):
         """ First generate multiple grasp preshapes and then choose one specific one for grasp execution.
         """
@@ -291,10 +307,18 @@ class GraspClient():
         self.choose_specific_preshape(grasp_type=grasp_type)    
     
     def grasp_and_lift_object(self):
+        # Spawn the object collision model in Moveit
         self.create_moveit_scene_client()
 
+        # Control the hithand to it's preshape
         self.control_hithand_config_client()
 
+        # Generate a robot trajectory to move to desired pose
         moveit_plan_exists = self.arm_moveit_cartesian_pose_planner_client()
+
+        # Possibly trajectory/pose needs an extra validity check or smth like that
+
+        # Execute the generated joint trajectory
+        self.execute_joint_trajectory_client()
 
         return grasp_arm_plan
