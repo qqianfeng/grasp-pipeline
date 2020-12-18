@@ -40,7 +40,7 @@
 
 
     <!-- Moveit planner node for panda arm -->
-    <!--<node name="arm_moveit_planner_server_node" pkg="grasp_pipeline" type="arm_moveit_planner_server.py" output="screen"/> -->
+    <node name="arm_moveit_planner_server_node" pkg="grasp_pipeline" type="arm_moveit_planner_server.py" output="screen"/>
 
 
     <!-- Save visual data node -->
@@ -59,7 +59,7 @@
 
 
     <!--Launch node which advertises service to segment the table from an object -->
-    <node name="table_object_segmentation_node" pkg="grasp_pipeline" type="table_object_segmentation_server.py" output="screen"/>
+    <node name="table_object_segmentation_node" pkg="grasp_pipeline" type="segment_object_server.py" output="screen"/>
 
     <!-- This launches the old segmenter written in python 3 -->
     <!-- <group if="$(arg launch_conda)">

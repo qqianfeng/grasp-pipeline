@@ -111,6 +111,28 @@ class GraspClient():
 
         
     # ++++++++ PART II: Second part consist of all clients that interact with different nodes/services ++++++++++++
+    def arm_moveit_cartesian_pose_planner_client(self, go_home=False):
+        rospy.loginfo('Waiting for service arm_moveit_cartesian_pose_planner.')
+        rospy.wait_for_service('arm_moveit_cartesian_pose_planner')
+        rospy.loginfo('Calling service arm_moveit_cartesian_pose_planner.')
+        try:
+            moveit_cartesian_pose_planner = rospy.ServiceProxy(
+                'arm_moveit_cartesian_pose_planner', PalmGoalPoseWorld)
+            req = PalmGoalPoseWorldRequest()
+            if go_home:
+               req.go_home = True
+            elif place_goal_pose is not None:
+                req.palm_goal_pose_world = place_goal_pose
+            else:
+                req.palm_goal_pose_world = self.mount_desired_world.pose
+            self.planning_response = moveit_cartesian_pose_planner(req)
+        except rospy.ServiceException, e:
+            rospy.loginfo(
+                'Service arm_moveit_cartesian_pose_planner call failed: %s' % e)
+        rospy.loginfo('Service arm_moveit_cartesian_pose_planner is executed %s.' %
+                      str(self.planning_response.success))
+        return self.planning_response.success
+    
     def create_moveit_scene_client(self):
         rospy.loginfo('Waiting for service create_moveit_scene.')
         rospy.wait_for_service('create_moveit_scene')
@@ -256,11 +278,11 @@ class GraspClient():
     # ++++++++ PART III: The third part consists of all the main logic/orchestration of Parts I and II ++++++++++++
     def spawn_object_in_gazebo_random_pose(self,  object_name,
                                     object_model_name, model_type, dataset)
-    # Generate a random valid object pose
-    self.generate_random_object_pose_for_experiment()
-    # Update gazebo object, delete old object and spawn new one
-    self.update_gazebo_object_client(
-        object_name, object_model_name, model_type, dataset)
+        # Generate a random valid object pose
+        self.generate_random_object_pose_for_experiment()
+        # Update gazebo object, delete old object and spawn new one
+        self.update_gazebo_object_client(
+            object_name, object_model_name, model_type, dataset)
 
     def generate_hithand_preshape(self, grasp_type):
         """ First generate multiple grasp preshapes and then choose one specific one for grasp execution.
@@ -269,8 +291,10 @@ class GraspClient():
         self.choose_specific_preshape(grasp_type=grasp_type)    
     
     def grasp_and_lift_object(self):
-        self.create_moveit_scene_client()58472
+        self.create_moveit_scene_client()
+
         self.control_hithand_config_client()
 
-        grasp_arm_plan = None
+        moveit_plan_exists = self.arm_moveit_cartesian_pose_planner_client()
+
         return grasp_arm_plan

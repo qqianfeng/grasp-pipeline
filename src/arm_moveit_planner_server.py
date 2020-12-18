@@ -8,6 +8,8 @@ import moveit_commander
 import numpy as np
 from trac_ik_python.trac_ik import IK
 
+DEBUG = True
+
 
 class CartesianPoseMoveitPlanner():
     def __init__(self):
@@ -23,10 +25,12 @@ class CartesianPoseMoveitPlanner():
         self.group.set_num_planning_attempts(3)
 
         self.zero_joint_states = np.zeros(7)
-        self.home_joint_states = np.array(
-            [0, -0.553876, 0, -2.5361, 0, 1.9884, -0.785])
+        self.home_joint_states = np.array([0, -0.553876, 0, -2.5361, 0, 1.9884, -0.785])
 
-        self.ik_solver = IK('world', 'panda_link8')
+        self.ik_solver = IK("world", "panda_link8")  #panda_link0 was world before
+        print(self.ik_solver.link_names)
+        print(self.ik_solver.joint_names)
+        print(self.ik_solver.number_of_joints)
         self.seed_state = [0.0] * self.ik_solver.number_of_joints
 
     def go_home(self):
@@ -53,8 +57,10 @@ class CartesianPoseMoveitPlanner():
     def go_goal_trac_ik(self, pose):
         print 'go goal trac ik'
         self.group.clear_pose_targets()
-        ik_js = self.ik_solver.get_ik(self.seed_state, pose.position.x, pose.position.y, pose.position.z,
-                                      pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w)
+        # ik_js = self.ik_solver.get_ik(self.seed_state, pose.position.x, pose.position.y,
+        #                               pose.position.z, pose.orientation.x, pose.orientation.y,
+        #                               pose.orientation.z, pose.orientation.w)
+        ik_js = self.ik_solver.get_ik(self.seed_state, 0.45, 0.1, 0.3, 0.0, 0.0, 0.0, 1.0)
         if ik_js is None:
             rospy.logerr('No IK solution found')
             return None
@@ -62,7 +68,9 @@ class CartesianPoseMoveitPlanner():
         plan_goal = self.group.plan()
         return plan_goal
 
-    def handle_pose_goal_planner(self, req):
+    def handle_arm_moveit_cartesian_pose_planner(self, req):
+        #panda_joints = rospy.wait_for_message('panda/joint_states', JointState)
+        #self.seed_state = list(panda_joints.position)
         plan = None
         if req.go_home:
             plan = self.go_home()
@@ -79,13 +87,12 @@ class CartesianPoseMoveitPlanner():
             response.plan_traj = plan.joint_trajectory
         return response
 
-    def create_moveit_planner_server(self):
-        rospy.Service('moveit_cartesian_pose_planner',
-                      PalmGoalPoseWorld, self.handle_pose_goal_planner)
-        rospy.loginfo('Service moveit_cartesian_pose_planner:')
+    def create_arm_moveit_cartesian_pose_planner_server(self):
+        rospy.Service('arm_moveit_cartesian_pose_planner', PalmGoalPoseWorld,
+                      self.handle_arm_moveit_cartesian_pose_planner)
+        rospy.loginfo('Service arm_moveit_cartesian_pose_planner:')
         rospy.loginfo('Reference frame: %s' % self.group.get_planning_frame())
-        rospy.loginfo('End-effector frame: %s' %
-                      self.group.get_end_effector_link())
+        rospy.loginfo('End-effector frame: %s' % self.group.get_end_effector_link())
         rospy.loginfo('Robot Groups: %s' % self.robot.get_group_names())
         rospy.loginfo('Ready to start to plan for given palm goal poses.')
 
@@ -103,5 +110,14 @@ class CartesianPoseMoveitPlanner():
 
 if __name__ == '__main__':
     planner = CartesianPoseMoveitPlanner()
-    planner.create_moveit_planner_server()
+    if DEBUG:
+        gp = Pose()
+        gp.position.x, gp.position.y, gp.position.z = 0.100, -0.377, 0.457
+        gp.orientation.x, gp.orientation.y, gp.orientation.z, gp.orientation.w = 0.748, 0.663, -0.001, -0.000
+        req = PalmGoalPoseWorldRequest()
+        req.go_home = False
+        req.go_zero = False
+        req.palm_goal_pose_world = gp
+        planner.handle_arm_moveit_cartesian_pose_planner(req)
+    planner.create_arm_moveit_cartesian_pose_planner_server()
     rospy.spin()
