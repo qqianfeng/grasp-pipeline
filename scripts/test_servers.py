@@ -248,7 +248,7 @@ if __name__ == '__main__':
     # sut.test_clean_moveit_scene_server()
 
     # Test hithand control preshape/config
-    sut.test_control_hithand_config_server(hithand_joint_states)
+    # sut.test_control_hithand_config_server(hithand_joint_states)
 
     # Test table object segmentation
     # sut.test_table_object_segmentation_server(object_pcd_path)
