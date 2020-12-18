@@ -269,7 +269,7 @@ class GraspClient():
         rospy.loginfo('Service segment_object is executed.')        
 
     def execute_joint_trajectory_client(self):
-         rospy.loginfo('Waiting for service execute_joint_trajectory.')
+        rospy.loginfo('Waiting for service execute_joint_trajectory.')
         rospy.wait_for_service('execute_joint_trajectory')
         rospy.loginfo('Calling service execute_joint_trajectory.')
         try:

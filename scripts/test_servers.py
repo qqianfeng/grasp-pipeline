@@ -12,6 +12,7 @@ from std_srvs.srv import SetBoolRequest, SetBool
 from std_msgs.msg import Float64MultiArray
 from visualization_msgs.msg import Marker, MarkerArray
 import open3d as o3d
+from trajectory_smoothing.srv import *
 
 
 def get_pose_stamped_from_array(pose_array, frame_id='/world'):
@@ -31,6 +32,12 @@ class ServerUnitTester():
         self.test_count = 0
         self.bridge = CvBridge
         self.arm_moveit_plan = None
+        self.rate_hz = 100
+        self.dt = 1 / self.rate_hz
+        self.loop_rate = rospy.Rate(self.rate_hz)
+        self.max_acceleration = 0.25 * np.ones(7)
+        self.max_velocity = 0.4 * np.ones(7)
+        self.joint_trajectory = None
 
     def test_manage_gazebo_scene_server(self, object_name, object_pose_array, object_model_name,
                                         dataset, model_type):
@@ -191,6 +198,33 @@ class ServerUnitTester():
 
         print(result)
 
+    def test_execute_joint_trajectory_server(self, smooth_trajectory=False):
+        self.test_count = +1
+        print('Running test_execute_joint_trajectory_server, test number %d' % self.test_count)
+
+        execute_joint_trajectory = rospy.ServiceProxy('execute_joint_trajectory',
+                                                      ExecuteJointTrajectory)
+        req = ExecuteJointTrajectoryRequest()
+        req.smoothen_trajectory = False
+        req.joint_trajectory = self.arm_moveit_plan if not smooth_trajectory else self.joint_trajectory
+        res = execute_joint_trajectory(req)
+        result = 'SUCCEEDED' if res.success else 'FAILED'
+
+    def test_execute_joint_trajectory_server(self):
+        self.test_count = +1
+        print('Running test_execute_joint_trajectory_server, test number %d' % self.test_count)
+
+        smoothen_trajectory = rospy.ServiceProxy('/get_smooth_trajectory', GetSmoothTraj)
+        req = GetSmoothTrajRequest()
+        req.init_traj = self.joint_trajectory
+        req.max_acc = self.max_acceleration
+        req.max_vel = self.max_velocity
+        req.max_dev = 0.1
+        req.dt = self.dt
+        res = smoothen_trajectory(req)
+        self.joint_trajectory = res.smooth_traj  # Joint trajectory is now smooth
+        result = 'SUCCEEDED' if res.success else 'FAILED'
+
     def template_test(self):
         self.test_count += 1
         print('Running test_manage_gazebo_scene_server, test number %d' % self.test_count)
@@ -258,3 +292,10 @@ if __name__ == '__main__':
 
     # Test arm moveit cartesian pose planner
     sut.test_arm_moveit_cartesian_pose_planner_server(pose_arm_moveit)
+
+    # Test arm joint trajectory execution
+    sut.test_execute_joint_trajectory_server()
+
+    # Test smoothen trajectory execution
+
+    # Test execution of smoothen trajectory
