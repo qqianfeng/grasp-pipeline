@@ -1,4 +1,0 @@
-trajectory_msgs/JointTrajectory joint_trajectory
----
-trajectory_msgs/JointTrajectory smooth_joint_trajectory
-bool success

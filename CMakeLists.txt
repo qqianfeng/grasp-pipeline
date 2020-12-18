@@ -36,7 +36,6 @@ add_service_files(
     PalmGoalPoseWorld.srv
     SaveVisualData.srv
     SegmentGraspObject.srv
-    SmoothenJointTrajectory.srv
     UpdateObjectGazebo.srv
 )
 
