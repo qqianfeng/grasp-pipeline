@@ -9,13 +9,14 @@ import time
 
 class RobotTrajectoryManager():
     def __init__(self):
+        rospy.init_node('execute_joint_trajectory_node')
         self.joint_command_pub = rospy.Publisher('panda/joint_cmd', JointState, queue_size=1)
         self.joint_trajectory = None
         self.rate_hz = 100
         self.dt = 1 / self.rate_hz
         self.loop_rate = rospy.Rate(self.rate_hz)
-        self.max_acceleration = 0.25 * np.ones(7)
-        self.max_velocity = 0.4 * np.ones(7)
+        self.max_acc = 0.5 * np.ones(7)
+        self.max_vel = 0.8 * np.ones(7)
 
     def get_smooth_trajectory_client(self):
         rospy.loginfo('Waiting for service get_smooth_trajectory.')
@@ -23,13 +24,7 @@ class RobotTrajectoryManager():
         rospy.loginfo('Calling service get_smooth_trajectory.')
         try:
             smoothen_trajectory = rospy.ServiceProxy('/get_smooth_trajectory', GetSmoothTraj)
-            req = GetSmoothTrajRequest()
-            req.init_traj = self.joint_trajectory
-            req.max_acc = self.max_acceleration
-            req.max_vel = self.max_velocity
-            req.max_dev = 0.1
-            req.dt = self.dt
-            res = smoothen_trajectory(req)
+            res = smoothen_trajectory(self.joint_trajectory, self.max_acc, self.max_vel, 0.1, 0.01)
         except rospy.ServiceException, e:
             rospy.loginfo('Service get_smooth_trajectory call failed: %s' % e)
         self.joint_trajectory = res.smooth_traj  # Joint trajectory is now smooth
@@ -69,6 +64,9 @@ class RobotTrajectoryManager():
             self.loop_rate.sleep()
         rospy.loginfo('***Arm reached: %s' % str(reached))
         rospy.loginfo('***Arm reach error: %s' % str(err))
+        response = ExecuteJointTrajectoryResponse()
+        response.success = reached
+        return response
 
     def create_execute_joint_trajectory_server(self):
         rospy.Service('execute_joint_trajectory', ExecuteJointTrajectory,

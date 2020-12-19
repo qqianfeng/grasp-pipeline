@@ -35,8 +35,8 @@ class ServerUnitTester():
         self.rate_hz = 100
         self.dt = 1 / self.rate_hz
         self.loop_rate = rospy.Rate(self.rate_hz)
-        self.max_acceleration = 0.25 * np.ones(7)
-        self.max_velocity = 0.4 * np.ones(7)
+        self.max_acc = 0.5 * np.ones(7)
+        self.max_vel = 0.8 * np.ones(7)
         self.joint_trajectory = None
 
     def test_manage_gazebo_scene_server(self, object_name, object_pose_array, object_model_name,
@@ -193,37 +193,34 @@ class ServerUnitTester():
         else:
             req.palm_goal_pose_world = pose
         res = arm_moveit_cartesian_pose_planner(req)
-        self.arm_moveit_plan = res.plan_traj
+        self.joint_trajectory = res.plan_traj
         result = 'SUCCEEDED' if res.success else 'FAILED'
 
         print(result)
 
-    def test_execute_joint_trajectory_server(self, smooth_trajectory=False):
+    def test_execute_joint_trajectory_server(self, smoothen_trajectory=False):
         self.test_count = +1
         print('Running test_execute_joint_trajectory_server, test number %d' % self.test_count)
 
         execute_joint_trajectory = rospy.ServiceProxy('execute_joint_trajectory',
                                                       ExecuteJointTrajectory)
         req = ExecuteJointTrajectoryRequest()
-        req.smoothen_trajectory = False
-        req.joint_trajectory = self.arm_moveit_plan if not smooth_trajectory else self.joint_trajectory
+        req.smoothen_trajectory = smoothen_trajectory
+        req.joint_trajectory = self.joint_trajectory
         res = execute_joint_trajectory(req)
         result = 'SUCCEEDED' if res.success else 'FAILED'
+        print(result)
 
-    def test_execute_joint_trajectory_server(self):
+    def test_get_smooth_trajectory_server(self):
         self.test_count = +1
-        print('Running test_execute_joint_trajectory_server, test number %d' % self.test_count)
+        print('Running test_get_smooth_trajectory_server, test number %d' % self.test_count)
 
         smoothen_trajectory = rospy.ServiceProxy('/get_smooth_trajectory', GetSmoothTraj)
-        req = GetSmoothTrajRequest()
-        req.init_traj = self.joint_trajectory
-        req.max_acc = self.max_acceleration
-        req.max_vel = self.max_velocity
-        req.max_dev = 0.1
-        req.dt = self.dt
-        res = smoothen_trajectory(req)
+        res = smoothen_trajectory(self.joint_trajectory, self.max_acc, self.max_vel, 0.1, 0.01)
+
         self.joint_trajectory = res.smooth_traj  # Joint trajectory is now smooth
         result = 'SUCCEEDED' if res.success else 'FAILED'
+        print(result)
 
     def template_test(self):
         self.test_count += 1
@@ -297,5 +294,10 @@ if __name__ == '__main__':
     sut.test_execute_joint_trajectory_server()
 
     # Test smoothen trajectory execution
+    sut.test_get_smooth_trajectory_server()
+
+    # Make robot go home
+    sut.test_arm_moveit_cartesian_pose_planner_server(pose=None, go_home=True)
 
     # Test execution of smoothen trajectory
+    sut.test_execute_joint_trajectory_server(smoothen_trajectory=True)

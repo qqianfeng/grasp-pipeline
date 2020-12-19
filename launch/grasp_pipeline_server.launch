@@ -43,7 +43,7 @@
     <node name="arm_moveit_planner_server_node" pkg="grasp_pipeline" type="arm_moveit_planner_server.py" output="screen"/>
 
     <!-- SMOOTH THE TRAJECTORY /-->
-    <node name="trajectory_smoothing_node" pkg="trajectory_smoothing" type="service" output="screen"/>
+    <node name="get_smooth_trajectory_node" pkg="trajectory_smoothing" type="service" output="screen"/>
 
     <!-- Execute planned joint trajectory server-->
     <node name="execute_joint_trajectory_server_node" pkg="grasp_pipeline" type="execute_joint_trajectory_server.py" output="screen"/>
