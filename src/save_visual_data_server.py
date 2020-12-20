@@ -38,16 +38,13 @@ def convert_rgbUint32_to_tuple(rgb_uint32):
 
 def convert_rgbFloat_to_tuple(rgb_float):
     return convert_rgbUint32_to_tuple(
-        int(
-            cast(pointer(c_float(rgb_float)),
-                 POINTER(c_uint32)).contents.value))
+        int(cast(pointer(c_float(rgb_float)), POINTER(c_uint32)).contents.value))
 
 
 def cloud_from_ros_to_o3d(ros_cloud):
     # Get cloud data from ros_cloud
     field_names = [field.name for field in ros_cloud.fields]
-    cloud_data = list(
-        pc2.read_points(ros_cloud, skip_nans=True, field_names=field_names))
+    cloud_data = list(pc2.read_points(ros_cloud, skip_nans=True, field_names=field_names))
     # Check empty
     o3d_cloud = o3d.geometry.PointCloud()
     if len(cloud_data) == 0:
@@ -63,13 +60,9 @@ def cloud_from_ros_to_o3d(ros_cloud):
         # Check whether int or float
         # if float (from pcl::toROSMsg)
         if type(cloud_data[0][IDX_RGB_IN_FIELD]) == float:
-            rgb = [
-                convert_rgbFloat_to_tuple(rgb) for x, y, z, rgb in cloud_data
-            ]
+            rgb = [convert_rgbFloat_to_tuple(rgb) for x, y, z, rgb in cloud_data]
         else:
-            rgb = [
-                convert_rgbUint32_to_tuple(rgb) for x, y, z, rgb in cloud_data
-            ]
+            rgb = [convert_rgbUint32_to_tuple(rgb) for x, y, z, rgb in cloud_data]
         # combine
         o3d_cloud.points = o3d.utility.Vector3dVector(np.array(xyz))
         o3d_cloud.colors = o3d.utility.Vector3dVector(np.array(rgb) / 255.0)
@@ -133,9 +126,7 @@ class VisualDataSaver():
 
     def load_depth_img(self, depth_img_save_path):
         depth_img_u16 = cv2.imread(depth_img_save_path, -1)
-        depth_img_f32 = cv2.normalize(depth_img_u16,
-                                      depth_img_u16,
-                                      dtype=cv2.CV_32FC1)
+        depth_img_f32 = cv2.normalize(depth_img_u16, depth_img_u16, dtype=cv2.CV_32FC1)
         return depth_img_f32
 
     def load_color_img(self, color_img_save_path):
@@ -158,8 +149,7 @@ class VisualDataSaver():
 
         # Transform the pointcloud message into world frame
         rospy.loginfo(req.point_cloud.header)
-        point_cloud_world = do_transform_cloud(req.point_cloud,
-                                               self.transform_camera_world)
+        point_cloud_world = do_transform_cloud(req.point_cloud, self.transform_camera_world)
         rospy.loginfo(point_cloud_world.header)
 
         # Transform format in order to save data to disk
@@ -177,8 +167,7 @@ class VisualDataSaver():
         return response
 
     def create_save_visual_data_service(self):
-        rospy.Service('save_visual_data', SaveVisualData,
-                      self.handle_visual_data_saver)
+        rospy.Service('save_visual_data', SaveVisualData, self.handle_visual_data_saver)
         rospy.loginfo('Service save_visual_data:')
         rospy.loginfo('Ready to save your awesome visual data.')
 
