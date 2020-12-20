@@ -31,6 +31,7 @@ add_service_files(
     ControlHithand.srv
     ExecuteJointTrajectory.srv
     GraspPreshape.srv
+    GraspControl.srv
     ManageMoveitScene.srv
     MoveArm.srv
     PalmGoalPoseWorld.srv
