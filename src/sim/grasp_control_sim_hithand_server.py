@@ -13,9 +13,6 @@ class HithandGraspController():
         self.delta_joint_angle = None
         self.freq = 100
         self.rate = rospy.Rate(self.freq)
-        # self.hithand_joint_state_sub = rospy.Subscriber('/hithand/joint_states',
-        #                                                        JointState,
-        #                                                        queue_size=1)
         self.joint_command_pub = rospy.Publisher('/hithand/joint_cmd', JointState, queue_size=1)
 
         self.current_pos_joints = None
@@ -45,7 +42,7 @@ class HithandGraspController():
         joint_pub_msg = JointState()
         previous_pos_joints = self.current_pos_joints
         desired_pos_joints = previous_pos_joints
-        for i in xrange(10 * self.freq):  # this loop runs maximally for 10 seconds
+        for i in xrange(10 * self.freq):  # this loop runs for 10 seconds max
             if i % self.check_delta_joint_interval == 0:
                 self.update_current_pos_joints()
                 # check whether the joint position a few steps ago actually differs from the current joint position. If not velocity is zero and joint should stop moving
