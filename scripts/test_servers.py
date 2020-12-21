@@ -55,19 +55,24 @@ class ServerUnitTester():
     def get_pose_stamped_from_array(self, pose_array, frame_id='/world'):
         """Transforms an array pose into a ROS stamped pose.
         """
-        pose = PoseStamped()
-        pose.header.frame_id = frame_id
-        r, p, y = pose_array[:3]
-        quaternion = tft.quaternion_from_euler(r, p, y)
-        pose.pose.orientation = quaternion  # x,y,z,w quaternion
-        pose.pose.position = pose_array[3:]  # x,y,z position
-        return pose
+        pose_stamped = PoseStamped()
+        pose_stamped.header.frame_id = frame_id
+        # RPY to quaternion
+        pose_quaternion = tft.quaternion_from_euler(pose_array[0], pose_array[1], pose_array[2])
+        pose_stamped.pose.orientation.x, pose_stamped.pose.orientation.y, \
+                pose_stamped.pose.orientation.z, pose_stamped.pose.orientation.w = pose_quaternion[0], pose_quaternion[1], pose_quaternion[2], pose_quaternion[3]
+        pose_stamped.pose.position.x, pose_stamped.pose.position.y, pose_stamped.pose.position.z = \
+                pose_array[3], pose_array[4], pose_array[5]
+        return pose_stamped
 
     def get_pose_array_from_stamped(self, pose_stamped):
         """Transforms a stamped pose into a 6D pose array.
         """
-        r, p, y = tft.euler_from_quaternion(pose_stamped.pose.orientation)
-        x_p, y_p, z_p = pose_stamped.pose.position
+        r, p, y = tft.euler_from_quaternion([
+            pose_stamped.pose.orientation.x, pose_stamped.pose.orientation.y,
+            pose_stamped.pose.orientation.z, pose_stamped.pose.orientation.w
+        ])
+        x_p, y_p, z_p = pose_stamped.pose.position.x, pose_stamped.pose.position.y, pose_stamped.pose.position.z
         pose_array = [r, p, y, x_p, y_p, z_p]
         return pose_array
 
@@ -251,6 +256,7 @@ class ServerUnitTester():
         elif grasp_type == 'top':
             rand_int = np.random.randint(0, len(top_grasp_idxs))
             grasp_idx = side_grasp_idxs[rand_int]
+        print('++++++++ CHOSEN INDEX: %d' % grasp_idx)
         self.chosen_palm_pose = self.heuristic_preshapes.palm_goal_pose_world[grasp_idx]
         self.chosen_hithand_joint_state = self.heuristic_preshapes.hithand_joint_state[grasp_idx]
         self.chosen_is_top_grasp = self.heuristic_preshapes.is_top_grasp[grasp_idx]
@@ -258,20 +264,28 @@ class ServerUnitTester():
 
     def test_arm_moveit_cartesian_pose_planner_server(self, go_home=False, place_goal_pose=None):
         self.test_count += 1
-        print('Running test_arm_moveit_cartesian_pose_planner_server, test number %d' %
-              self.test_count)
+        for i in range(10):
+            try:
+                self.test_choose_specific_grasp_preshape('unspecified')
+                print('Running test_arm_moveit_cartesian_pose_planner_server, test number %d' %
+                      self.test_count)
 
-        arm_moveit_cartesian_pose_planner = rospy.ServiceProxy('arm_moveit_cartesian_pose_planner',
-                                                               PalmGoalPoseWorld)
-        req = PalmGoalPoseWorldRequest()
-        if go_home:
-            req.go_home = True
-        elif place_goal_pose is not None:
-            req.palm_goal_pose_world = place_goal_pose
-        else:
-            pass  #req.palm_goal_pose_world = pose
-        res = arm_moveit_cartesian_pose_planner(req)
-        self.joint_trajectory = res.plan_traj
+                arm_moveit_cartesian_pose_planner = rospy.ServiceProxy(
+                    'arm_moveit_cartesian_pose_planner', PalmGoalPoseWorld)
+                req = PalmGoalPoseWorldRequest()
+                if go_home:
+                    req.go_home = True
+                elif place_goal_pose is not None:
+                    req.palm_goal_pose_world = place_goal_pose
+                else:
+                    req.palm_goal_pose_world = self.chosen_palm_pose
+                res = arm_moveit_cartesian_pose_planner(req)
+                self.joint_trajectory = res.plan_traj
+                if res.success:
+                    break
+            except rospy.ServiceException, e:
+                rospy.loginfo('Service arm_moveit_cartesian_pose_planner call failed: %s' % e)
+
         result = 'SUCCEEDED' if res.success else 'FAILED'
 
         print(result)
@@ -351,26 +365,26 @@ if __name__ == '__main__':
     # Test display saved point cloud
     sut.test_display_saved_point_cloud(sut.object_point_cloud_path)
 
-    # # Test hithand preshape generation server
-    # sut.test_generate_hithand_preshape_server()
+    # Test hithand preshape generation server
+    sut.test_generate_hithand_preshape_server()
 
-    # # Choose specific pre shape
-    # sut.test_choose_specific_grasp_preshape('unspecified')
+    # Choose specific pre shape
+    sut.test_choose_specific_grasp_preshape('unspecified')
 
-    # # Test moveit spawn object
-    # sut.test_create_moveit_scene_server()
+    # Test moveit spawn object
+    sut.test_create_moveit_scene_server()
 
-    # # Test hithand control preshape/config
-    # sut.test_control_hithand_config_server(go_home=False)
+    # Test hithand control preshape/config
+    sut.test_control_hithand_config_server(go_home=False)
 
-    # # Test arm moveit cartesian pose planner
-    # sut.test_arm_moveit_cartesian_pose_planner_server()
+    # Test arm moveit cartesian pose planner
+    sut.test_arm_moveit_cartesian_pose_planner_server()
 
-    # # Test arm joint trajectory execution
-    # sut.test_execute_joint_trajectory_server()
+    # Test arm joint trajectory execution
+    sut.test_execute_joint_trajectory_server()
 
-    # # Test smoothen trajectory execution
-    # sut.test_get_smooth_trajectory_server()
+    # Test smoothen trajectory execution
+    sut.test_get_smooth_trajectory_server()
 
     # # Make robot go home
     # sut.test_arm_moveit_cartesian_pose_planner_server(pose=None, go_home=True)
