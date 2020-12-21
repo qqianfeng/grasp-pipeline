@@ -57,9 +57,10 @@ class CartesianPoseMoveitPlanner():
     def go_goal_trac_ik(self, pose):
         print 'go goal trac ik'
         self.group.clear_pose_targets()
-        ik_js = self.ik_solver.get_ik(self.seed_state, pose.position.x, pose.position.y,
-                                      pose.position.z, pose.orientation.x, pose.orientation.y,
-                                      pose.orientation.z, pose.orientation.w)
+        ik_js = self.ik_solver.get_ik(self.seed_state, pose.pose.position.x, pose.pose.position.y,
+                                      pose.pose.position.z, pose.pose.orientation.x,
+                                      pose.pose.orientation.y, pose.pose.orientation.z,
+                                      pose.pose.orientation.w)
         #ik_js = self.ik_solver.get_ik(self.seed_state, 0.45, 0.1, 0.3, 0.0, 0.0, 0.0, 1.0)
         if ik_js is None:
             rospy.logerr('No IK solution found')
