@@ -14,19 +14,13 @@ import numpy as np
 import copy
 import open3d as o3d
 
-DEBUG = False
+DEBUG = True
 
 
 class BoundingBoxFace():
     """Simple class to store properties of a bounding box face.
     """
-    def __init__(self,
-                 center,
-                 orient_a,
-                 orient_b,
-                 height,
-                 width,
-                 is_top=False):
+    def __init__(self, center, orient_a, orient_b, height, width, is_top=False):
         self.center = np.array(center)
         self.orient_a = orient_a
         self.orient_b = orient_b
@@ -43,25 +37,23 @@ class GenerateHithandPreshape():
     """
     def __init__(self):
         # Init node and publishers
+        rospy.init_node("generate_hithand_preshape_node")
+        self.service_is_called = False
+
+        self.bounding_box_center_pub = rospy.Publisher(
+            '/publish_box_points', MarkerArray, queue_size=1,
+            latch=True)  # publishes the bounding box center points
+        self.tf_broadcaster_palm_poses = tf.TransformBroadcaster()
+
         if not DEBUG:
-            rospy.init_node("generate_hithand_preshape_node")
-            self.service_is_called = False
-
-            self.bounding_box_center_pub = rospy.Publisher(
-                '/publish_box_points', MarkerArray, queue_size=1,
-                latch=True)  # publishes the bounding box center points
-            self.tf_broadcaster_palm_poses = tf.TransformBroadcaster()
-
             # Get parameters from the ROS parameter server
             self.min_object_height = rospy.get_param(
                 'generate_hithand_preshape_server_node/min_object_height'
             )  # object must be at least 5cm tall in order for side grasps to have a chance
             self.palm_dist_to_top_face_mean = rospy.get_param(
-                'generate_hithand_preshape_server_node/palm_dist_to_top_face_mean'
-            )
+                'generate_hithand_preshape_server_node/palm_dist_to_top_face_mean')
             self.palm_dist_to_side_face_mean = rospy.get_param(
-                'generate_hithand_preshape_server_node/palm_dist_to_side_face_mean'
-            )
+                'generate_hithand_preshape_server_node/palm_dist_to_side_face_mean')
             self.palm_dist_normal_to_obj_var = rospy.get_param(
                 'generate_hithand_preshape_server_node/palm_dist_normal_to_obj_var'
             )  # Determines how much variance is in the sampled palm distance in the normal direction
@@ -74,6 +66,7 @@ class GenerateHithandPreshape():
             self.num_samples_per_preshape = rospy.get_param(
                 'generate_hithand_preshape_server_node/num_samples_per_preshape'
             )  # How many samples should be generated
+            self.object_point_cloud_path = rospy.get_param('object_point_cloud_path')
         self.use_bb_orient_to_determine_wrist_roll = True
 
         # Initialize object related instance variables
@@ -126,26 +119,16 @@ class GenerateHithandPreshape():
         self.little_joint_1_upper = 0.8
 
         # Compute the center points of the joint limits
-        self.thumb_joint_0_middle = (self.thumb_joint_0_lower +
-                                     self.thumb_joint_0_upper) * 0.5
-        self.thumb_joint_1_middle = (self.thumb_joint_1_lower +
-                                     self.thumb_joint_1_upper) * 0.5
-        self.index_joint_0_middle = (self.index_joint_0_lower +
-                                     self.index_joint_0_upper) * 0.5
-        self.index_joint_1_middle = (self.index_joint_1_lower +
-                                     self.index_joint_1_upper) * 0.5
-        self.middle_joint_0_middle = (self.middle_joint_0_lower +
-                                      self.middle_joint_0_upper) * 0.5
-        self.middle_joint_1_middle = (self.middle_joint_1_lower +
-                                      self.middle_joint_1_upper) * 0.5
-        self.ring_joint_0_middle = (self.ring_joint_0_lower +
-                                    self.ring_joint_0_upper) * 0.5
-        self.ring_joint_1_middle = (self.ring_joint_1_lower +
-                                    self.ring_joint_1_upper) * 0.5
-        self.little_joint_0_middle = (self.little_joint_0_lower +
-                                      self.little_joint_0_upper) * 0.5
-        self.little_joint_1_middle = (self.little_joint_1_lower +
-                                      self.little_joint_1_upper) * 0.5
+        self.thumb_joint_0_middle = (self.thumb_joint_0_lower + self.thumb_joint_0_upper) * 0.5
+        self.thumb_joint_1_middle = (self.thumb_joint_1_lower + self.thumb_joint_1_upper) * 0.5
+        self.index_joint_0_middle = (self.index_joint_0_lower + self.index_joint_0_upper) * 0.5
+        self.index_joint_1_middle = (self.index_joint_1_lower + self.index_joint_1_upper) * 0.5
+        self.middle_joint_0_middle = (self.middle_joint_0_lower + self.middle_joint_0_upper) * 0.5
+        self.middle_joint_1_middle = (self.middle_joint_1_lower + self.middle_joint_1_upper) * 0.5
+        self.ring_joint_0_middle = (self.ring_joint_0_lower + self.ring_joint_0_upper) * 0.5
+        self.ring_joint_1_middle = (self.ring_joint_1_lower + self.ring_joint_1_upper) * 0.5
+        self.little_joint_0_middle = (self.little_joint_0_lower + self.little_joint_0_upper) * 0.5
+        self.little_joint_1_middle = (self.little_joint_1_lower + self.little_joint_1_upper) * 0.5
 
         # Compute the ranges of the joints
         self.thumb_joint_0_range = self.thumb_joint_0_upper - self.thumb_joint_0_lower
@@ -203,16 +186,13 @@ class GenerateHithandPreshape():
         """
         # Convert the pose into a format more amenable to subsequent task
         palm_preshape_euler = tft.euler_from_quaternion(
-            (palm_preshape_pose.pose.orientation.x,
-             palm_preshape_pose.pose.orientation.y,
-             palm_preshape_pose.pose.orientation.z,
-             palm_preshape_pose.pose.orientation.w))
+            (palm_preshape_pose.pose.orientation.x, palm_preshape_pose.pose.orientation.y,
+             palm_preshape_pose.pose.orientation.z, palm_preshape_pose.pose.orientation.w))
 
         preshape_palm_pose_config = np.array([
-            palm_preshape_pose.pose.position.x,
-            palm_preshape_pose.pose.position.y,
-            palm_preshape_pose.pose.position.z, palm_preshape_euler[0],
-            palm_preshape_euler[1], palm_preshape_euler[2]
+            palm_preshape_pose.pose.position.x, palm_preshape_pose.pose.position.y,
+            palm_preshape_pose.pose.position.z, palm_preshape_euler[0], palm_preshape_euler[1],
+            palm_preshape_euler[2]
         ])
 
         # Add/ subtract these from the pose to get lower and upper limits
@@ -231,14 +211,11 @@ class GenerateHithandPreshape():
             # Publish the palm goal tf
             for i, palm_pose_world in enumerate(self.palm_goal_pose_world):
                 self.tf_broadcaster_palm_poses.sendTransform(
-                    (palm_pose_world.pose.position.x,
-                     palm_pose_world.pose.position.y,
+                    (palm_pose_world.pose.position.x, palm_pose_world.pose.position.y,
                      palm_pose_world.pose.position.z),
-                    (palm_pose_world.pose.orientation.x,
-                     palm_pose_world.pose.orientation.y,
-                     palm_pose_world.pose.orientation.z,
-                     palm_pose_world.pose.orientation.w), rospy.Time.now(),
-                    'heu_' + str(i), palm_pose_world.header.frame_id)
+                    (palm_pose_world.pose.orientation.x, palm_pose_world.pose.orientation.y,
+                     palm_pose_world.pose.orientation.z, palm_pose_world.pose.orientation.w),
+                    rospy.Time.now(), 'heu_' + str(i), palm_pose_world.header.frame_id)
 
             # Broadcast experiment grasp poses
             # if self.exp_palm_pose is not None:
@@ -275,6 +252,28 @@ class GenerateHithandPreshape():
             marker.id = i
             markerArray.markers.append(marker)
         self.bounding_box_center_pub.publish(markerArray)
+
+    def visualize(self, points):
+        pcd_vis = o3d.geometry.PointCloud()
+        pcd_vis.points = o3d.utility.Vector3dVector(points)
+        pcd_vis.paint_uniform_color([1, 0, 0])
+        origin = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1)
+        bb = self.segmented_object_pcd.get_axis_aligned_bounding_box()
+        bb.color = (0, 1, 0)
+
+        #o3d.visualization.draw_geometries(
+        #    [origin, bb, self.segmented_object_pcd, pcd_vis])
+
+        vis = o3d.visualization.Visualizer()
+        vis.create_window()
+        vis.add_geometry(origin)
+        vis.add_geometry(bb)
+        vis.add_geometry(self.segmented_object_pcd)
+        vis.add_geometry(pcd_vis)
+        vis.get_render_option().load_from_json("save.json")
+        vis.run()
+        #vis.get_render_option().save_to_json("save.json")
+        print('Done')
 
     # +++++++++++++++++++++ PART III: Sampling and Bounding Box +++++++++++++++++++++++++++
     def sample_hithand_preshape_joint_state(self):
@@ -329,8 +328,7 @@ class GenerateHithandPreshape():
                 sample_palm_pose.pose.position.z = sample_palm_pose_array[:3]
 
         palm_euler = sample_palm_pose_array[3:]
-        palm_quaternion = tft.quaternion_from_euler(
-            palm_euler[0], palm_euler[1], palm_euler[2])
+        palm_quaternion = tft.quaternion_from_euler(palm_euler[0], palm_euler[1], palm_euler[2])
         sample_palm_pose.pose.orientation.x = palm_quaternion[0]
         sample_palm_pose.pose.orientation.y = palm_quaternion[1]
         sample_palm_pose.pose.orientation.z = palm_quaternion[2]
@@ -338,8 +336,7 @@ class GenerateHithandPreshape():
 
         return sample_palm_pose
 
-    def sample_palm_orientation(self, object_point_normal,
-                                bounding_box_orientation_vector):
+    def sample_palm_orientation(self, object_point_normal, bounding_box_orientation_vector):
         """ Sample the hand wrist roll uniformly. 
 
         For the palm frame, x: palm normal, y: thumb, z: middle finger
@@ -377,8 +374,7 @@ class GenerateHithandPreshape():
             top_face_normal /= np.linalg.norm(top_face_normal)
             closest_point_normal = top_face_normal  # This variable is needed later, after if/else
             palm_dist_top_in_normal_direction = np.random.normal(
-                self.palm_dist_to_top_face_mean,
-                self.palm_dist_normal_to_obj_var
+                self.palm_dist_to_top_face_mean, self.palm_dist_normal_to_obj_var
             )  # sample palm distance from normal distribution centered around mean_dist_top
             palm_position = bounding_box_face.center + palm_dist_top_in_normal_direction * top_face_normal
 
@@ -391,13 +387,12 @@ class GenerateHithandPreshape():
             #find the closest point in the point cloud
             m = self.segmented_object_points.shape[0]
             center_aug = np.tile(bounding_box_face.center, (m, 1))
-            squared_dist = np.sum(
-                np.square(self.segmented_object_points - center_aug), axis=1)
+            squared_dist = np.sum(np.square(self.segmented_object_points - center_aug), axis=1)
             min_idx = np.argmin(squared_dist)
             closest_point = self.segmented_object_points[min_idx, :]
-            rospy.loginfo('Found closest point ' + str(closest_point) +
-                          ' to obj_pt = ' + str(bounding_box_face.center) +
-                          ' at dist = ' + str(squared_dist[min_idx]))
+            rospy.loginfo('Found closest point ' + str(closest_point) + ' to obj_pt = ' +
+                          str(bounding_box_face.center) + ' at dist = ' +
+                          str(squared_dist[min_idx]))
 
             # Get normal of closest point
             closest_point_normal = self.segmented_object_normals[min_idx, :]
@@ -407,16 +402,14 @@ class GenerateHithandPreshape():
             if np.dot(closest_point_normal, center_to_face) < 0.:
                 closest_point_normal = -closest_point_normal
             # Sample hand position
-            palm_dist_side_normal_direction = np.random.normal(
-                self.palm_dist_to_side_face_mean,
-                self.palm_dist_normal_to_obj_var)
+            palm_dist_side_normal_direction = np.random.normal(self.palm_dist_to_side_face_mean,
+                                                               self.palm_dist_normal_to_obj_var)
             palm_position = closest_point + palm_dist_side_normal_direction * closest_point_normal
 
             # Part II: Compute vector to determine the palm orientation
             # Pick the vertical vector with larger z value to be the palm link y axis (thumb)
             # in order to remove the orientation that runs into the table
-            if abs(bounding_box_face.orient_a[2]) > abs(
-                    bounding_box_face.orient_b[2]):
+            if abs(bounding_box_face.orient_a[2]) > abs(bounding_box_face.orient_b[2]):
                 bounding_box_orientation_vector = bounding_box_face.orient_a[:]
             else:
                 bounding_box_orientation_vector = bounding_box_face.orient_b[:]
@@ -425,18 +418,16 @@ class GenerateHithandPreshape():
                 bounding_box_orientation_vector = -bounding_box_orientation_vector
 
         # Add some extra 3D noise on the palm position
-        palm_position = palm_position + np.random.normal(
-            0, self.palm_position_3D_sample_var, 3)
+        palm_position = palm_position + np.random.normal(0, self.palm_position_3D_sample_var, 3)
 
         # Add some noise to the palm orientation
         bounding_box_orientation_vector = bounding_box_orientation_vector + np.random.normal(
             0., self.wrist_roll_orientation_var, 3)
-        bounding_box_orientation_vector /= np.linalg.norm(
-            bounding_box_orientation_vector)
+        bounding_box_orientation_vector /= np.linalg.norm(bounding_box_orientation_vector)
 
         # Sample orientation
-        palm_orientation_quat = self.sample_palm_orientation(
-            closest_point_normal, bounding_box_orientation_vector)
+        palm_orientation_quat = self.sample_palm_orientation(closest_point_normal,
+                                                             bounding_box_orientation_vector)
 
         # Put this into a Stamped Pose for publishing
         palm_pose = PoseStamped()
@@ -449,8 +440,7 @@ class GenerateHithandPreshape():
         palm_pose.pose.orientation.y = palm_orientation_quat[1]
         palm_pose.pose.orientation.z = palm_orientation_quat[2]
         palm_pose.pose.orientation.w = palm_orientation_quat[3]
-        rospy.loginfo('Chosen palm position is ' +
-                      str(palm_pose.pose.position))
+        rospy.loginfo('Chosen palm position is ' + str(palm_pose.pose.position))
         return palm_pose
 
     def get_axis_aligned_bounding_box_faces(self):
@@ -460,10 +450,8 @@ class GenerateHithandPreshape():
         """
         # The 1. and 5. point of bounding_box_corner points are cross-diagonal
         # Also the bounding box axis are aligned to the world frame
-        x_axis, y_axis, z_axis = np.array([1, 0, 0]), np.array(
-            [0, 1, 0]), np.array([0, 0, 1])
-        size_x, size_y, size_z = self.object_size[0], self.object_size[
-            1], self.object_size[2]
+        x_axis, y_axis, z_axis = np.array([1, 0, 0]), np.array([0, 1, 0]), np.array([0, 0, 1])
+        size_x, size_y, size_z = self.object_size[0], self.object_size[1], self.object_size[2]
         faces_world_frame = [
             BoundingBoxFace(center=0.5 * (self.bbp1 + self.bbp6),
                             orient_a=y_axis,
@@ -497,18 +485,15 @@ class GenerateHithandPreshape():
                             width=size_z)
         ]
         # find the top face
-        faces_world_frame = sorted(faces_world_frame,
-                                   key=lambda x: x.center[2])
+        faces_world_frame = sorted(faces_world_frame, key=lambda x: x.center[2])
         faces_world_frame[-1].is_top = True
         # Delete the bottom face
         del faces_world_frame[0]
         # Sort along the x axis and delete the face furthes away (robot can't comfortably reach it)
-        faces_world_frame = sorted(faces_world_frame,
-                                   key=lambda x: x.center[0])
+        faces_world_frame = sorted(faces_world_frame, key=lambda x: x.center[0])
         del faces_world_frame[-1]
         # Sort along y axis and delete the face furthest away (no normals in this area)
-        faces_world_frame = sorted(faces_world_frame,
-                                   key=lambda x: x.center[1])
+        faces_world_frame = sorted(faces_world_frame, key=lambda x: x.center[1])
         del faces_world_frame[-1]
 
         # Publish the bounding box face center points for visualization in RVIZ
@@ -519,8 +504,7 @@ class GenerateHithandPreshape():
             center_stamped_world.point.x = face.center[0]
             center_stamped_world.point.y = face.center[1]
             center_stamped_world.point.z = face.center[2]
-            face_centers_world_frame.append(
-                copy.deepcopy(center_stamped_world))
+            face_centers_world_frame.append(copy.deepcopy(center_stamped_world))
         if not DEBUG:
             self.publish_points(face_centers_world_frame)
 
@@ -536,7 +520,7 @@ class GenerateHithandPreshape():
 
         return faces_world_frame
 
-    # ++++++++++++++++++ PART III: Main service logic +++++++++++++++++++++++
+    # ++++++++++++++++++ PART IV: Main service logic +++++++++++++++++++++++
     def update_object_information(self):
         """ Update instance variables related to the object of interest
 
@@ -550,10 +534,9 @@ class GenerateHithandPreshape():
         # Bounding box corner points and center
         # The 1. and 5. point of bounding_box_corner points are cross-diagonal
         obbcp = np.array(
-            rospy.wait_for_message(
-                '/segmented_object_bounding_box_corner_points',
-                Float64MultiArray,
-                timeout=5).data)
+            rospy.wait_for_message('/segmented_object_bounding_box_corner_points',
+                                   Float64MultiArray,
+                                   timeout=5).data)
         self.object_bounding_box_corner_points = np.reshape(obbcp, (8, 3))
 
         self.bbp1 = self.object_bounding_box_corner_points[0, :]
@@ -567,34 +550,10 @@ class GenerateHithandPreshape():
         self.bounding_box_center = np.array(0.5 * (self.bbp1 + self.bbp5))
 
         # Object pcd, store points and normals
-        segmented_object_pcd = o3d.io.read_point_cloud('/home/vm/object.pcd')
-        segmented_object_pcd.normalize_normals()  # normalize the normals
-        self.segmented_object_points = np.asarray(
-            segmented_object_pcd.points)  # Nx3 shape
-        self.segmented_object_normals = np.asarray(
-            segmented_object_pcd.normals)
-
-    def visualize(self, points):
-        pcd_vis = o3d.geometry.PointCloud()
-        pcd_vis.points = o3d.utility.Vector3dVector(points)
-        pcd_vis.paint_uniform_color([1, 0, 0])
-        origin = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1)
-        bb = self.segmented_object_pcd.get_axis_aligned_bounding_box()
-        bb.color = (0, 1, 0)
-
-        #o3d.visualization.draw_geometries(
-        #    [origin, bb, self.segmented_object_pcd, pcd_vis])
-
-        vis = o3d.visualization.Visualizer()
-        vis.create_window()
-        vis.add_geometry(origin)
-        vis.add_geometry(bb)
-        vis.add_geometry(self.segmented_object_pcd)
-        vis.add_geometry(pcd_vis)
-        vis.get_render_option().load_from_json("save.json")
-        vis.run()
-        #vis.get_render_option().save_to_json("save.json")
-        print('Done')
+        self.segmented_object_pcd = o3d.io.read_point_cloud(self.object_point_cloud_path)
+        self.segmented_object_pcd.normalize_normals()  # normalize the normals
+        self.segmented_object_points = np.asarray(self.segmented_object_pcd.points)  # Nx3 shape
+        self.segmented_object_normals = np.asarray(self.segmented_object_pcd.normals)
 
     def sample_grasp_preshape(self):
         """ Grasp preshape service callback for sampling Hithand grasp preshapes.
@@ -608,8 +567,7 @@ class GenerateHithandPreshape():
         for i in xrange(len(bounding_box_faces)):
             # Get the desired palm pose given the point from the bounding box
             palm_pose_world = self.find_palm_pose_from_bounding_box_center(
-                bounding_box_faces[i]
-            )  # Tested, seems to work fine, only visualized position
+                bounding_box_faces[i])  # Tested, seems to work fine, only visualized position
             if DEBUG:
                 point = np.zeros([3, 2])
                 point[0, 1] = palm_pose_world.pose.position.x
@@ -633,8 +591,7 @@ class GenerateHithandPreshape():
                     point[1, j] = sampled_palm_pose.pose.position.y
                     point[2, j] = sampled_palm_pose.pose.position.z
                 # Sample remaining joint values
-                hithand_joint_state = self.sample_hithand_preshape_joint_state(
-                )
+                hithand_joint_state = self.sample_hithand_preshape_joint_state()
                 response.hithand_joint_state.append(hithand_joint_state)
                 response.is_top_grasp.append(bounding_box_faces[i].is_top)
             if DEBUG:
@@ -649,8 +606,7 @@ class GenerateHithandPreshape():
     def handle_generate_hithand_preshape(self, req):
         """ Handler for the advertised service. Decides whether the hand preshape should be sampled or generated
         """
-        rospy.loginfo(
-            'I received the service call to generate hithand preshapes.')
+        rospy.loginfo('I received the service call to generate hithand preshapes.')
         self.update_object_information(
         )  # Get new information on segmented object from rostopics/disk and store in instance attributes
         if req.sample:
@@ -668,23 +624,6 @@ class GenerateHithandPreshape():
 if __name__ == '__main__':
     ghp = GenerateHithandPreshape()
     if DEBUG:
-        ghp.object_bounding_box_corner_points = np.array(
-            [[0.73576546, -0.05682119, 0.01387128],
-             [0.83193374, -0.05682119, 0.01387128],
-             [0.73576546, -0.01262708, 0.01387128],
-             [0.73576546, -0.05682119, 0.19168445],
-             [0.83193374, -0.01262708, 0.19168445],
-             [0.73576546, -0.01262708, 0.19168445],
-             [0.83193374, -0.05682119, 0.19168445],
-             [0.83193374, -0.01262708, 0.01387128]])
-        obbcp = ghp.object_bounding_box_corner_points
-        ghp.bbp1, ghp.bbp2, ghp.bbp3, ghp.bbp4 = obbcp[0, :], obbcp[
-            1, :], obbcp[2, :], obbcp[3, :]
-        ghp.bbp5, ghp.bbp6, ghp.bbp7, ghp.bbp8 = obbcp[4, :], obbcp[
-            5, :], obbcp[6, :], obbcp[7, :]
-        ghp.bounding_box_center = np.array(0.5 * (ghp.bbp1 + ghp.bbp5))
-
-        ghp.object_size = [0.2, 0.2, 0.2]
         ghp.min_object_height = 0.03
         ghp.palm_dist_to_top_face_mean = 0.1
         ghp.palm_dist_to_side_face_mean = 0.07
@@ -692,15 +631,10 @@ if __name__ == '__main__':
         ghp.palm_position_3D_sample_var = 0.005
         ghp.wrist_roll_orientation_var = 0.005
         ghp.num_samples_per_preshape = 50
-
-        ghp.segmented_object_pcd = o3d.io.read_point_cloud(
-            '/home/vm/object.pcd')
-        ghp.segmented_object_points = np.asarray(
-            ghp.segmented_object_pcd.points)
-        ghp.segmented_object_normals = np.asarray(
-            ghp.segmented_object_pcd.normals)
-
-        ghp.sample_grasp_preshape()
+        ghp.object_point_cloud_path = '/home/vm/object.pcd'
+        req = GraspPreshapeRequest()
+        req.sample = True
+        ghp.handle_generate_hithand_preshape(req)
 
     ghp.create_hithand_preshape_server()
     rate = rospy.Rate(100)
