@@ -49,19 +49,24 @@ class GraspClient():
     def get_pose_stamped_from_array(self, pose_array, frame_id='/world'):
         """Transforms an array pose into a ROS stamped pose.
         """
-        pose = PoseStamped()
-        pose.header.frame_id = frame_id
-        r, p, y = pose_array[:3]
-        quaternion = tft.quaternion_from_euler(r, p, y)
-        pose.pose.orientation = quaternion  # x,y,z,w quaternion
-        pose.pose.position = pose_array[3:]  # x,y,z position
-        return pose
+        pose_stamped = PoseStamped()
+        pose_stamped.header.frame_id = frame_id
+        # RPY to quaternion
+        pose_quaternion = tft.quaternion_from_euler(pose_array[0], pose_array[1], pose_array[2])
+        pose_stamped.pose.orientation.x, pose_stamped.pose.orientation.y, \
+                pose_stamped.pose.orientation.z, pose_stamped.pose.orientation.w = pose_quaternion[0], pose_quaternion[1], pose_quaternion[2], pose_quaternion[3]
+        pose_stamped.pose.position.x, pose_stamped.pose.position.y, pose_stamped.pose.position.z = \
+                pose_array[3], pose_array[4], pose_array[5]
+        return pose_stamped
 
     def get_pose_array_from_stamped(self, pose_stamped):
         """Transforms a stamped pose into a 6D pose array.
         """
-        r, p, y = tft.euler_from_quaternion(pose_stamped.pose.orientation)
-        x_p, y_p, z_p = pose_stamped.pose.position
+        r, p, y = tft.euler_from_quaternion([
+            pose_stamped.pose.orientation.x, pose_stamped.pose.orientation.y,
+            pose_stamped.pose.orientation.z, pose_stamped.pose.orientation.w
+        ])
+        x_p, y_p, z_p = pose_stamped.pose.position.x, pose_stamped.pose.position.y, pose_stamped.pose.position.z
         pose_array = [r, p, y, x_p, y_p, z_p]
         return pose_array
 
