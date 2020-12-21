@@ -14,7 +14,7 @@ import numpy as np
 import copy
 import open3d as o3d
 
-DEBUG = True
+DEBUG = False
 
 
 class BoundingBoxFace():
@@ -44,29 +44,25 @@ class GenerateHithandPreshape():
             '/publish_box_points', MarkerArray, queue_size=1,
             latch=True)  # publishes the bounding box center points
         self.tf_broadcaster_palm_poses = tf.TransformBroadcaster()
-
         if not DEBUG:
             # Get parameters from the ROS parameter server
-            self.min_object_height = rospy.get_param(
-                'generate_hithand_preshape_server_node/min_object_height'
-            )  # object must be at least 5cm tall in order for side grasps to have a chance
             self.palm_dist_to_top_face_mean = rospy.get_param(
-                'generate_hithand_preshape_server_node/palm_dist_to_top_face_mean')
+                'generate_hithand_preshape_server_node/palm_dist_to_top_face_mean', 0.1)
             self.palm_dist_to_side_face_mean = rospy.get_param(
-                'generate_hithand_preshape_server_node/palm_dist_to_side_face_mean')
+                'generate_hithand_preshape_server_node/palm_dist_to_side_face_mean', 0.07)
             self.palm_dist_normal_to_obj_var = rospy.get_param(
-                'generate_hithand_preshape_server_node/palm_dist_normal_to_obj_var'
-            )  # Determines how much variance is in the sampled palm distance in the normal direction
+                'generate_hithand_preshape_server_node/palm_dist_normal_to_obj_var', 0.03)
             self.palm_position_3D_sample_var = rospy.get_param(
-                'generate_hithand_preshape_server_node/palm_position_3D_sample_var'
-            )  # Some extra noise on the samples 3D palm position
+                'generate_hithand_preshape_server_node/palm_position_3D_sample_var', 0.005)
             self.wrist_roll_orientation_var = rospy.get_param(
-                'generate_hithand_preshape_server_node/wrist_roll_orientation_var'
-            )  # Some extra noise on the samples 3D palm position
+                'generate_hithand_preshape_server_node/wrist_roll_orientation_var', 0.005)
+            self.min_object_height = rospy.get_param(
+                'generate_hithand_preshape_server_node/min_object_height', 0.03)
             self.num_samples_per_preshape = rospy.get_param(
-                'generate_hithand_preshape_server_node/num_samples_per_preshape'
-            )  # How many samples should be generated
-            self.object_point_cloud_path = rospy.get_param('object_point_cloud_path')
+                'generate_hithand_preshape_server_node/num_samples_per_preshape', 50)
+            self.object_point_cloud_path = rospy.get_param('object_point_cloud_path',
+                                                           '/home/vm/object.pcd')
+            print(self.num_samples_per_preshape)
         self.use_bb_orient_to_determine_wrist_roll = True
 
         # Initialize object related instance variables
