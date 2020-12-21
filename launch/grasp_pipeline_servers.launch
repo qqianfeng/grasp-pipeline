@@ -13,6 +13,8 @@
     <param name="object_point_cloud_path" value="$(arg object_point_cloud_path)" type="string" />
     <param name="scene_point_cloud_path"  value="$(arg scene_point_cloud_path)" type="string" />
     <param name="object_datasets_folder"  value="$(arg object_datasets_folder)" type="string" />
+    <param name="color_img_save_path"  value="$(arg color_img_save_path)" type="string" />
+    <param name="depth_img_save_path"  value="$(arg depth_img_save_path)" type="string" />
     <!-- +++++++++++++++++++++++++++++++++++++++++++++++++++ -->
     <!-- Publish the paths of scene and object point cloud-->
     <node name="point_cloud_save_publisher_node" pkg="grasp_pipeline" type="publish_point_cloud_save_path.py" output="screen"/>
@@ -24,19 +26,24 @@
         <param name="sim" type="bool" value="$(arg sim)"/>
     </node>
 
+    <!-- num_samples_per_preshape: How many samples of slightly different poses will be generated. Always assumes the bounding box face center point + some distance outward in the object point normal direction as reference and samples the preshapes around that by adding some 3D noise specified in subsequent variables-->
+    <!-- palm_dist_to_top_face_mean: When sampling poses around the top bounding box face center points how much do you on average go outward in the normal direction-->
+    <!-- palm_dist_to_side_face_mean: When sampling poses around the side bounding box face center points how much do you on average go outward in the normal direction-->
+    <!-- palm_dist_normal_to_obj_var: Variance for previous explained "going outward in normal direction"-->
+    <!-- palm_position_3D_sample_var: Add some extra zero mean 3D position noise-->
 
    <!-- Grasp preshape -->
-    <node name="generate_hithand_preshape_server_node" pkg="grasp_pipeline" 
+    <!-- <node name="generate_hithand_preshape_server_node" pkg="grasp_pipeline" 
         type="generate_hithand_preshape_server.py" output="screen">
-      <param name="num_samples_per_preshape"     value="5"     type="double"/> <!-- How many samples of slightly different poses will be generated. Always assumes the bounding box face center point + some distance outward in the object point normal direction as reference and samples the preshapes around that by adding some 3D noise specified in subsequent variables-->
-      <param name="palm_dist_to_top_face_mean"   value="0.1"   type="double"/> <!-- When sampling poses around the top bounding box face center points how much do you on average go outward in the normal direction-->
-      <param name="palm_dist_to_side_face_mean"  value="0.07"  type="double"/> <!-- When sampling poses around the side bounding box face center points how much do you on average go outward in the normal direction-->
-      <param name="palm_dist_normal_to_obj_var"  value="0.03"  type="double"/> <!-- Variance for previous explained "going outward in normal direction"-->
-      <param name="palm_position_3D_sample_var"  value="0.005" type="double"/> <!-- Add some extra zero mean 3D position noise-->
+      <param name="num_samples_per_preshape"     value="5"     type="double"/> 
+      <param name="palm_dist_to_top_face_mean"   value="0.1"   type="double"/> 
+      <param name="palm_dist_to_side_face_mean"  value="0.07"  type="double"/> 
+      <param name="palm_dist_normal_to_obj_var"  value="0.03"  type="double"/> 
+      <param name="palm_position_3D_sample_var"  value="0.005" type="double"/> 
       <param name="wrist_roll_orientation_var"   value="0.005" type="double"/>
       <param name="hand_roll_angle_sample_var"   value="0.005" type="double"/>
       <param name="min_object_height"            value="0.03"  type="double"/>
-    </node> 
+    </node>  -->
 
 
     <!-- Moveit planner node for panda arm -->
