@@ -42,8 +42,8 @@ class GraspClient():
         """Sets the boundaries in which an object can be spawned and placed.
         Gets called 
         """
-        self.spawn_object_x_min, self.spawn_object_x_max = 0.5, 1
-        self.spawn_object_y_min, self.spawn_object_y_max = -0.5, 0.5
+        self.spawn_object_x_min, self.spawn_object_x_max = 0.5, 0.8
+        self.spawn_object_y_min, self.spawn_object_y_max = -0.3, 0.3
         self.table_height = 0
 
     def get_pose_stamped_from_array(self, pose_array, frame_id='/world'):
