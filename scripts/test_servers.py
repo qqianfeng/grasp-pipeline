@@ -46,10 +46,10 @@ class ServerUnitTester():
         self.max_vel = 0.8 * np.ones(7)
         self.joint_trajectory = None
 
-        self.spawn_object_x_min, self.spawn_object_x_max = 0.5, 0.55
+        self.spawn_object_x_min, self.spawn_object_x_max = 0.7, 0.75
         self.spawn_object_y_min, self.spawn_object_y_max = -0.1, 0.1
         self.table_height = 0
-
+        self.home_joint_states = np.array([0, 0, 0, -1, 0, 1.9884, -1.57])
         self.heuristic_preshapes = None
 
     def get_pose_stamped_from_array(self, pose_array, frame_id='/world'):
@@ -265,9 +265,8 @@ class ServerUnitTester():
 
     def test_arm_moveit_cartesian_pose_planner_server(self, go_home=False, place_goal_pose=None):
         self.test_count += 1
-        for i in range(10):
+        for i in range(15):
             try:
-                self.test_choose_specific_grasp_preshape('unspecified')
                 print('Running test_arm_moveit_cartesian_pose_planner_server, test number %d' %
                       self.test_count)
 
@@ -279,10 +278,13 @@ class ServerUnitTester():
                 elif place_goal_pose is not None:
                     req.palm_goal_pose_world = place_goal_pose
                 else:
+                    self.test_choose_specific_grasp_preshape('unspecified')
                     req.palm_goal_pose_world = self.chosen_palm_pose
+
                 res = arm_moveit_cartesian_pose_planner(req)
                 self.joint_trajectory = res.plan_traj
                 if res.success:
+                    print('[ARM MOVEIT] Achieved success after %d retries' % i)
                     break
             except rospy.ServiceException, e:
                 rospy.loginfo('Service arm_moveit_cartesian_pose_planner call failed: %s' % e)
@@ -322,6 +324,13 @@ class ServerUnitTester():
         result = 'SUCCEEDED' if res else 'FAILED'
         print(result)
 
+    def reset(self):
+        panda_joints = rospy.wait_for_message('panda/joint_states', JointState)
+        diff = np.abs(self.home_joint_states - np.array(panda_joints.position))
+        if np.sum(diff) > 0.3:
+            self.test_arm_moveit_cartesian_pose_planner_server(go_home=True)
+            self.test_execute_joint_trajectory_server(smoothen_trajectory=True)
+
 
 if __name__ == '__main__':
     # +++ Define variables for testing +++
@@ -344,6 +353,9 @@ if __name__ == '__main__':
     # Tester
     sut = ServerUnitTester()
 
+    # Reset
+    sut.reset()
+
     # Test random object pose
     sut.test_generate_random_object_pose_for_experiment()
 
@@ -354,13 +366,13 @@ if __name__ == '__main__':
     sut.test_save_visual_data_server()
 
     # Test display saved point cloud
-    sut.test_display_saved_point_cloud(sut.scene_point_cloud_path)
+    #sut.test_display_saved_point_cloud(sut.scene_point_cloud_path)
 
     # Test object segmentation
     sut.test_segment_object_server()
 
     # Test display saved point cloud
-    sut.test_display_saved_point_cloud(sut.object_point_cloud_path)
+    #sut.test_display_saved_point_cloud(sut.object_point_cloud_path)
 
     # Test hithand preshape generation server
     sut.test_generate_hithand_preshape_server()
@@ -369,7 +381,7 @@ if __name__ == '__main__':
     sut.test_choose_specific_grasp_preshape('unspecified')
 
     # Test moveit spawn object
-    #sut.test_create_moveit_scene_server()
+    sut.test_create_moveit_scene_server()
 
     # Test hithand control preshape/config
     # sut.test_control_hithand_config_server(go_home=False)
@@ -379,6 +391,19 @@ if __name__ == '__main__':
 
     # Test arm joint trajectory execution
     sut.test_execute_joint_trajectory_server(smoothen_trajectory=True)
+
+    while True:
+        raw_input("Continue? Press Enter")
+        # go home
+        sut.test_arm_moveit_cartesian_pose_planner_server(go_home=True)
+        sut.test_execute_joint_trajectory_server(smoothen_trajectory=True)
+
+        # reset object position
+        sut.test_manage_gazebo_scene_server(object_name, object_model_name, dataset, model_type)
+        # get new position and go there
+        sut.test_choose_specific_grasp_preshape('unspecified')
+        sut.test_arm_moveit_cartesian_pose_planner_server()
+        sut.test_execute_joint_trajectory_server(smoothen_trajectory=True)
 
     # Test smoothen trajectory execution
     # sut.test_get_smooth_trajectory_server()
