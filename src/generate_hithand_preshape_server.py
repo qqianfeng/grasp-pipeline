@@ -84,6 +84,9 @@ class GenerateHithandPreshape():
         # Set up the joint angle limits for sampling
         self.setup_joint_angle_limits()
 
+        self.palm_rand_pose_parameter_pos = 0.01
+        self.palm_rand_pose_parameter_orient = 1
+
     # ++++++++++++++++++++++ PART I: Helper/initialization functions +++++++++++++++++++++++
     def setup_joint_angle_limits(self):
         ''' Initializes a number of constants determing the joint limits for the Hithand
@@ -192,11 +195,12 @@ class GenerateHithandPreshape():
         ])
 
         # Add/ subtract these from the pose to get lower and upper limits
-        pos_range = 0.05
-        ort_range = 0.05 * np.pi
-        upper_limit_range = np.array([
-            pos_range, pos_range, pos_range, ort_range, ort_range, ort_range
-        ])
+        pos_range = self.palm_rand_pose_parameter_pos  #0.05
+        ort_range = self.palm_rand_pose_parameter_orient * np.pi  #0.05
+        # upper_limit_range = np.array([
+        #     pos_range, pos_range, pos_range, ort_range, ort_range, ort_range
+        # ])
+        upper_limit_range = np.array([pos_range, pos_range, pos_range, ort_range, 0, 0])
         lower_limit_range = (-1) * upper_limit_range
         self.palm_pose_lower_limit = preshape_palm_pose_config + lower_limit_range
         self.palm_pose_upper_limit = preshape_palm_pose_config + upper_limit_range
