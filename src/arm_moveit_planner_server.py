@@ -25,7 +25,7 @@ class CartesianPoseMoveitPlanner():
         self.group.set_num_planning_attempts(3)
 
         self.zero_joint_states = np.zeros(7)
-        self.home_joint_states = np.array([0, -0.553876, 0, -2.5361, 0, 1.9884, -0.785])
+        self.home_joint_states = np.array([0, 0, 0, -1, 0, 1.9884, -1.57])
 
         self.ik_solver = IK("world", "palm_link_hithand")  #panda_link0 was world before
         print(self.ik_solver.link_names)
