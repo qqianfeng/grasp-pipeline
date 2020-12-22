@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import rospy
 from grasp_pipeline.srv import *
-from geometry_msgs.msg import Pose, Quaternion
+from geometry_msgs.msg import PoseStamped, Quaternion
 from sensor_msgs.msg import JointState
 import moveit_msgs.msg
 import moveit_commander
@@ -112,9 +112,9 @@ class CartesianPoseMoveitPlanner():
 if __name__ == '__main__':
     planner = CartesianPoseMoveitPlanner()
     if DEBUG:
-        gp = Pose()
-        gp.position.x, gp.position.y, gp.position.z = 0.100, -0.377, 0.457
-        gp.orientation.x, gp.orientation.y, gp.orientation.z, gp.orientation.w = 0.748, 0.663, -0.001, -0.000
+        gp = PoseStamped()
+        gp.pose.position.x, gp.pose.position.y, gp.pose.position.z = 0.100, -0.377, 0.457
+        gp.pose.orientation.x, gp.pose.orientation.y, gp.pose.orientation.z, gp.pose.orientation.w = 0.748, 0.663, -0.001, -0.000
         req = PalmGoalPoseWorldRequest()
         req.go_home = False
         req.go_zero = False

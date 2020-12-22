@@ -2,7 +2,7 @@
 import rospy
 from grasp_pipeline.srv import *
 from sensor_msgs.msg import JointState
-from geometry_msgs.msg import Pose, Quaternion
+from geometry_msgs.msg import Quaternion
 import numpy as np
 import moveit_msgs.msg
 from copy import deepcopy
@@ -15,11 +15,11 @@ class ControlHithandConfig():
     def __init__(self, publish_prefix='/hithand'):
 
         rospy.init_node('control_hithand_config_node')
-        self.hithand_joint_cmd_pub = rospy.Publisher(
-            publish_prefix + '/joint_cmd', JointState, queue_size=1)
+        self.hithand_joint_cmd_pub = rospy.Publisher(publish_prefix + '/joint_cmd',
+                                                     JointState,
+                                                     queue_size=1)
         self.hithand_current_joint_states_sub = rospy.Subscriber(
-            'hithand/joint_states', JointState,
-            self.callback_hithand_current_joint_state)
+            'hithand/joint_states', JointState, self.callback_hithand_current_joint_state)
         self.hithand_init_joint_state = None
         self.hithand_current_joint_state = None
         self.hithand_target_joint_state = None
@@ -39,8 +39,7 @@ class ControlHithandConfig():
         rospy.loginfo('Joint control command published')
         jc = JointState()
         #jc.name = self.hithand_target_joint_state.name
-        target_joint_angles = np.array(
-            self.hithand_target_joint_state.position)
+        target_joint_angles = np.array(self.hithand_target_joint_state.position)
         init_joint_angles = np.array(self.hithand_init_joint_state.position)
         delta = (target_joint_angles - init_joint_angles) / \
             self.control_hithand_steps
@@ -91,8 +90,7 @@ class ControlHithandConfig():
         return res
 
     def create_control_hithand_config_server(self):
-        rospy.Service('control_hithand_config', ControlHithand,
-                      self.handle_control_hithand)
+        rospy.Service('control_hithand_config', ControlHithand, self.handle_control_hithand)
         rospy.loginfo('Service control_hithand_config:')
         rospy.loginfo('Ready to control hithand to speficied configurations.')
 

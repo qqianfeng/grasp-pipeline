@@ -6,7 +6,7 @@ import os
 from cv_bridge import CvBridge, CvBridgeError
 import cv2
 from sensor_msgs.msg import Image, PointCloud2, JointState
-from geometry_msgs.msg import PoseStamped, Pose
+from geometry_msgs.msg import PoseStamped
 import tf.transformations as tft
 from std_srvs.srv import SetBoolRequest, SetBool
 from std_msgs.msg import Float64MultiArray
@@ -339,10 +339,6 @@ if __name__ == '__main__':
     hithand_joint_states.position = [0.2] * 20
     # Test segment table and object
     object_pcd_path = "/home/vm/object.pcd"
-    # Test arm moveit cartesian pose planner
-    pose_arm_moveit = Pose()
-    pose_arm_moveit.position.x, pose_arm_moveit.position.y, pose_arm_moveit.position.z = 0.45, 0.1, 0.3
-    pose_arm_moveit.orientation.x, pose_arm_moveit.orientation.y, pose_arm_moveit.orientation.z, pose_arm_moveit.orientation.w = 0.0, 0.0, 0.0, 1.0
 
     # Tester
     sut = ServerUnitTester()
