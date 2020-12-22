@@ -46,8 +46,8 @@ class ServerUnitTester():
         self.max_vel = 0.8 * np.ones(7)
         self.joint_trajectory = None
 
-        self.spawn_object_x_min, self.spawn_object_x_max = 0.5, 0.8
-        self.spawn_object_y_min, self.spawn_object_y_max = -0.3, 0.3
+        self.spawn_object_x_min, self.spawn_object_x_max = 0.5, 0.55
+        self.spawn_object_y_min, self.spawn_object_y_max = -0.1, 0.1
         self.table_height = 0
 
         self.heuristic_preshapes = None
@@ -259,6 +259,7 @@ class ServerUnitTester():
         print('++++++++ CHOSEN INDEX: %d' % grasp_idx)
         self.chosen_palm_pose = self.heuristic_preshapes.palm_goal_pose_world[grasp_idx]
         self.chosen_hithand_joint_state = self.heuristic_preshapes.hithand_joint_state[grasp_idx]
+        self.chosen_hithand_joint_state.position = [0] * 20
         self.chosen_is_top_grasp = self.heuristic_preshapes.is_top_grasp[grasp_idx]
         print('SUCCEEDED')
 
@@ -368,19 +369,19 @@ if __name__ == '__main__':
     sut.test_choose_specific_grasp_preshape('unspecified')
 
     # Test moveit spawn object
-    sut.test_create_moveit_scene_server()
+    #sut.test_create_moveit_scene_server()
 
     # Test hithand control preshape/config
-    sut.test_control_hithand_config_server(go_home=False)
+    # sut.test_control_hithand_config_server(go_home=False)
 
     # Test arm moveit cartesian pose planner
     sut.test_arm_moveit_cartesian_pose_planner_server()
 
     # Test arm joint trajectory execution
-    sut.test_execute_joint_trajectory_server()
+    sut.test_execute_joint_trajectory_server(smoothen_trajectory=True)
 
     # Test smoothen trajectory execution
-    sut.test_get_smooth_trajectory_server()
+    # sut.test_get_smooth_trajectory_server()
 
     # # Make robot go home
     # sut.test_arm_moveit_cartesian_pose_planner_server(pose=None, go_home=True)
