@@ -4,6 +4,7 @@ from grasp_pipeline.srv import *
 from sensor_msgs.msg import JointState
 import numpy as np
 from copy import deepcopy
+from std_srvs.srv import SetBool, SetBoolResponse
 # The goal here is to emulate a velocity controller via a pos interface to the hithand. The goal for the hithand is to close at a constant velocity, but it should stop when the velocity is zero.
 # Nevertheless it should maintain a certain force on the object.
 
@@ -19,13 +20,13 @@ class HithandGraspController():
         self.joint_command_pub = rospy.Publisher('/hithand/joint_cmd', JointState, queue_size=1)
 
         self.current_pos_joints = None
-        self.delta_pos_joint_1 = 2. / self.freq  # 2rad/s, when sending at 100 Hz
-        self.delta_pos_joint_2 = 1. / self.freq  # 1rad/s, when sending at 100 Hz
-        self.delta_pos_joint_3 = 1. / self.freq  # 0.5rad/s, when sending at 100 Hz
+        self.delta_pos_joint_1 = 0.05 / self.freq  # 2rad/s, when sending at 100 Hz
+        self.delta_pos_joint_2 = 0.05 / self.freq  # 1rad/s, when sending at 100 Hz
+        self.delta_pos_joint_3 = 0.05 / self.freq  # 0.5rad/s, when sending at 100 Hz
         self.delta_pos_joint_vector = None
-        self.pos_thresh = 0.02  # If a joint moved less than this, it is considered to have zero velocity
+        self.pos_thresh = 0.1  # If a joint moved less than this, it is considered to have zero velocity
 
-        self.check_delta_joint_interval = 10
+        self.check_delta_joint_interval = 5
 
     def init_delta_joint_vector(self):
         self.delta_vector = np.array([
@@ -66,11 +67,27 @@ class HithandGraspController():
             joint_pub_msg.position = desired_pos_joints.tolist()
             self.joint_command_pub.publish(joint_pub_msg)
             self.rate.sleep()
+        res = GraspControlResponse()
+        res.success = True
+        return res
+
+    def handle_reset_hithand_joints(self, req):
+        reset_state = JointState()
+        reset_state.position = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -0.26, 0, 0, 0]
+        self.joint_command_pub.publish(reset_state)
+        res = SetBoolResponse()
+        res.success = True
+        return res
 
     def create_grasp_control_hithand_server(self):
         rospy.Service('grasp_control_hithand', GraspControl, self.handle_grasp_control_hithand)
         rospy.loginfo('Service grasp_control_hithand:')
         rospy.loginfo('Ready to control the hithand for grasping.')
+
+    def create_reset_hithand_joints_server(self):
+        rospy.Service('reset_hithand_joints', SetBool, self.handle_reset_hithand_joints)
+        rospy.loginfo('Service reset_hithand_joints')
+        rospy.loginfo('Ready to reset the hithand joint states.')
 
 
 if __name__ == "__main__":
@@ -78,4 +95,5 @@ if __name__ == "__main__":
     if DEBUG:
         hgc.handle_grasp_control_hithand(GraspControlRequest())
     hgc.create_grasp_control_hithand_server()
+    hgc.create_reset_hithand_joints_server()
     rospy.spin()
