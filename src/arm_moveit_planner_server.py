@@ -27,11 +27,15 @@ class CartesianPoseMoveitPlanner():
         self.zero_joint_states = np.zeros(7)
         self.home_joint_states = np.array([0, 0, 0, -1, 0, 1.9884, -1.57])
 
-        self.ik_solver = IK("world", "palm_link_hithand")  #panda_link0 was world before
+        self.ik_solver = IK("world", "palm_link_hithand", timeout=0.1,
+                            epsilon=1e-4)  #panda_link0 was world before
         print(self.ik_solver.link_names)
         print(self.ik_solver.joint_names)
         print(self.ik_solver.number_of_joints)
         self.seed_state = [0.0] * self.ik_solver.number_of_joints
+
+        self.solver_margin_pos = 0.01
+        self.solver_margin_ori = 0.05
 
     def go_home(self):
         print 'go home'
@@ -57,11 +61,13 @@ class CartesianPoseMoveitPlanner():
     def go_goal_trac_ik(self, pose):
         print 'go goal trac ik'
         self.group.clear_pose_targets()
-        ik_js = self.ik_solver.get_ik(self.seed_state, pose.pose.position.x, pose.pose.position.y,
-                                      pose.pose.position.z, pose.pose.orientation.x,
-                                      pose.pose.orientation.y, pose.pose.orientation.z,
-                                      pose.pose.orientation.w)
-        #ik_js = self.ik_solver.get_ik(self.seed_state, 0.45, 0.1, 0.3, 0.0, 0.0, 0.0, 1.0)
+        ik_js = self.ik_solver.get_ik(
+            self.seed_state, pose.pose.position.x, pose.pose.position.y, pose.pose.position.z,
+            pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z,
+            pose.pose.orientation.w, self.solver_margin_pos, self.solver_margin_pos,
+            self.solver_margin_pos, self.solver_margin_ori, self.solver_margin_ori,
+            self.solver_margin_ori)
+
         if ik_js is None:
             rospy.logerr('No IK solution found')
             return None
@@ -69,9 +75,12 @@ class CartesianPoseMoveitPlanner():
         plan_goal = self.group.plan()
         return plan_goal
 
+    def update_seed_state(self):
+        panda_joints = rospy.wait_for_message('panda/joint_states', JointState)
+        self.seed_state = list(panda_joints.position)
+
     def handle_arm_moveit_cartesian_pose_planner(self, req):
-        #panda_joints = rospy.wait_for_message('panda/joint_states', JointState)
-        #self.seed_state = list(panda_joints.position)
+        self.update_seed_state()
         plan = None
         if req.go_home:
             plan = self.go_home()
