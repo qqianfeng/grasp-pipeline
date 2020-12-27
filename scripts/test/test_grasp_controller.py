@@ -3,11 +3,12 @@ import rospy
 from grasp_pipeline.srv import *
 from sensor_msgs.msg import JointState
 import numpy as np
-from visualization_msgs.msg import InteractiveMarkerUpdate
+from visualization_msgs.msg import InteractiveMarkerUpdate, InteractiveMarkerPose
 import tf2_ros
 import tf2_geometry_msgs
 import tf.transformations as tft
 from geometry_msgs.msg import PoseStamped
+from std_srvs.srv import SetBoolRequest, SetBool
 
 
 class TestGraspController():
@@ -16,6 +17,27 @@ class TestGraspController():
         self.robot_cartesian_goal_pose_pandaj8 = None
         self.joint_trajectory_to_goal = None
         self.robot_cartesian_goal_pose = None
+        self.setup_lift_and_grasp_poses()
+
+    def setup_lift_and_grasp_poses(self):
+        self.lift_pose = InteractiveMarkerPose()
+        self.lift_pose.pose.position.x = 0.6476439232691327
+        self.lift_pose.pose.position.y = -0.009837140154184118
+        self.lift_pose.pose.position.z = 0.507262644093148
+
+        self.lift_pose.pose.orientation.x = 0.8476802233161043
+        self.lift_pose.pose.orientation.y = 0.5240429764425666
+        self.lift_pose.pose.orientation.z = -0.03652414525949581
+        self.lift_pose.pose.orientation.w = 0.07404852904034345
+
+        self.grasp_pose = InteractiveMarkerPose()
+        self.grasp_pose.pose.position.x = 0.6615187681665692
+        self.grasp_pose.pose.position.y = -0.04421595156309393
+        self.grasp_pose.pose.position.z = 0.3212456481334106
+        self.grasp_pose.pose.orientation.x = 0.7901923091273372
+        self.grasp_pose.pose.orientation.y = 0.607271084365329
+        self.grasp_pose.pose.orientation.z = -0.04383754600659636
+        self.grasp_pose.pose.orientation.w = 0.06997295370272645
 
     def transform_pose_to_palm_link(self, pose, from_link='panda_link8'):
         tfBuffer = tf2_ros.Buffer()
@@ -97,11 +119,52 @@ class TestGraspController():
                     break
         self.execute_joint_trajectory_to_goal()
 
+    def move_to_lift_position(self):
+        palm_T_world = self.transform_pose_to_palm_link(self.lift_pose)
+        self.robot_cartesian_goal_pose = palm_T_world
+        result = self.plan_joint_trajectory_to_goal()
+        # try replanning 5 times
+        if result == False:
+            for i in range(5):
+                result = self.plan_joint_trajectory_to_goal()
+                if result:
+                    break
+        self.execute_joint_trajectory_to_goal()
+
+    def move_to_grasp_position(self):
+        palm_T_world = self.transform_pose_to_palm_link(self.grasp_pose)
+        self.robot_cartesian_goal_pose = palm_T_world
+        result = self.plan_joint_trajectory_to_goal()
+        # try replanning 5 times
+        if result == False:
+            for i in range(5):
+                result = self.plan_joint_trajectory_to_goal()
+                if result:
+                    break
+        self.execute_joint_trajectory_to_goal()
+
     def spawn_object(self):
-        
+        update_gazebo_object = rospy.ServiceProxy('update_gazebo_object', UpdateObjectGazebo)
+        pose = [0, 0, 0, 0.7, 0, 0]
+        update_gazebo_object('mustard_bottle', pose, '006_mustard_bottle', 'sdf', 'ycb')
+
+    def grasp_object(self):
+        grasp_control_hithand = rospy.ServiceProxy('/grasp_control_hithand', GraspControl)
+        req = GraspControlRequest()
+        res = grasp_control_hithand(req)
+
+    def reset_hand(self):
+        reset_hithand_joints = rospy.ServiceProxy('/reset_hithand_joints', SetBool)
+        req = SetBoolRequest()
+        res = reset_hithand_joints(req)
 
 
 if __name__ == '__main__':
     t = TestGraspController()
-    #t.move_to_marker_position()
+    #t.reset_hand()
     t.spawn_object()
+    #raw_input('Press enter to continue: ')
+    #t.move_to_marker_position()
+    #t.move_to_lift_position()
+    #t.move_to_grasp_position()
+    #t.grasp_object()
