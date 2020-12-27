@@ -67,7 +67,7 @@
         <!-- Camera transformation broadcaster -->
         <node name="camera_transform_broadcaster_node" pkg="grasp_pipeline" type="camera_transform_broadcaster.py" output="screen"/>
         <!-- Hand closing controller -->
-        <node name="grasp_control_hithand_node" pkg="grasp_pipeline" type="grasp_control_sim_hithand_server.py" output="screen"/>
+        <!-- <node name="grasp_control_hithand_node" pkg="grasp_pipeline" type="grasp_control_sim_hithand_server.py" output="screen"/> -->
     </group>
 
 
