@@ -161,10 +161,10 @@ class TestGraspController():
 
 if __name__ == '__main__':
     t = TestGraspController()
-    #t.reset_hand()
+    t.reset_hand()
     t.spawn_object()
     #raw_input('Press enter to continue: ')
     #t.move_to_marker_position()
-    #t.move_to_lift_position()
     #t.move_to_grasp_position()
-    #t.grasp_object()
+    t.grasp_object()
+    #t.move_to_lift_position()
