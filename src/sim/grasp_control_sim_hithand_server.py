@@ -8,7 +8,7 @@ from std_srvs.srv import SetBool, SetBoolResponse, SetBoolRequest
 # The goal here is to emulate a velocity controller via a pos interface to the hithand. The goal for the hithand is to close at a constant velocity, but it should stop when the velocity is zero.
 # Nevertheless it should maintain a certain force on the object.
 
-DEBUG = True
+DEBUG = False
 
 
 class HithandGraspController():
@@ -28,7 +28,7 @@ class HithandGraspController():
 
         self.check_delta_joint_interval = 1
 
-        self.pos_thresh = 0.5 * self.check_delta_joint_interval * self.delta_pos_joint_1  # If a joint moved less than this, it is considered to have zero velocity
+        self.pos_thresh = 1 * self.check_delta_joint_interval * self.delta_pos_joint_1  # If a joint moved less than this, it is considered to have zero velocity
 
     def init_delta_joint_vector(self):
         self.delta_vector = np.array([
@@ -97,6 +97,6 @@ if __name__ == "__main__":
     if DEBUG:
         #hgc.handle_reset_hithand_joints(SetBoolRequest())
         hgc.handle_grasp_control_hithand(GraspControlRequest())
-    # hgc.create_grasp_control_hithand_server()
-    # hgc.create_reset_hithand_joints_server()
-    # rospy.spin()
+    hgc.create_grasp_control_hithand_server()
+    hgc.create_reset_hithand_joints_server()
+    rospy.spin()
