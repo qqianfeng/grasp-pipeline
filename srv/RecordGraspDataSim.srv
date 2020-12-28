@@ -1,0 +1,18 @@
+int64 grasp_id
+string object_name
+float64 timestamp
+bool is_top_grasp
+int32 grasp_success_label
+float64[] object_size
+geometry_msgs/PoseStamped spawned_object_world_pose
+geometry_msgs/PoseStamped desired_preshape_palm_world_pose
+geometry_msgs/PoseStamped true_preshape_palm_world_pose
+geometry_msgs/PoseStamped closed_palm_world_pose
+geometry_msgs/PoseStamped lifted_palm_world_pose
+sensor_msgs/JointState desired_preshape_hithand_joint_state
+sensor_msgs/JointState true_preshape_hithand_joint_state
+sensor_msgs/JointState closed_hithand_joint_state
+sensor_msgs/JointState lifted_hithand_joint_state
+---
+bool save_success
+int64 object_id

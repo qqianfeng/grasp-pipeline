@@ -35,6 +35,7 @@ add_service_files(
     ManageMoveitScene.srv
     MoveArm.srv
     PalmGoalPoseWorld.srv
+    RecordGraspDataSim.srv
     SaveVisualData.srv
     SegmentGraspObject.srv
     UpdateObjectGazebo.srv
