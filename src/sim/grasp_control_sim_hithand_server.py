@@ -8,7 +8,7 @@ from std_srvs.srv import SetBool, SetBoolResponse, SetBoolRequest
 # The goal here is to emulate a velocity controller via a pos interface to the hithand. The goal for the hithand is to close at a constant velocity, but it should stop when the velocity is zero.
 # Nevertheless it should maintain a certain force on the object.
 
-DEBUG = False
+DEBUG = True
 
 
 class HithandGraspController():
@@ -20,15 +20,15 @@ class HithandGraspController():
         self.joint_command_pub = rospy.Publisher('/hithand/joint_cmd', JointState, queue_size=1)
 
         self.current_pos_joints = None
-        self.joint_speed_rad_per_sec = 1.
+        self.joint_speed_rad_per_sec = 0.5
         self.delta_pos_joint_1 = self.joint_speed_rad_per_sec / self.freq  # 2rad/s, when sending at 100 Hz
         self.delta_pos_joint_2 = self.joint_speed_rad_per_sec / self.freq  # 1rad/s, when sending at 100 Hz
         self.delta_pos_joint_3 = self.joint_speed_rad_per_sec / self.freq  # 0.5rad/s, when sending at 100 Hz
         self.delta_pos_joint_vector = None
 
-        self.check_delta_joint_interval = 1
+        self.check_delta_joint_interval = 10
 
-        self.pos_thresh = 1 * self.check_delta_joint_interval * self.delta_pos_joint_1  # If a joint moved less than this, it is considered to have zero velocity
+        self.pos_thresh = 0.95 * self.check_delta_joint_interval * self.delta_pos_joint_1  # If a joint moved less than this, it is considered to have zero velocity
 
     def init_delta_joint_vector(self):
         self.delta_vector = np.array([
@@ -41,6 +41,9 @@ class HithandGraspController():
         if joint_state == None:
             rospy.logerr('No hithand joint state has been received')
         self.current_pos_joints = np.array(joint_state.position)
+        print('Current joint velocity:')
+        print(joint_state.velocity)
+        print('\n')
 
     def handle_grasp_control_hithand(self, req):
         self.init_delta_joint_vector()
@@ -51,15 +54,19 @@ class HithandGraspController():
         previous_pos_joints = deepcopy(self.current_pos_joints)
         desired_pos_joints = deepcopy(previous_pos_joints)
         for i in xrange(10 * self.freq):  # this loop runs for 10 seconds max
-            print(i)
+            #print(i)
             if (i % self.check_delta_joint_interval == 0) and (i != 0):
                 self.update_current_pos_joints()
                 # check whether the joint position a few steps ago actually differs from the current joint position. If not velocity is zero and joint should stop moving
                 diff_joint_pos = np.abs(self.current_pos_joints - previous_pos_joints)
                 # set the deltas to zero for the joints with zero velocity in order to not send more position commands to these joints
-                print(self.delta_pos_joint_vector)
-                self.delta_pos_joint_vector[diff_joint_pos < self.pos_thresh] = 0
-                print(self.delta_pos_joint_vector)
+                # print('Delta pos joint vector before: ')
+                # print(self.delta_pos_joint_vector)
+                # print('Difference between actual and desired joint position: ')
+                # print(diff_joint_pos)
+                #self.delta_pos_joint_vector[diff_joint_pos < self.pos_thresh] = 0
+                # print('Delta pos joint vector after: ')
+                # print(self.delta_pos_joint_vector)
                 # If the whole delta pos joint vector is zero break the loop, because no joints are moving anymore
                 if sum(self.delta_pos_joint_vector) == 0:
                     break
@@ -69,6 +76,7 @@ class HithandGraspController():
             joint_pub_msg.position = desired_pos_joints.tolist()
             self.joint_command_pub.publish(joint_pub_msg)
             self.rate.sleep()
+            #rospy.sleep(1)
         res = GraspControlResponse()
         res.success = True
         return res
@@ -96,7 +104,8 @@ if __name__ == "__main__":
     hgc = HithandGraspController()
     if DEBUG:
         #hgc.handle_reset_hithand_joints(SetBoolRequest())
-        hgc.handle_grasp_control_hithand(GraspControlRequest())
+        #hgc.handle_grasp_control_hithand(GraspControlRequest())
+        pass
     hgc.create_grasp_control_hithand_server()
     hgc.create_reset_hithand_joints_server()
     rospy.spin()
