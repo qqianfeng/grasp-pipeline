@@ -1,0 +1,11 @@
+sudo aptitude install ros-melodic-desktop-full
+sudo aptitude install ros-melodic-rosbridge-server
+sudo aptitude install ros-melodic-tf2-web-republisher
+sudo aptitude install ros-melodic-ros-control
+sudo aptitude install ros-melodic-moveit
+sudo aptitude install ros-melodic-tf2-sensor-msgs
+sudo aptitude install ros-melodic-trac-ik-python
+sudo aptitude install ros-melodic-trac-ik-kinematics-plugin
+
+
+

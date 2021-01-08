@@ -1,0 +1,72 @@
+
+1.1 Careful with aligned and not aligned objects, orientation computation in get_bounding_box_faces might be incorrect
+
+
+4. find_palm_pose_from_bounding_box_centers might have to be modified in order to ensure good valid samples
+5. GraspObjectMessage: For them receives object pose, dimensions, cloud, normals
+	5.1 Object pose information currently missing. Is the object pose just the pose of the spawned model or smth else?
+6. Make sure the spawned object pose is being published, and make sure it is the right one, which one are they publishing?
+7. Extensive testing on preshape sampler
+9. Change the segmentation server such that it doesn't store to and load from disk but directly reads the point cloud from the corresponding topic, and then publishes the segmented point cloud
+10. Change segmentation server such that it doesn't publish the object information, but rather returns it in response to the service call
+11. Make sure panda is being controlled at 1000 Hz
+
+
+2. Get an intuition for finger closing, i.e. which joints should move how exactly for a good hand closing procedure
+
+
+1. Change hithand control and joint sampling to smaller range + change hithand control to couple control. Actually the UTAH people don't sample the joint position
+
+1. Get good feeling for different pre shape parameters
+	2. Disable all sampling, Find good mean top, find good mean side, find good var
+	3. Find good wrist roll sampling range
+	4. Think about the 3D noise
+2. Integrate the Hithand changes into AR git
+3. Test the grasping controller
+	j2 0.95, spawn object, test grasping_controller
+
+4.1.21
+- Generate 32x32x32 Voxelgrid from PCD as required by Voxel Encoder
+- Considerations Tensorflow vs. Pytorch
+	- Generally Pytorch is easier to use, faster, build dynamic computation graphs and becoming the default everywhere (PRO Pytorch)
+	- However UTAH people, 6DoF GraspNet (Fox, Mousavian) use Python 2.7 and Tensorflow 1.13 (CONTRA Pytorch)
+		- PointNet++ is based on Tensorflow
+		- There exist Pytorch implementations of PointNet++ but only for versions > Python 3.6. This won't work in melodic. 
+	- Pytorch and Tensorflow both work in Python 2.7 (Pytorch up to v1.4.0, can be installed via pip 
+- Starting implementing the voxel-based auto-encoder
+
+5.1.21
+- Utah people train autoencoder on reconstruction task and freeze the parameters
+	- synthetically render 590 meshes in 200 random positions and backproject (!?!?!) into 3D point cloud 
+		- Question 1: Do they obtain partial point clouds or full point clouds from this?
+		- Question 2: Do they train the AE on reconstruction of partial point clouds to reconstruct partial point clouds? Or to reconstruct full point clouds from partial points clouds, or to reconstruct 
+			      full points clouds from full points clouds?
+		- Question 3: Because weights are frozen should we retrain the conv net?
+			- Does the model change when having a different camera setup?
+- Regression to a single pose with a neural network is not efficient, due to pose ambiguity (High-dof poses with NN paper does not make sense)
+- Learning the grasp success function needs an optimization to find pose
+- Idea from Fox/Mousavian to train a VAE to be able to generate multiple grasps and then evaluate for feasibility seems promising
+- Training a GAN (InfoGAN) could also be very promising to generate grasp poses
+
+6.1.21
+- Good pytorch VAE implementation:
+	https://github.com/AndrewSpano/Disentangled_Variational_Autoencoder
+- Good thesis on VAE:
+	file:///home/vm/Downloads/postgraduate_thesis_variational_autoencoders.pdf
+- pip install plyfile
+- Utah people use layer_norm instead of batch_norm in grasp_success_net
+
+7.1.21
+- needs CUDA 10-1: https://gist.github.com/Mahedi-61/2a2f1579d4271717d421065168ce6a73
+	- pip install tensorflow-gpu==1.14
+- VoxelAE         [CHECK]
+- GraspSuccessNet [CHECK]
+- GraspPriorNet   [CHECK]
+- What is the right architecture for the ML model?: https://towardsdatascience.com/17-rules-of-thumb-for-building-a-neural-network-93356f9930af#:~:text=The%20first%20layer%20should%20be,is%20the%20number%20of%20classes.
+- Using an attention mechanism?
+- Deeper insights into how neural networks work, the theory behind it etc.
+- grasp representation/ control are important: just controlling hand to a joint position makes no sense
+	- Need force feedback, how to incorporate the torque sensing?
+
+8.1.21
+- Usage of grasp success labels for pretraining?
