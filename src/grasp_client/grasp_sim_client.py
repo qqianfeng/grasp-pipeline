@@ -3,7 +3,7 @@ import rospy
 from geometry_msgs.msg import PoseStamped
 import tf.transformations as tft
 from grasp_pipeline.srv import *
-from sensor_msgs.msg import Image, PointCloud2, JointState
+from sensor_msgs.msg import JointState
 
 import numpy as np
 
@@ -26,6 +26,11 @@ class GraspClient():
         self.depth_img = None
         self.color_img = None
         self.point_cloud = None
+
+        self.segmented_object_point_cloud = None
+        self.segmented_object_width = None
+        self.segmented_object_height = None
+        self.segmented_object_depth = None
 
         self.heuristic_preshapes = None  # This variable stores all the information on multiple heuristically sampled grasping pre shapes
         # The chosen variables store one specific preshape (palm_pose, hithand_joint_state, is_top_grasp)
@@ -133,6 +138,7 @@ class GraspClient():
                 req.palm_goal_pose_world = place_goal_pose
             else:
                 req.palm_goal_pose_world = self.mount_desired_world.pose
+                raise NotImplementedError
             planning_response = moveit_cartesian_pose_planner(req)
         except rospy.ServiceException, e:
             rospy.loginfo('Service arm_moveit_cartesian_pose_planner call failed: %s' % e)
@@ -238,7 +244,6 @@ class GraspClient():
         try:
             segment_object = rospy.ServiceProxy('segment_object', SegmentGraspObject)
             req = SegmentGraspObjectRequest()
-            req.start = True
             req.scene_point_cloud_path = self.scene_point_cloud_path
             req.object_point_cloud_path = self.object_point_cloud_path
             res = segment_object(req)
@@ -272,11 +277,6 @@ class GraspClient():
         self.update_gazebo_object_client(object_name, object_model_name, model_type, dataset)
 
     def save_visual_data_and_segment_object(self):
-        self.depth_img = rospy.wait_for_message("/camera/depth/image_raw", Image)
-        self.color_img = rospy.wait_for_message("/camera/color/image_raw", Image)
-        self.point_cloud = rospy.wait_for_message("/depth_registered/points", PointCloud2)
-        rospy.loginfo('Received depth, color and point cloud messages')
-
         self.save_visual_data_client()
         self.segment_object_client()
 

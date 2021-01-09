@@ -20,11 +20,16 @@ class ServerUnitTester():
         print('Started Unit Tests')
         rospy.init_node('server_unit_tester')
 
-        self.object_datasets_folder = rospy.get_param('object_datasets_folder')
-        self.color_img_save_path = rospy.get_param('color_img_save_path')
-        self.depth_img_save_path = rospy.get_param('depth_img_save_path')
-        self.object_point_cloud_path = rospy.get_param('object_point_cloud_path')
-        self.scene_point_cloud_path = rospy.get_param('scene_point_cloud_path')
+        self.object_datasets_folder = rospy.get_param('object_datasets_folder',
+                                                      default='/home/vm/object_datasets')
+        self.color_img_save_path = rospy.get_param('color_img_save_path',
+                                                   default='/home/vm/scene.ppm')
+        self.depth_img_save_path = rospy.get_param('depth_img_save_path',
+                                                   default='/home/vm/depth.pgm')
+        self.object_point_cloud_path = rospy.get_param('object_point_cloud_path',
+                                                       default='/home/vm/object.pcd')
+        self.scene_point_cloud_path = rospy.get_param('scene_point_cloud_path',
+                                                      default='/home/vm/scene.pcd')
 
         self.test_count = 0
         self.bridge = CvBridge
@@ -95,20 +100,21 @@ class ServerUnitTester():
         result = 'SUCCEEDED' if res else 'FAILED'
         print(result)
 
-    def test_save_visual_data_server(self):
+    def test_save_visual_data_server(self, provide_server_with_save_data=False):
         self.test_count += 1
         print('Running test_save_visual_data_server, test number %d' % self.test_count)
-        # Receive one message from depth, color and pointcloud topic, not registered
-        msg_depth = rospy.wait_for_message("/camera/depth/image_raw", Image)
-        msg_color = rospy.wait_for_message("/camera/color/image_raw", Image)
-        msg_pcd = rospy.wait_for_message("/depth_registered/points", PointCloud2)
-        print('Received depth, color and point cloud messages')
         # Send to server and wait for response
         save_visual_data = rospy.ServiceProxy('save_visual_data', SaveVisualData)
         req = SaveVisualDataRequest()
-        req.color_img = msg_color
-        req.depth_img = msg_depth
-        req.point_cloud = msg_pcd
+        if provide_server_with_save_data:
+            # Receive one message from depth, color and pointcloud topic, not registered
+            msg_depth = rospy.wait_for_message("/camera/depth/image_raw", Image)
+            msg_color = rospy.wait_for_message("/camera/color/image_raw", Image)
+            msg_pcd = rospy.wait_for_message("/depth_registered/points", PointCloud2)
+            print('Received depth, color and point cloud messages')
+            req.color_img = msg_color
+            req.depth_img = msg_depth
+            req.point_cloud = msg_pcd
         req.color_img_save_path = self.color_img_save_path
         req.depth_img_save_path = self.depth_img_save_path
         req.point_cloud_save_path = self.scene_point_cloud_path
@@ -375,13 +381,13 @@ if __name__ == '__main__':
     sut = ServerUnitTester()
 
     # Reset
-    sut.reset_panda_and_hithand()
+    #sut.reset_panda_and_hithand()
 
     # Test random object pose
-    sut.test_generate_random_object_pose_for_experiment()
+    #sut.test_generate_random_object_pose_for_experiment()
 
     # Test spawning and deleting of objects
-    sut.test_manage_gazebo_scene_server(object_name, object_model_name, dataset, model_type)
+    #sut.test_manage_gazebo_scene_server(object_name, object_model_name, dataset, model_type)
 
     # Test visual data save server
     sut.test_save_visual_data_server()
@@ -390,16 +396,16 @@ if __name__ == '__main__':
     sut.test_display_saved_point_cloud(sut.scene_point_cloud_path)
 
     # Test object segmentation
-    sut.test_segment_object_server()
+    #sut.test_segment_object_server()
 
     # Test display saved point cloud
-    sut.test_display_saved_point_cloud(sut.object_point_cloud_path)
+    #sut.test_display_saved_point_cloud(sut.object_point_cloud_path)
 
     # Test hithand preshape generation server
-    sut.test_generate_hithand_preshape_server()
+    #sut.test_generate_hithand_preshape_server()
 
     # Test moveit spawn object
-    sut.test_create_moveit_scene_server()
+    #sut.test_create_moveit_scene_server()
 
     while True:
         # get new position and go there
