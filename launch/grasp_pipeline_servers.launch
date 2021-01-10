@@ -13,14 +13,14 @@
     <arg name="depth_img_topic"         default="/camera/depth/image_raw"/>    
     <arg name="launch_conda"            default="false"/>
     <!-- +++++++++++++++++++ Set the params needed by the different nodes ++++++++++++++++++++++++++++++++ -->
-    <param name="object_point_cloud_path" value="$(arg object_point_cloud_path)"     type="string" />
-    <param name="scene_point_cloud_path"  value="$(arg scene_point_cloud_path)"      type="string" />
-    <param name="object_datasets_folder"  value="$(arg object_datasets_folder)"      type="string" />
-    <param name="color_img_save_path"     value="$(arg color_img_save_path)"         type="string" />
-    <param name="depth_img_save_path"     value="$(arg depth_img_save_path)"         type="string" />
-    <param name="point_cloud_topic"       value="$(arg point_cloud_topic)"           type="string" />
-    <param name="color_img_topic"         value="$(arg color_img_topic)"             type="string" />
-    <param name="depth_img_topic"         value="$(arg /camera/depth/image_raw)"     type="string" />   
+    <param name="object_point_cloud_path" value="$(arg object_point_cloud_path)" type="string" />
+    <param name="scene_point_cloud_path"  value="$(arg scene_point_cloud_path)"  type="string" />
+    <param name="object_datasets_folder"  value="$(arg object_datasets_folder)"  type="string" />
+    <param name="color_img_save_path"     value="$(arg color_img_save_path)"     type="string" />
+    <param name="depth_img_save_path"     value="$(arg depth_img_save_path)"     type="string" />
+    <param name="point_cloud_topic"       value="$(arg point_cloud_topic)"       type="string" />
+    <param name="color_img_topic"         value="$(arg color_img_topic)"         type="string" />
+    <param name="depth_img_topic"         value="$(arg depth_img_topic)"         type="string" />   
 
     <!-- +++++++++++++++++++++++++++++++++++++++++++++++++++ -->
     <!-- Publish the paths of scene and object point cloud-->

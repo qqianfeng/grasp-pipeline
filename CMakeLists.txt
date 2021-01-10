@@ -12,8 +12,6 @@ find_package(catkin REQUIRED COMPONENTS
   image_transport
   message_generation
   message_runtime
-  pcl_conversions
-  pcl_ros
   roscpp
   rospy
   std_msgs
@@ -24,6 +22,12 @@ catkin_python_setup()
 
 include_directories(
   ${catkin_INCLUDE_DIRS}
+)
+
+add_message_files(
+  DIRECTORY msg
+  FILES
+  GraspObject.msg
 )
 
 add_service_files(
