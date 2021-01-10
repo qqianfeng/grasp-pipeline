@@ -1,5 +1,5 @@
-bool start
 string scene_point_cloud_path
 string object_point_cloud_path
 ---
+GraspObject object
 bool success
