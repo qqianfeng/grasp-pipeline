@@ -1,8 +1,13 @@
 #!/usr/bin/env python
 import rospy
-from sensor_msgs.msg import Image, PointCloud2, PointField
+import roslib.packages as rp
+pkg_path = rp.get_pkg_dir('grasp_pipeline')
+import sys
+sys.path.append(pkg_path + '/src')
+from utils import cloud_from_ros_to_o3d
+
+from sensor_msgs.msg import Image, PointCloud2
 from grasp_pipeline.srv import *
-import sensor_msgs.point_cloud2 as pc2
 from std_msgs.msg import Header
 from tf2_sensor_msgs.tf2_sensor_msgs import do_transform_cloud
 import tf2_ros
@@ -13,8 +18,6 @@ import numpy as np
 import os
 
 import open3d as o3d
-from ctypes import *
-from open3d_ros_helper import open3d_ros_helper as orh
 
 # This module should save, restore and display depth images as well as point clouds
 
@@ -96,7 +99,7 @@ class VisualDataSaver():
         # Transform format in order to save data to disk
         depth_img = self.bridge.imgmsg_to_cv2(depth_img, "32FC1")
         color_img = self.bridge.imgmsg_to_cv2(color_img, "bgr8")
-        point_cloud = orh.rospc_to_o3dpc(point_cloud_world)
+        point_cloud = cloud_from_ros_to_o3d(point_cloud_world)
 
         # Actually save the stuff
         self.save_depth_img(depth_img, req.depth_img_save_path)
