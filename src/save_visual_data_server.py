@@ -16,7 +16,7 @@ import cv2
 from cv_bridge import CvBridge, CvBridgeError
 import numpy as np
 import os
-
+from time import time
 import open3d as o3d
 
 # This module should save, restore and display depth images as well as point clouds
@@ -67,11 +67,6 @@ class VisualDataSaver():
         point_cloud = o3d.io.read_point_cloud(point_cloud_save_path)
         return point_cloud
 
-    ################ Handle below ########################
-
-
-# NOTE: use do_transform_cloud, receive the transform and convert it to TransformStamped message
-
     def handle_visual_data_saver(self, req):
         # First of all, delete any old pcd files with the same name, because they are not being replaced when saving a second time
         if os.path.exists(req.point_cloud_save_path):
@@ -99,8 +94,9 @@ class VisualDataSaver():
         # Transform format in order to save data to disk
         depth_img = self.bridge.imgmsg_to_cv2(depth_img, "32FC1")
         color_img = self.bridge.imgmsg_to_cv2(color_img, "bgr8")
+        #start = time()
         point_cloud = cloud_from_ros_to_o3d(point_cloud_world)
-
+        #print(time() - start)
         # Actually save the stuff
         self.save_depth_img(depth_img, req.depth_img_save_path)
         self.save_color_img(color_img, req.color_img_save_path)
@@ -114,6 +110,7 @@ class VisualDataSaver():
         rospy.Service('save_visual_data', SaveVisualData, self.handle_visual_data_saver)
         rospy.loginfo('Service save_visual_data:')
         rospy.loginfo('Ready to save your awesome visual data.')
+
 
 if __name__ == "__main__":
     Saver = VisualDataSaver()

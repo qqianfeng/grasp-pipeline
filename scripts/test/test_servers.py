@@ -196,15 +196,12 @@ class ServerUnitTester():
         print('Running test_segment_object_server, test number %d' % self.test_count)
         table_object_segmentation = rospy.ServiceProxy('segment_object', SegmentGraspObject)
         req = SegmentGraspObjectRequest()
-        req.start = True
         req.scene_point_cloud_path = self.scene_point_cloud_path
         req.object_point_cloud_path = self.object_point_cloud_path
         res = table_object_segmentation(req)
         result = 'SUCCEEDED' if res.success else 'FAILED'
 
         assert os.path.exists(self.object_point_cloud_path)
-        msg = rospy.wait_for_message('/segmented_object_size', Float64MultiArray, timeout=5)
-        assert msg.data is not None
         msg = rospy.wait_for_message('/segmented_object_bounding_box_corner_points',
                                      Float64MultiArray,
                                      timeout=5)
@@ -390,13 +387,13 @@ if __name__ == '__main__':
     #sut.test_manage_gazebo_scene_server(object_name, object_model_name, dataset, model_type)
 
     # Test visual data save server
-    sut.test_save_visual_data_server()
+    #sut.test_save_visual_data_server()
 
     # Test display saved point cloud
-    sut.test_display_saved_point_cloud(sut.scene_point_cloud_path)
+    #sut.test_display_saved_point_cloud(sut.scene_point_cloud_path)
 
     # Test object segmentation
-    #sut.test_segment_object_server()
+    sut.test_segment_object_server()
 
     # Test display saved point cloud
     #sut.test_display_saved_point_cloud(sut.object_point_cloud_path)
@@ -407,28 +404,28 @@ if __name__ == '__main__':
     # Test moveit spawn object
     #sut.test_create_moveit_scene_server()
 
-    while True:
-        # get new position and go there
-        sut.test_choose_specific_grasp_preshape('unspecified')
-        # Try to find a trajectory
-        moveit_result = False
-        while (not moveit_result):
-            moveit_result = sut.test_arm_moveit_cartesian_pose_planner_server()
+    # while True:
+    #     # get new position and go there
+    #     sut.test_choose_specific_grasp_preshape('unspecified')
+    #     # Try to find a trajectory
+    #     moveit_result = False
+    #     while (not moveit_result):
+    #         moveit_result = sut.test_arm_moveit_cartesian_pose_planner_server()
 
-        sut.test_execute_joint_trajectory_server(smoothen_trajectory=True)
+    #     sut.test_execute_joint_trajectory_server(smoothen_trajectory=True)
 
-        input = raw_input("Grasp and lift? Press y/n: ")
-        if input == 'y':
-            # try to grasp the object
-            sut.test_grasp_control_hithand_server()
-            # try to lift the object
-            sut.lift_object()
+    #     input = raw_input("Grasp and lift? Press y/n: ")
+    #     if input == 'y':
+    #         # try to grasp the object
+    #         sut.test_grasp_control_hithand_server()
+    #         # try to lift the object
+    #         sut.lift_object()
 
-        # go home
-        sut.reset_panda_and_hithand()
+    #     # go home
+    #     sut.reset_panda_and_hithand()
 
-        # reset object position
-        sut.test_manage_gazebo_scene_server(object_name, object_model_name, dataset, model_type)
+    #     # reset object position
+    #     sut.test_manage_gazebo_scene_server(object_name, object_model_name, dataset, model_type)
 
     # Test smoothen trajectory execution
     # sut.test_get_smooth_trajectory_server()

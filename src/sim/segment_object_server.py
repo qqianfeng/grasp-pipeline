@@ -8,19 +8,32 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 import copy
 from std_msgs.msg import Float64MultiArray
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, Pose
+from sensor_msgs.msg import PointCloud2
+from tf2_sensor_msgs.tf2_sensor_msgs import do_transform_cloud
+import tf.transformations as tft
+import roslib.packages as rp
+pkg_path = rp.get_pkg_dir('grasp_pipeline')
+import sys
+sys.path.append(pkg_path + '/src')
+from utils import cloud_from_ros_to_o3d
+import tf2_ros
+import tf
 
 DEBUG = False
 
 
 class ObjectSegmenter():
-    def __init__(self, scene_point_cloud_path=None, object_point_cloud_path=None):
+    def __init__(self):
+        rospy.init_node("object_segmentation_node")
+        self.scene_point_cloud_topic = rospy.get_param('point_cloud_topic',
+                                                       '/depth_registered/points')
+        self.tf_buffer = tf2_ros.Buffer()
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
+        rospy.sleep(0.5)  # essential, otherwise next line crashes
+        self.transform_camera_world = self.tf_buffer.lookup_transform(
+            'world', 'camera_color_optical_frame', rospy.Time())
         if not DEBUG:
-            rospy.init_node("object_segmentation_node")
-            self.object_size_pub = rospy.Publisher('/segmented_object_size',
-                                                   Float64MultiArray,
-                                                   latch=True,
-                                                   queue_size=1)
             self.bounding_box_corner_pub = rospy.Publisher(
                 '/segmented_object_bounding_box_corner_points',
                 Float64MultiArray,
@@ -31,11 +44,7 @@ class ObjectSegmenter():
                                                        PoseStamped,
                                                        self.callback_camera_tf,
                                                        queue_size=5)
-            # Where to save the object point cloud and where to load it from
-            # self.object_point_cloud_path = rospy.get_param(
-            #     'scene_point_cloud_path')
-            # self.scene_point_cloud_path = rospy.get_param(
-            #     'object_point_cloud_path')
+            self.tf_broadcaster_object_pose = tf.TransformBroadcaster()
 
         self.bounding_box_corner_points = None
         self.world_R_cam = None
@@ -50,24 +59,20 @@ class ObjectSegmenter():
                 [0, 1, 1],  # light blue   left/back/down
                 [1, 1, 0],  # yellow      right/back/up
                 [1, 0, 1],
-                [0.6, 0.2, 0.4]  #purple/ red-ish
             ]
         )  # this was just to understand the corner numbering logic, point 0 and point 4 in the list are cross diagonal, points 1,2,3 are attached to 0 in right handed sense, same for 5,6,7
+        self.service_is_called = False
+        self.object_pose = None
 
     # +++++++++++++++++ Part I: Helper functions ++++++++++++++++++++++++
     def custom_draw_scene(self, pcd):
-        o3d.visualization.draw_geometries([pcd],
-                                          front=[0.236, -0.97, 0.0435],
-                                          lookat=[-0.244, 3.89, 0.0539],
-                                          up=[0., 0.045, 0.998],
-                                          zoom=0.2399)
+        o3d.visualization.draw_geometries([pcd])
 
-    def construct_nine_box_objects(self):
+    def construct_corner_box_objects(self):
         boxes = []
-        for i in range(9):
+        for i in range(8):
             box = o3d.geometry.TriangleMesh.create_box(width=0.01, height=0.01, depth=0.01)
-            box.translate(self.bounding_box_corner_points[i, :]) if i != 8 else box.translate(
-                [0, 0, 0])
+            box.translate(self.bounding_box_corner_points[i, :])
             box.paint_uniform_color(self.colors[i, :])
             boxes.append(box)
         return boxes
@@ -76,10 +81,14 @@ class ObjectSegmenter():
         if bounding_box == None:
             o3d.visualization.draw_geometries([pcd])
         else:
-            boxes = self.construct_nine_box_objects()
+            boxes = self.construct_corner_box_objects()
+            origin = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1)
+            obj_origin = copy.deepcopy(origin)
+            obj_origin.translate(self.object_center)
+            obj_origin.rotate(self.object_R)
             o3d.visualization.draw_geometries([
                 pcd, bounding_box, boxes[0], boxes[1], boxes[2], boxes[3], boxes[4], boxes[5],
-                boxes[6], boxes[7], boxes[8]
+                boxes[6], boxes[7], origin, obj_origin
             ])
 
     def pick_points(self, pcd, bounding_box):
@@ -97,6 +106,16 @@ class ObjectSegmenter():
         return vis.get_picked_points()
 
     # +++++++++++++++++ Part II: Main business logic ++++++++++++++++++++++++
+    def broadcast_object_pose(self):
+        if self.service_is_called:
+            # Publish the palm goal tf
+            self.tf_broadcaster_object_pose.sendTransform(
+                (self.object_pose.position.x, self.object_pose.position.y,
+                 self.object_pose.position.z),
+                (self.object_pose.orientation.x, self.object_pose.orientation.y,
+                 self.object_pose.orientation.z, self.object_pose.orientation.w), rospy.Time.now(),
+                "object_pose", "world")
+
     def callback_camera_tf(self, msg):
         """ Get the camera transform from ROS and extract the camera 3D position for visualization purposes.
         """
@@ -107,15 +126,10 @@ class ObjectSegmenter():
         print("Unsubscribed camera_tf_listener")
 
     def handle_segment_object(self, req):
-        self.scene_point_cloud_path = req.scene_point_cloud_path
         self.object_point_cloud_path = req.object_point_cloud_path
-        while (self.scene_point_cloud_path is None) or (self.object_point_cloud_path is None):
-            print(
-                "I haven't received the pointcloud paths from the corrsponding topic. Stuck in a while loop until they are received."
-            )
-            time.sleep(2)
-
         print("handle_segment_object received the service call")
+        # If no scene_point_cloud_path is given do not attempts to load a pcd but get pcd from Gazebo topic.
+        self.scene_point_cloud_path = req.scene_point_cloud_path
         pcd = o3d.io.read_point_cloud(self.scene_point_cloud_path)
 
         if self.world_t_cam is None:
@@ -136,9 +150,29 @@ class ObjectSegmenter():
         if DEBUG:
             self.custom_draw_object(object_pcd)
 
-        # compute bounding box and size
-        object_bounding_box = object_pcd.get_axis_aligned_bounding_box()
-        object_size = object_bounding_box.get_extent()
+        # compute bounding box and object_pose
+        object_bounding_box = object_pcd.get_oriented_bounding_box()
+        object_size = object_bounding_box.extent
+        self.object_center = copy.deepcopy(object_bounding_box.get_center())
+        self.object_R = copy.deepcopy(object_bounding_box.R)
+        # Attention, self.object_R can be an improper rotation meaning det(R)=-1, therefore check which eigenvalue is negative and turn the corresponding column of rotation matrix around
+        eigs = np.linalg.eigvals(self.object_R)
+        for i in range(3):
+            if eigs[i] < 0:
+                self.object_R[:, i] = (-1) * self.object_R[:, i]
+        object_T_world = np.eye(4)
+        object_T_world[:3, :3] = self.object_R
+        object_quat = tft.quaternion_from_matrix(object_T_world)
+        object_pose = Pose()
+        object_pose.position.x = self.object_center[0]
+        object_pose.position.y = self.object_center[1]
+        object_pose.position.z = self.object_center[2]
+        object_pose.orientation.x = object_quat[0]
+        object_pose.orientation.y = object_quat[1]
+        object_pose.orientation.z = object_quat[2]
+        object_pose.orientation.w = object_quat[3]
+        self.object_pose = object_pose
+
         # get the 8 corner points, from these you can compute the bounding box face center points from which you can get the nearest neighbour from the point cloud
         self.bounding_box_corner_points = np.asarray(object_bounding_box.get_box_points())
         print(self.bounding_box_corner_points)
@@ -162,8 +196,7 @@ class ObjectSegmenter():
         if DEBUG:
             self.custom_draw_object(object_pcd, object_bounding_box, False, True)
 
-        # In the end the object pcd, bounding box corner points, bounding box size information need to be stored to disk
-        # Could also be sent over a topic
+        # Store segmented object to disk
         if os.path.exists(self.object_point_cloud_path):
             os.remove(self.object_point_cloud_path)
         o3d.io.write_point_cloud(self.object_point_cloud_path, object_pcd)
@@ -171,10 +204,6 @@ class ObjectSegmenter():
 
         # Publish and latch newly computed dimensions and bounding box points
         if not DEBUG:
-            print("I will publish the size now:")
-            size_msg = Float64MultiArray()
-            size_msg.data = np.ndarray.tolist(object_size)
-            self.object_size_pub.publish(size_msg)
             print("I will publish the corner points now:")
             print(self.bounding_box_corner_points)
             corner_msg = Float64MultiArray()
@@ -184,8 +213,15 @@ class ObjectSegmenter():
             print("I published them")
 
         res = SegmentGraspObjectResponse()
+        res.object.header.frame_id = 'world'
+        res.object.header.stamp = rospy.Time.now()
+        res.object.pose = object_pose
+        res.object.width = object_size[0].tolist()
+        res.object.height = object_size[2].tolist()
+        res.object.depth = object_size[1].tolist()
         res.success = True
 
+        self.service_is_called = True
         return res
 
     def create_segment_object_server(self):
@@ -198,8 +234,13 @@ if __name__ == "__main__":
     oseg = ObjectSegmenter()
     oseg.create_segment_object_server()
     if DEBUG:
-        oseg = ObjectSegmenter(scene_point_cloud_path='/home/vm/test_cloud.pcd',
-                               object_point_cloud_path='/home/vm/object.pcd')
-        oseg.handle_segment_object(None)
+        oseg = ObjectSegmenter()
+        req = SegmentGraspObjectRequest()
+        req.object_point_cloud_path = "/home/vm/object.pcd"
+        req.scene_point_cloud_path = "/home/vm/scene.pcd"
+        oseg.handle_segment_object(req)
 
-    rospy.spin()
+    rate = rospy.Rate(100)
+    while not rospy.is_shutdown():
+        oseg.broadcast_object_pose()
+        rate.sleep()
