@@ -88,8 +88,11 @@ class VisualDataSaver():
 
         # Transform the pointcloud message into world frame
         rospy.loginfo(pcd.header)
+        start = time()
         pcd_world = do_transform_cloud(pcd, self.transform_camera_world)
         rospy.loginfo(pcd_world.header)
+        print('Transforming the point cloud took: ')
+        print(time() - start)
 
         # Transform format in order to save data to disk
         depth_img = self.bridge.imgmsg_to_cv2(depth_img, "32FC1")
