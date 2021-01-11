@@ -3,6 +3,8 @@ import open3d as o3d
 from ctypes import *
 import sensor_msgs.point_cloud2 as pc2
 import numpy as np
+from std_msgs.msg import Header
+import rospy
 
 FIELDS_XYZ = [
     PointField(name='x', offset=0, datatype=PointField.FLOAT32, count=1),
@@ -61,7 +63,7 @@ def pcd_from_ros_to_o3d(ros_pcd):
 # Convert the datatype of point pcd from o3d to ROS Pointpcd2 (XYZRGB only)
 
 
-def pcd_from_o3d_to_ros(o3d_pcd, frame_id="camera_depth_optical_frame"):
+def pcd_from_o3d_to_ros(o3d_pcd, frame_id):
     # Set "header"
     header = Header()
     header.stamp = rospy.Time.now()
@@ -81,3 +83,4 @@ def pcd_from_o3d_to_ros(o3d_pcd, frame_id="camera_depth_optical_frame"):
         pcd_data = np.c_[points, colors]
     # create ros_pcd
     return pc2.create_cloud(header, fields, pcd_data)
+
