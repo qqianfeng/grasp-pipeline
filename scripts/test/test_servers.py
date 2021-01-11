@@ -26,10 +26,8 @@ class ServerUnitTester():
                                                    default='/home/vm/scene.ppm')
         self.depth_img_save_path = rospy.get_param('depth_img_save_path',
                                                    default='/home/vm/depth.pgm')
-        self.object_point_cloud_path = rospy.get_param('object_point_cloud_path',
-                                                       default='/home/vm/object.pcd')
-        self.scene_point_cloud_path = rospy.get_param('scene_point_cloud_path',
-                                                      default='/home/vm/scene.pcd')
+        self.object_pcd_path = rospy.get_param('object_pcd_path', default='/home/vm/object.pcd')
+        self.scene_pcd_path = rospy.get_param('scene_pcd_path', default='/home/vm/scene.pcd')
 
         self.test_count = 0
         self.bridge = CvBridge
@@ -114,19 +112,19 @@ class ServerUnitTester():
             print('Received depth, color and point cloud messages')
             req.color_img = msg_color
             req.depth_img = msg_depth
-            req.point_cloud = msg_pcd
+            req.scene_pcd = msg_pcd
         req.color_img_save_path = self.color_img_save_path
         req.depth_img_save_path = self.depth_img_save_path
-        req.point_cloud_save_path = self.scene_point_cloud_path
+        req.scene_pcd_save_path = self.scene_pcd_path
         res = save_visual_data(req)
         # Print result
         result = 'SUCCEEDED' if res else 'FAILED'
         print(result)
 
-    def test_display_saved_point_cloud(self, pcd_save_path):
+    def test_display_saved_pcd(self, pcd_save_path):
         self.test_count += 1
-        print('Running test_display_saved_point_cloud, test number %d' % self.test_count)
-        pcd = o3d.io.read_point_cloud(pcd_save_path)
+        print('Running test_display_saved_pcd, test number %d' % self.test_count)
+        pcd = o3d.io.read_pcd(pcd_save_path)
         origin = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1)
         box_cam = o3d.geometry.TriangleMesh.create_box(width=0.05, height=0.05, depth=0.05)
         box_cam.paint_uniform_color([0, 1, 0])
@@ -196,12 +194,12 @@ class ServerUnitTester():
         print('Running test_segment_object_server, test number %d' % self.test_count)
         table_object_segmentation = rospy.ServiceProxy('segment_object', SegmentGraspObject)
         req = SegmentGraspObjectRequest()
-        req.scene_point_cloud_path = self.scene_point_cloud_path
-        req.object_point_cloud_path = self.object_point_cloud_path
+        req.scene_pcd_path = self.scene_pcd_path
+        req.object_pcd_path = self.object_pcd_path
         res = table_object_segmentation(req)
         result = 'SUCCEEDED' if res.success else 'FAILED'
 
-        assert os.path.exists(self.object_point_cloud_path)
+        assert os.path.exists(self.object_pcd_path)
         msg = rospy.wait_for_message('/segmented_object_bounding_box_corner_points',
                                      Float64MultiArray,
                                      timeout=5)
@@ -387,16 +385,16 @@ if __name__ == '__main__':
     #sut.test_manage_gazebo_scene_server(object_name, object_model_name, dataset, model_type)
 
     # Test visual data save server
-    #sut.test_save_visual_data_server()
+    sut.test_save_visual_data_server()
 
     # Test display saved point cloud
-    #sut.test_display_saved_point_cloud(sut.scene_point_cloud_path)
+    #sut.test_display_saved_pcd(sut.scene_pcd_path)
 
     # Test object segmentation
-    sut.test_segment_object_server()
+    #sut.test_segment_object_server()
 
     # Test display saved point cloud
-    #sut.test_display_saved_point_cloud(sut.object_point_cloud_path)
+    #sut.test_display_saved_pcd(sut.object_pcd_path)
 
     # Test hithand preshape generation server
     #sut.test_generate_hithand_preshape_server()

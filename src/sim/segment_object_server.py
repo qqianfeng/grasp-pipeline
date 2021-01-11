@@ -16,18 +16,18 @@ import roslib.packages as rp
 pkg_path = rp.get_pkg_dir('grasp_pipeline')
 import sys
 sys.path.append(pkg_path + '/src')
-from utils import cloud_from_ros_to_o3d
+from utils import pcd_from_ros_to_o3d
 import tf2_ros
 import tf
 
-DEBUG = False
+DEBUG = True
 
 
 class ObjectSegmenter():
     def __init__(self):
         rospy.init_node("object_segmentation_node")
-        self.scene_point_cloud_topic = rospy.get_param('point_cloud_topic',
-                                                       '/depth_registered/points')
+        self.align_bounding_box = rospy.get_param('align_bounding_box', 'true')
+        self.scene_pcd_topic = rospy.get_param('pcd_topic', '/depth_registered/points')
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
         rospy.sleep(0.5)  # essential, otherwise next line crashes
@@ -63,6 +63,8 @@ class ObjectSegmenter():
         )  # this was just to understand the corner numbering logic, point 0 and point 4 in the list are cross diagonal, points 1,2,3 are attached to 0 in right handed sense, same for 5,6,7
         self.service_is_called = False
         self.object_pose = None
+        self.object_size = None
+        self.object_center = None
 
     # +++++++++++++++++ Part I: Helper functions ++++++++++++++++++++++++
     def custom_draw_scene(self, pcd):
@@ -84,11 +86,16 @@ class ObjectSegmenter():
             boxes = self.construct_corner_box_objects()
             origin = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1)
             obj_origin = copy.deepcopy(origin)
+            pcd_origin = copy.deepcopy(origin)
+
             obj_origin.translate(self.object_center)
             obj_origin.rotate(self.object_R)
+
+            pcd_origin.translate(pcd.get_center())
+
             o3d.visualization.draw_geometries([
                 pcd, bounding_box, boxes[0], boxes[1], boxes[2], boxes[3], boxes[4], boxes[5],
-                boxes[6], boxes[7], origin, obj_origin
+                boxes[6], boxes[7], origin, obj_origin, pcd_origin
             ])
 
     def pick_points(self, pcd, bounding_box):
@@ -126,11 +133,12 @@ class ObjectSegmenter():
         print("Unsubscribed camera_tf_listener")
 
     def handle_segment_object(self, req):
-        self.object_point_cloud_path = req.object_point_cloud_path
         print("handle_segment_object received the service call")
-        # If no scene_point_cloud_path is given do not attempts to load a pcd but get pcd from Gazebo topic.
-        self.scene_point_cloud_path = req.scene_point_cloud_path
-        pcd = o3d.io.read_point_cloud(self.scene_point_cloud_path)
+
+        self.scene_pcd_path = req.scene_pcd_path
+        self.object_pcd_path = req.object_pcd_path
+
+        pcd = o3d.io.read_point_cloud(self.scene_pcd_path)
 
         if self.world_t_cam is None:
             self.world_t_cam = [0.8275, -0.996, 0.36]
@@ -152,8 +160,9 @@ class ObjectSegmenter():
 
         # compute bounding box and object_pose
         object_bounding_box = object_pcd.get_oriented_bounding_box()
-        object_size = object_bounding_box.extent
-        self.object_center = copy.deepcopy(object_bounding_box.get_center())
+        object_bounding_box_aligned = object_pcd.get_axis_aligned_bounding_box()
+        self.object_size = object_bounding_box.extent
+        self.object_center = object_pcd.get_center()
         self.object_R = copy.deepcopy(object_bounding_box.R)
         # Attention, self.object_R can be an improper rotation meaning det(R)=-1, therefore check which eigenvalue is negative and turn the corresponding column of rotation matrix around
         eigs = np.linalg.eigvals(self.object_R)
@@ -197,9 +206,9 @@ class ObjectSegmenter():
             self.custom_draw_object(object_pcd, object_bounding_box, False, True)
 
         # Store segmented object to disk
-        if os.path.exists(self.object_point_cloud_path):
-            os.remove(self.object_point_cloud_path)
-        o3d.io.write_point_cloud(self.object_point_cloud_path, object_pcd)
+        if os.path.exists(self.object_pcd_path):
+            os.remove(self.object_pcd_path)
+        o3d.io.write_pcd(self.object_pcd_path, object_pcd)
         print("Object.pcd saved successfully with normals oriented towards camera")
 
         # Publish and latch newly computed dimensions and bounding box points
@@ -215,10 +224,11 @@ class ObjectSegmenter():
         res = SegmentGraspObjectResponse()
         res.object.header.frame_id = 'world'
         res.object.header.stamp = rospy.Time.now()
-        res.object.pose = object_pose
-        res.object.width = object_size[0].tolist()
-        res.object.height = object_size[2].tolist()
-        res.object.depth = object_size[1].tolist()
+        res.object.pose = self.object_pose
+        res.object.object_pcd_path = self.object_pcd_path
+        res.object.width = self.object_size[0].tolist()
+        res.object.height = self.object_size[2].tolist()
+        res.object.depth = self.object_size[1].tolist()
         res.success = True
 
         self.service_is_called = True
@@ -236,8 +246,8 @@ if __name__ == "__main__":
     if DEBUG:
         oseg = ObjectSegmenter()
         req = SegmentGraspObjectRequest()
-        req.object_point_cloud_path = "/home/vm/object.pcd"
-        req.scene_point_cloud_path = "/home/vm/scene.pcd"
+        req.object_pcd_path = "/home/vm/object.pcd"
+        req.scene_pcd_path = "/home/vm/scene.pcd"
         oseg.handle_segment_object(req)
 
     rate = rospy.Rate(100)

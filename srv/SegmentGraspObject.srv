@@ -1,5 +1,5 @@
-string scene_point_cloud_path
-string object_point_cloud_path
+string scene_pcd_path
+string object_pcd_path
 ---
 GraspObject object
 bool success

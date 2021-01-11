@@ -14,8 +14,8 @@ class GraspClient():
         self.object_datasets_folder = rospy.get_param('object_datasets_folder')
         self.color_img_save_path = rospy.get_param('color_img_save_path')
         self.depth_img_save_path = rospy.get_param('depth_img_save_path')
-        self.object_point_cloud_path = rospy.get_param('object_point_cloud_path')
-        self.scene_point_cloud_path = rospy.get_param('scene_point_cloud_path')
+        self.object_pcd_path = rospy.get_param('object_pcd_path')
+        self.scene_pcd_path = rospy.get_param('scene_pcd_path')
 
         # save the mesh path of the currently spawned model
         self.spawned_object_name = None
@@ -25,9 +25,9 @@ class GraspClient():
 
         self.depth_img = None
         self.color_img = None
-        self.point_cloud = None
+        self.pcd = None
 
-        self.segmented_object_point_cloud = None
+        self.segmented_object_pcd = None
         self.segmented_object_width = None
         self.segmented_object_height = None
         self.segmented_object_depth = None
@@ -228,10 +228,10 @@ class GraspClient():
             req = SaveVisualDataRequest()
             req.color_img = self.color_img
             req.depth_img = self.depth_img
-            req.point_cloud = self.point_cloud
+            req.scene_pcd = self.pcd
             req.color_img_save_path = self.color_img_save_path
             req.depth_img_save_path = self.depth_img_save_path
-            req.point_cloud_save_path = self.scene_point_cloud_path
+            req.scene_pcd_save_path = self.scene_pcd_path
             res = save_visual_data(req)
         except rospy.ServiceException, e:
             rospy.loginfo('Service save_visual_data call failed: %s' % e)
@@ -244,8 +244,8 @@ class GraspClient():
         try:
             segment_object = rospy.ServiceProxy('segment_object', SegmentGraspObject)
             req = SegmentGraspObjectRequest()
-            req.scene_point_cloud_path = self.scene_point_cloud_path
-            req.object_point_cloud_path = self.object_point_cloud_path
+            req.scene_pcd_path = self.scene_pcd_path
+            req.object_pcd_path = self.object_pcd_path
             res = segment_object(req)
         except rospy.ServiceException, e:
             rospy.loginfo('Service segment_object call failed: %s' % e)

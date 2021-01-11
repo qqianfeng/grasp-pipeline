@@ -4,23 +4,23 @@
     <!-- +++++++NOTE: The different paths in the args must be modified for your machine. ++++++++ -->
     <arg name="sim"                     default="true"/>
     <arg name="object_datasets_folder"  default="/home/vm/object_datasets"/>
-    <arg name="object_point_cloud_path" default="/home/vm/object.pcd"/>
-    <arg name="scene_point_cloud_path"  default="/home/vm/scene.pcd"/>
+    <arg name="object_pcd_path"          default="/home/vm/object.pcd"/>
+    <arg name="scene_pcd_path"          default="/home/vm/scene.pcd"/>
     <arg name="color_img_save_path"     default="/home/vm/scene.ppm"/>
     <arg name="depth_img_save_path"     default="/home/vm/depth.pgm"/>
-    <arg name="point_cloud_topic"       default="/depth_registered/points"/>    
+    <arg name="scene_pcd_topic"         default="/depth_registered/points"/>    
     <arg name="color_img_topic"         default="/camera/color/image_raw"/>    
     <arg name="depth_img_topic"         default="/camera/depth/image_raw"/>    
     <arg name="launch_conda"            default="false"/>
     <!-- +++++++++++++++++++ Set the params needed by the different nodes ++++++++++++++++++++++++++++++++ -->
-    <param name="object_point_cloud_path" value="$(arg object_point_cloud_path)" type="string" />
-    <param name="scene_point_cloud_path"  value="$(arg scene_point_cloud_path)"  type="string" />
-    <param name="object_datasets_folder"  value="$(arg object_datasets_folder)"  type="string" />
-    <param name="color_img_save_path"     value="$(arg color_img_save_path)"     type="string" />
-    <param name="depth_img_save_path"     value="$(arg depth_img_save_path)"     type="string" />
-    <param name="point_cloud_topic"       value="$(arg point_cloud_topic)"       type="string" />
-    <param name="color_img_topic"         value="$(arg color_img_topic)"         type="string" />
-    <param name="depth_img_topic"         value="$(arg depth_img_topic)"         type="string" />   
+    <param name="object_pcd_path"         value="$(arg object_pcd_path)"        type="string" />
+    <param name="scene_pcd_path"          value="$(arg scene_pcd_path)"         type="string" />
+    <param name="object_datasets_folder"  value="$(arg object_datasets_folder)" type="string" />
+    <param name="color_img_save_path"     value="$(arg color_img_save_path)"    type="string" />
+    <param name="depth_img_save_path"     value="$(arg depth_img_save_path)"    type="string" />
+    <param name="scene_pcd_topic"         value="$(arg scene_pcd_topic)"        type="string" />
+    <param name="color_img_topic"         value="$(arg color_img_topic)"        type="string" />
+    <param name="depth_img_topic"         value="$(arg depth_img_topic)"        type="string" />   
 
     <!-- +++++++++++++++++++++++++++++++++++++++++++++++++++ -->
     <!-- Publish the paths of scene and object point cloud-->

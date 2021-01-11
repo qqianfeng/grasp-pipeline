@@ -60,8 +60,7 @@ class GenerateHithandPreshape():
                 'generate_hithand_preshape_server_node/min_object_height', 0.03)
             self.num_samples_per_preshape = rospy.get_param(
                 'generate_hithand_preshape_server_node/num_samples_per_preshape', 50)
-            self.object_point_cloud_path = rospy.get_param('object_point_cloud_path',
-                                                           '/home/vm/object.pcd')
+            self.object_pcd_path = rospy.get_param('object_pcd_path', '/home/vm/object.pcd')
             print(self.num_samples_per_preshape)
         self.use_bb_orient_to_determine_wrist_roll = True
 
@@ -550,7 +549,7 @@ class GenerateHithandPreshape():
         self.bounding_box_center = np.array(0.5 * (self.bbp1 + self.bbp5))
 
         # Object pcd, store points and normals
-        self.segmented_object_pcd = o3d.io.read_point_cloud(self.object_point_cloud_path)
+        self.segmented_object_pcd = o3d.io.read_point_cloud(self.object_pcd_path)
         self.segmented_object_pcd.normalize_normals()  # normalize the normals
         self.segmented_object_points = np.asarray(self.segmented_object_pcd.points)  # Nx3 shape
         self.segmented_object_normals = np.asarray(self.segmented_object_pcd.normals)
@@ -631,7 +630,7 @@ if __name__ == '__main__':
         ghp.palm_position_3D_sample_var = 0.005
         ghp.wrist_roll_orientation_var = 0.005
         ghp.num_samples_per_preshape = 50
-        ghp.object_point_cloud_path = '/home/vm/object.pcd'
+        ghp.object_pcd_path = '/home/vm/object.pcd'
         req = GraspPreshapeRequest()
         req.sample = True
         ghp.handle_generate_hithand_preshape(req)
