@@ -3,40 +3,50 @@
 # grasp_pipeline/setup.py: 2
 catkin_pkg_modules == 0.4.23
 
-# grasp_pipeline/scripts/test_servers.py: 6
-# grasp_pipeline/src/save_visual_data_server.py: 11
+# grasp_pipeline/scripts/test/test_servers.py: 6
+# grasp_pipeline/src/save_visual_data_server.py: 16
 cv_bridge == 1.13.0
+
+# grasp_pipeline/src/sim/record_grasp_data_sim_server.py: 4
+h5py == 2.7.1
 
 # grasp_pipeline/src/arm_moveit_planner_server.py: 7
 # grasp_pipeline/src/manage_moveit_scene_server.py: 5
-moveit_commander == 1.0.6
+moveit_commander == 1.0.7
 
 # grasp_pipeline/scripts/camera_transform_broadcaster.py: 6
 # grasp_pipeline/scripts/table_object_segmenter.py: 6
-# grasp_pipeline/scripts/test_pointcloud.py: 2
-# grasp_pipeline/scripts/test_servers.py: 4
+# grasp_pipeline/scripts/test/test_grasp_controller.py: 5
+# grasp_pipeline/scripts/test/test_pointcloud.py: 2
+# grasp_pipeline/scripts/test/test_servers.py: 4
 # grasp_pipeline/src/arm_moveit_planner_server.py: 8
-# grasp_pipeline/src/generate_hithand_preshape_server.py: 7
-# grasp_pipeline/src/grasp_client/grasp_sim_client.py: 7
-# grasp_pipeline/src/save_visual_data_server.py: 12
+# grasp_pipeline/src/execute_joint_trajectory_server.py: 6
+# grasp_pipeline/src/generate_hithand_preshape_server.py: 13
+# grasp_pipeline/src/grasp_client/grasp_sim_client.py: 8
+# grasp_pipeline/src/save_visual_data_server.py: 17
 # grasp_pipeline/src/sim/control_sim_hithand_server.py: 6
+# grasp_pipeline/src/sim/grasp_control_sim_hithand_server.py: 5
+# grasp_pipeline/src/sim/record_grasp_data_sim_server.py: 5
+# grasp_pipeline/src/sim/segment_object_server.py: 7
+# grasp_pipeline/src/utils.py: 5
 numpy == 1.13.3
 
 # grasp_pipeline/scripts/table_object_segmenter.py: 3
-# grasp_pipeline/scripts/test_pointcloud.py: 1
-# grasp_pipeline/scripts/test_servers.py: 13
-# grasp_pipeline/src/generate_hithand_preshape_server.py: 5
+# grasp_pipeline/scripts/test/test_pointcloud.py: 1
+# grasp_pipeline/scripts/test/test_servers.py: 14
+# grasp_pipeline/src/generate_hithand_preshape_server.py: 15
+# grasp_pipeline/src/save_visual_data_server.py: 20
+# grasp_pipeline/src/sim/segment_object_server.py: 4
+# grasp_pipeline/src/utils.py: 2
+open3d == 0.9.0.0
+
+# grasp_pipeline/scripts/test/test_servers.py: 7
 # grasp_pipeline/src/save_visual_data_server.py: 15
-open3d == 0.8.0.0
-
-# grasp_pipeline/src/save_visual_data_server.py: 17
-open3d_ros_helper == 0.2.0.0
-
-# grasp_pipeline/scripts/test_servers.py: 7
-# grasp_pipeline/src/save_visual_data_server.py: 10
 opencv_python == 4.2.0.32
 
 # grasp_pipeline/src/manage_moveit_scene_server.py: 8
+# grasp_pipeline/src/save_visual_data_server.py: 3
+# grasp_pipeline/src/sim/segment_object_server.py: 15
 roslib == 1.15.6
 
 # grasp_pipeline/scripts/table_object_segmenter.py: 2
@@ -44,38 +54,61 @@ roslibpy == 1.1.0
 
 # grasp_pipeline/scripts/camera_transform_broadcaster.py: 2
 # grasp_pipeline/scripts/publish_point_cloud_save_path.py: 2
-# grasp_pipeline/scripts/test_servers.py: 2
+# grasp_pipeline/scripts/test/test_grasp_controller.py: 2
+# grasp_pipeline/scripts/test/test_servers.py: 2
 # grasp_pipeline/src/arm_moveit_planner_server.py: 2
+# grasp_pipeline/src/execute_joint_trajectory_server.py: 2
 # grasp_pipeline/src/generate_hithand_preshape_server.py: 2
 # grasp_pipeline/src/grasp_client/grasp_sim_client.py: 2
 # grasp_pipeline/src/grasp_client/voxel_plan_sim_client.py: 2
 # grasp_pipeline/src/manage_moveit_scene_server.py: 3
 # grasp_pipeline/src/save_visual_data_server.py: 2
 # grasp_pipeline/src/sim/control_sim_hithand_server.py: 2
+# grasp_pipeline/src/sim/grasp_control_sim_hithand_server.py: 2
 # grasp_pipeline/src/sim/manage_gazebo_scene_server.py: 2
+# grasp_pipeline/src/sim/record_grasp_data_sim_server.py: 1
+# grasp_pipeline/src/sim/segment_object_server.py: 2
+# grasp_pipeline/src/utils.py: 7
 rospy == 1.14.10
 
 # grasp_pipeline/scripts/table_object_segmenter.py: 7
+# grasp_pipeline/src/sim/segment_object_server.py: 8
 scipy == 0.19.1
 
-# grasp_pipeline/scripts/test_servers.py: 8
+# grasp_pipeline/scripts/test/test_grasp_controller.py: 4
+# grasp_pipeline/scripts/test/test_servers.py: 8
 # grasp_pipeline/src/arm_moveit_planner_server.py: 5
-# grasp_pipeline/src/save_visual_data_server.py: 3,5
+# grasp_pipeline/src/execute_joint_trajectory_server.py: 3
+# grasp_pipeline/src/generate_hithand_preshape_server.py: 11
+# grasp_pipeline/src/grasp_client/grasp_sim_client.py: 6
+# grasp_pipeline/src/save_visual_data_server.py: 9
 # grasp_pipeline/src/sim/control_sim_hithand_server.py: 4
+# grasp_pipeline/src/sim/grasp_control_sim_hithand_server.py: 4
+# grasp_pipeline/src/sim/segment_object_server.py: 12
+# grasp_pipeline/src/utils.py: 1,4
 sensor_msgs == 1.12.7
 
-# grasp_pipeline/scripts/test_servers.py: 10
-# grasp_pipeline/src/generate_hithand_preshape_server.py: 6
+# grasp_pipeline/scripts/test/test_grasp_controller.py: 9
+# grasp_pipeline/scripts/test/test_servers.py: 10
+# grasp_pipeline/src/generate_hithand_preshape_server.py: 5,6
 # grasp_pipeline/src/grasp_client/grasp_sim_client.py: 4
 # grasp_pipeline/src/sim/manage_gazebo_scene_server.py: 4
+# grasp_pipeline/src/sim/segment_object_server.py: 14,21
 tf == 1.12.1
 
+# grasp_pipeline/scripts/test/test_grasp_controller.py: 8
+tf2_geometry_msgs == 0.6.5
+
 # grasp_pipeline/scripts/camera_transform_broadcaster.py: 3
-# grasp_pipeline/src/save_visual_data_server.py: 8
+# grasp_pipeline/scripts/test/test_grasp_controller.py: 7
+# grasp_pipeline/src/save_visual_data_server.py: 13
+# grasp_pipeline/src/sim/segment_object_server.py: 20
 tf2_ros == 0.6.5
 
-# grasp_pipeline/src/save_visual_data_server.py: 7
+# grasp_pipeline/src/save_visual_data_server.py: 12
+# grasp_pipeline/src/sim/segment_object_server.py: 13
 tf2_sensor_msgs == 0.6.5
 
+# grasp_pipeline/scripts/test/trac_ik_test.py: 3
 # grasp_pipeline/src/arm_moveit_planner_server.py: 9
 trac_ik_python == 1.5.1
