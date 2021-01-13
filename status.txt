@@ -70,3 +70,39 @@
 
 8.1.21
 - Usage of grasp success labels for pretraining?
+- generate grasp object message
+- obj_seg server downsamples PCD, maybe change.
+
+9.1.21
+- Change object segmentation to return object partial point cloud              [CHECK]
+- getting the center from the object cloud makes sense
+- getting the size from the oriented bounding box also makes sense, but these values must be transferred to aligned object frame, or not?! [VALIDATE THIS WITH QIAN]
+	- Understand what the object centric coordinate system is used for     [CHECK]
+	- Generate object centric coordinate system from oriented bounding box [CHECK]
+- Change visual data saver to grab point cloud itself                          [CHECK]
+
+10.1.21
+- generate voxel and run inference on the model!!! 
+	- Line 72 grasp_voxel_inference_server
+- If that works test/run the whole pipeline
+- Reinstall Ubuntu
+
+11.1.21 
+- grasp voxel inference
+- wordings:
+	suc -- success
+	config -- hand_config
+	grad -- gradient
+	clf -- classifier
+	locs_holder -- locs_placeholder
+	scales_holder -- scales_placeholder
+	logits_holder -- logits_placeholder
+	config_holder -- hand_config_placeholder
+	tensorflow -- tf
+	obj_size -- obj_size_placeholder
+	grasp_net -- grasp_success_net
+	pred -- predict
+	res -- results
+12.1.21
+- hand config limits are missing
+13.1.21
