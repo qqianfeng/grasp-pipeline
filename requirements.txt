@@ -29,7 +29,7 @@ moveit_commander == 1.0.7
 # grasp_pipeline/src/sim/record_grasp_data_sim_server.py: 5
 # grasp_pipeline/src/sim/segment_object_server.py: 7
 # grasp_pipeline/src/utils.py: 5
-numpy == 1.13.3
+numpy == 1.16.6
 
 # grasp_pipeline/scripts/table_object_segmenter.py: 3
 # grasp_pipeline/scripts/test/test_pointcloud.py: 1
@@ -47,7 +47,7 @@ opencv_python == 4.2.0.32
 # grasp_pipeline/src/manage_moveit_scene_server.py: 8
 # grasp_pipeline/src/save_visual_data_server.py: 3
 # grasp_pipeline/src/sim/segment_object_server.py: 15
-roslib == 1.15.6
+#roslib == 1.15.6
 
 # grasp_pipeline/scripts/table_object_segmenter.py: 2
 roslibpy == 1.1.0
