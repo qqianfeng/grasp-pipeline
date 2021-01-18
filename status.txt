@@ -105,4 +105,69 @@
 	res -- results
 12.1.21
 - hand config limits are missing
+
 13.1.21
+- reinstalling whole machine
+
+14.1.21
+- making Gazebo work, finally
+- ability to spawn hand without crashing
+
+15.1.21
+- WORK:
+	- spawn hand+panda together
+	- test grasp controller
+		- actually grasp object
+	- simulation runs slower, real time rate only 0.9
+		- deactivate unneccessary collision meshes
+		- there seems to exist a link to spawning ycb objects
+			- FIX: Try different object database from github	
+
+- [IDEAS]: using grasp type/eigengrasp/grasp primitive to give more structure to the problem and limit search space
+	- mark grasp type of all grasps in simulation
+	- train a discriminator to decide which grasp type is best suited
+	- use average joint state q_bar for this grasp type as starting position for optimization
+	- penalize collisions with an extra loss
+	- gazebo can only simulate hard contact, soft contact simulation important
+	- Because applying force to object when grasping is important, how to find/learn correct force
+		- But simulating force and impedance is hard
+	- Not only predict where to grasp but how to grasp
+	- Using a point cloud as input would enable taking scene context into account
+	- BIG IDEA: Grasping in general considered as where to place the fingers, but almost never how to 
+		    interact with the body
+		- Having an impedance controller in simulation would be awesome
+		- Most papers try to penetrating the object, thereby often not enabling proper contacts
+		- This is kinda what force closure aims at, but in the real world the descrepancies
+		   between theoretical joints angles for force closure and actual joint angles that would
+		   achieve force closure can be big due to inaccuracies in actuation and sensing
+
+17.1.21
+- [IDEA]
+	- Different hand representation, instead of just joint angles introduce a finger spread variable and maybe a hand closing variable
+	- Design a more elaborate grasping controller!!
+	- Sampling multiple grasp poses makes sense, as forward passes are cheap and then performing gradient ascent!
+		(https://h2t.anthropomatik.kit.edu/pdf/Ottenhaus2019.pdf)
+		- Providing extra information to the voxel input (Pre-trained voxel encoder could not be used anymore)
+- [FIX] Make camera model publish slower now at 5 Hz
+	- use normal depth/points topic where depth is cutoff at certain distance, not happening for depth image_raw 
+
+18.1.21 
+- [FIX] Try grasping a primitive collision model
+	- Works, less downtime
+- [TASK] Optimize gazebo
+	- [TASK1] Optimize collision models of hand
+		- Convex hull makes sense
+		-
+- [PROBLEM] that the simulation gets super slow when in contact with the object
+	- Attempt 1: Simply object and hand geometry 
+	[FIX]: - no camera model: +0.1 RTF
+	       - Simple hand collision model = +0.1 RTF
+	       - Simple object collision model = +-0.0 RTF
+19.1.21
+- Task 1: Add inertia tensors based on Meshlab calculations.
+- Task 2: Find a viable grasp controller setting
+- Task 3: Automate mesh processing
+- Task 4: Optimizing the camera plugin:
+	- Disabling color stream
+	- Clipping depth readings, clipping point cloud
+
