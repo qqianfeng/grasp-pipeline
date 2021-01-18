@@ -73,7 +73,7 @@ rospy == 1.14.10
 
 # grasp_pipeline/scripts/table_object_segmenter.py: 7
 # grasp_pipeline/src/sim/segment_object_server.py: 8
-scipy == 0.19.1
+scipy == 1.2.0
 
 # grasp_pipeline/scripts/test/test_grasp_controller.py: 4
 # grasp_pipeline/scripts/test/test_servers.py: 8
