@@ -68,9 +68,13 @@ class VisualDataSaver():
         return pcd
 
     def handle_visual_data_saver(self, req):
-        # First of all, delete any old pcd files with the same name, because they are not being replaced when saving a second time
+        # First of all, delete any old files with the same name, because they are not being replaced when saving a second time
         if os.path.exists(req.scene_pcd_save_path):
             os.remove(req.scene_pcd_save_path)
+        if os.path.exists(req.depth_img_save_path):
+            os.remove(req.depth_img_save_path)
+        if os.path.exists(req.color_img_save_path):
+            os.remove(req.color_img_save_path)
 
         # Now check if the request contains data for pcd, depth and rgb. If not grab the current scene from the topic
         if req.scene_pcd.data == '':
