@@ -8,7 +8,7 @@
     <arg name="scene_pcd_path"          default="/home/vm/scene.pcd"/>
     <arg name="color_img_save_path"     default="/home/vm/scene.ppm"/>
     <arg name="depth_img_save_path"     default="/home/vm/depth.pgm"/>
-    <arg name="scene_pcd_topic"         default="/depth_registered/points"/>    
+    <arg name="scene_pcd_topic"         default="/camera/depth/points"/>  <!-- /depth_registered/points -->   
     <arg name="color_img_topic"         default="/camera/color/image_raw"/>    
     <arg name="depth_img_topic"         default="/camera/depth/image_raw"/>    
     <arg name="launch_conda"            default="false"/>
@@ -74,7 +74,7 @@
         <!-- Camera transformation broadcaster -->
         <node name="camera_transform_broadcaster_node" pkg="grasp_pipeline" type="camera_transform_broadcaster.py" output="screen"/>
         <!-- Hand closing controller -->
-        <node name="grasp_control_hithand_node" pkg="grasp_pipeline" type="grasp_control_sim_hithand_server.py" output="screen"/>
+        <!-- <node name="grasp_control_hithand_node" pkg="grasp_pipeline" type="grasp_control_sim_hithand_server.py" output="screen"/> -->
     </group>
 
 

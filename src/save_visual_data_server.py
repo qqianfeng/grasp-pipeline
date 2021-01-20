@@ -29,10 +29,19 @@ class VisualDataSaver():
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
         rospy.sleep(0.5)  # essential, otherwise next line crashes
+
+        pcd_topic = rospy.get_param('scene_pcd_topic')
+        if pcd_topic == '/camera/depth/points':
+            pcd_frame = 'camera_depth_optical_frame'
+        elif pcd_topic == '/depth_registered_points':
+            pcd_frame = 'camera_color_optical_frame'
+        else:
+            rospy.logerr(
+                'Wrong parameter set for scene_pcd_topic in grasp_pipeline_servers.launch')
+
         self.transform_camera_world = self.tf_buffer.lookup_transform(
-            'world', 'camera_color_optical_frame', rospy.Time())
-        self.scene_pcd_topic = rospy.get_param('scene_pcd_topic',
-                                               default='/depth_registered/points')
+            'world', pcd_frame, rospy.Time())
+        self.scene_pcd_topic = rospy.get_param('scene_pcd_topic')
         self.color_img_topic = rospy.get_param('color_img_topic',
                                                default='/camera/color/image_raw')
         self.depth_img_topic = rospy.get_param('depth_img_topic',

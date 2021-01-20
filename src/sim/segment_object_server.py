@@ -20,19 +20,29 @@ from utils import pcd_from_ros_to_o3d
 import tf2_ros
 import tf
 
-DEBUG = True
+DEBUG = False
 
 
 class ObjectSegmenter():
     def __init__(self):
         rospy.init_node("object_segmentation_node")
         self.align_bounding_box = rospy.get_param('align_bounding_box', 'true')
-        self.scene_pcd_topic = rospy.get_param('pcd_topic', '/depth_registered/points')
+        self.scene_pcd_topic = rospy.get_param('scene_pcd_topic')
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
         rospy.sleep(0.5)  # essential, otherwise next line crashes
+
+        pcd_topic = rospy.get_param('scene_pcd_topic')
+        if pcd_topic == '/camera/depth/points':
+            pcd_frame = 'camera_depth_optical_frame'
+        elif pcd_topic == '/depth_registered_points':
+            pcd_frame = 'camera_color_optical_frame'
+        else:
+            rospy.logerr(
+                'Wrong parameter set for scene_pcd_topic in grasp_pipeline_servers.launch')
+
         self.transform_camera_world = self.tf_buffer.lookup_transform(
-            'world', 'camera_color_optical_frame', rospy.Time())
+            'world', pcd_frame, rospy.Time())
         if not DEBUG:
             self.bounding_box_corner_pub = rospy.Publisher(
                 '/segmented_object_bounding_box_corner_points',
@@ -40,7 +50,7 @@ class ObjectSegmenter():
                 latch=True,
                 queue_size=1)
             # for the camera position in 3D space w.r.t world
-            self.camera_tf_listener = rospy.Subscriber('/camera_color_optical_frame_in_world',
+            self.camera_tf_listener = rospy.Subscriber('/' + pcd_frame + '_in_world'
                                                        PoseStamped,
                                                        self.callback_camera_tf,
                                                        queue_size=5)

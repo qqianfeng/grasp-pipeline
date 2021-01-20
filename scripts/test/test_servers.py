@@ -28,6 +28,7 @@ class ServerUnitTester():
                                                    default='/home/vm/depth.pgm')
         self.object_pcd_path = rospy.get_param('object_pcd_path', default='/home/vm/object.pcd')
         self.scene_pcd_path = rospy.get_param('scene_pcd_path', default='/home/vm/scene.pcd')
+        self.depth_topic = rospy.get_param('scene_pcd_topic')
 
         self.test_count = 0
         self.bridge = CvBridge
@@ -108,7 +109,7 @@ class ServerUnitTester():
             # Receive one message from depth, color and pointcloud topic, not registered
             msg_depth = rospy.wait_for_message("/camera/depth/image_raw", Image)
             msg_color = rospy.wait_for_message("/camera/color/image_raw", Image)
-            msg_pcd = rospy.wait_for_message("/depth_registered/points", PointCloud2)
+            msg_pcd = rospy.wait_for_message(self.scene_pcd_topic, PointCloud2)
             print('Received depth, color and point cloud messages')
             req.color_img = msg_color
             req.depth_img = msg_depth
