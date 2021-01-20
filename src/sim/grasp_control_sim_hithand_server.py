@@ -8,14 +8,14 @@ from std_srvs.srv import SetBool, SetBoolResponse, SetBoolRequest
 # The goal here is to emulate a velocity controller via a pos interface to the hithand. The goal for the hithand is to close at a constant velocity, but it should stop when the velocity is zero.
 # Nevertheless it should maintain a certain force on the object.
 
-DEBUG = True
+DEBUG = False
 
 
 class HithandGraspController():
     def __init__(self):
         rospy.init_node('grasp_control_hithand_node')
         self.delta_joint_angle = None
-        self.freq = 100
+        self.freq = 10
         self.rate = rospy.Rate(self.freq)
         self.joint_command_pub = rospy.Publisher('/hithand/joint_cmd', JointState, queue_size=1)
 
@@ -26,7 +26,7 @@ class HithandGraspController():
         self.delta_pos_joint_3 = self.joint_speed_rad_per_sec / self.freq  # 0.5rad/s, when sending at 100 Hz
         self.delta_pos_joint_vector = None
 
-        self.check_delta_joint_interval = 10
+        self.check_delta_joint_interval = 1
 
         self.pos_thresh = 0.95 * self.check_delta_joint_interval * self.delta_pos_joint_1  # If a joint moved less than this, it is considered to have zero velocity
 
@@ -53,7 +53,8 @@ class HithandGraspController():
         joint_pub_msg = JointState()
         previous_pos_joints = deepcopy(self.current_pos_joints)
         desired_pos_joints = deepcopy(previous_pos_joints)
-        for i in xrange(10 * self.freq):  # this loop runs for 10 seconds max
+        # for i in xrange(10 * self.freq):  # this loop runs for 10 seconds max
+        for i in xrange(10):  # this loop runs for 10 seconds max
             #print(i)
             if (i % self.check_delta_joint_interval == 0) and (i != 0):
                 self.update_current_pos_joints()
@@ -68,8 +69,8 @@ class HithandGraspController():
                 # print('Delta pos joint vector after: ')
                 # print(self.delta_pos_joint_vector)
                 # If the whole delta pos joint vector is zero break the loop, because no joints are moving anymore
-                if sum(self.delta_pos_joint_vector) == 0:
-                    break
+                # if sum(self.delta_pos_joint_vector) == 0:
+                #     break
                 # Update the previous pos joint variable to now be the current joint position
                 previous_pos_joints = self.current_pos_joints
             desired_pos_joints += self.delta_pos_joint_vector
@@ -103,8 +104,8 @@ class HithandGraspController():
 if __name__ == "__main__":
     hgc = HithandGraspController()
     if DEBUG:
-        #hgc.handle_reset_hithand_joints(SetBoolRequest())
-        #hgc.handle_grasp_control_hithand(GraspControlRequest())
+        # hgc.handle_reset_hithand_joints(SetBoolRequest())
+        # hgc.handle_grasp_control_hithand(GraspControlRequest())
         pass
     hgc.create_grasp_control_hithand_server()
     hgc.create_reset_hithand_joints_server()

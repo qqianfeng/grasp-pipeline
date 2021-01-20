@@ -10,7 +10,6 @@ import copy
 from std_msgs.msg import Float64MultiArray
 from geometry_msgs.msg import PoseStamped, Pose
 from sensor_msgs.msg import PointCloud2
-from tf2_sensor_msgs.tf2_sensor_msgs import do_transform_cloud
 import tf.transformations as tft
 import roslib.packages as rp
 pkg_path = rp.get_pkg_dir('grasp_pipeline')
@@ -20,7 +19,7 @@ from utils import pcd_from_ros_to_o3d
 import tf2_ros
 import tf
 
-DEBUG = False
+DEBUG = True
 
 
 class ObjectSegmenter():
@@ -28,6 +27,7 @@ class ObjectSegmenter():
         rospy.init_node("object_segmentation_node")
         self.align_bounding_box = rospy.get_param('align_bounding_box', 'true')
         self.scene_pcd_topic = rospy.get_param('scene_pcd_topic')
+        self.x_threshold = 0.1  # Remove all points from pointcloud with x < 0.1, because they belong to panda base
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
         rospy.sleep(0.5)  # essential, otherwise next line crashes
@@ -50,7 +50,7 @@ class ObjectSegmenter():
                 latch=True,
                 queue_size=1)
             # for the camera position in 3D space w.r.t world
-            self.camera_tf_listener = rospy.Subscriber('/' + pcd_frame + '_in_world'
+            self.camera_tf_listener = rospy.Subscriber('/' + pcd_frame + '_in_world',
                                                        PoseStamped,
                                                        self.callback_camera_tf,
                                                        queue_size=5)
@@ -156,8 +156,21 @@ class ObjectSegmenter():
             self.custom_draw_scene(pcd)
         #start = time.time()
 
+        # segment the panda base from point cloud
+        points = np.asarray(pcd.points)
+        colors = np.asarray(pcd.colors)
+        mask = points[:, 0] > self.x_threshold
+        del pcd
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector(points[mask])
+        pcd.colors = o3d.utility.Vector3dVector(colors[mask])
+
+        if DEBUG:
+            self.custom_draw_scene(pcd)
+
         # downsample point cloud
         down_pcd = pcd.voxel_down_sample(voxel_size=0.005)  # downsample
+        del pcd, points, colors
         if DEBUG:
             self.custom_draw_scene(down_pcd)
 
@@ -170,7 +183,7 @@ class ObjectSegmenter():
 
         # compute bounding box and object_pose
         object_bounding_box = object_pcd.get_oriented_bounding_box()
-        object_bounding_box_aligned = object_pcd.get_axis_aligned_bounding_box()
+        #object_bounding_box_aligned = object_pcd.get_axis_aligned_bounding_box()
         self.object_size = object_bounding_box.extent
         self.object_center = object_pcd.get_center()
         self.object_R = copy.deepcopy(object_bounding_box.R)
@@ -218,7 +231,7 @@ class ObjectSegmenter():
         # Store segmented object to disk
         if os.path.exists(self.object_pcd_path):
             os.remove(self.object_pcd_path)
-        o3d.io.write_pcd(self.object_pcd_path, object_pcd)
+        o3d.io.write_point_cloud(self.object_pcd_path, object_pcd)
         print("Object.pcd saved successfully with normals oriented towards camera")
 
         # Publish and latch newly computed dimensions and bounding box points
