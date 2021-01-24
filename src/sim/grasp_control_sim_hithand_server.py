@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import rospy
+import time
 from grasp_pipeline.srv import *
 from sensor_msgs.msg import JointState
 import numpy as np
@@ -8,76 +9,77 @@ from std_srvs.srv import SetBool, SetBoolResponse, SetBoolRequest
 # The goal here is to emulate a velocity controller via a pos interface to the hithand. The goal for the hithand is to close at a constant velocity, but it should stop when the velocity is zero.
 # Nevertheless it should maintain a certain force on the object.
 
-DEBUG = False
-
 
 class HithandGraspController():
     def __init__(self):
         rospy.init_node('grasp_control_hithand_node')
-        self.delta_joint_angle = None
-        self.freq = 10
-        self.rate = rospy.Rate(self.freq)
+        self.pub_freq = 100
+        self.rate = rospy.Rate(self.pub_freq)
         self.joint_command_pub = rospy.Publisher('/hithand/joint_cmd', JointState, queue_size=1)
 
-        self.current_pos_joints = None
+        self.curr_pos = None
+        self.received_curr_pos = False
         self.joint_speed_rad_per_sec = 0.5
-        self.delta_pos_joint_1 = self.joint_speed_rad_per_sec / self.freq  # 2rad/s, when sending at 100 Hz
-        self.delta_pos_joint_2 = self.joint_speed_rad_per_sec / self.freq  # 1rad/s, when sending at 100 Hz
-        self.delta_pos_joint_3 = self.joint_speed_rad_per_sec / self.freq  # 0.5rad/s, when sending at 100 Hz
-        self.delta_pos_joint_vector = None
-
-        self.check_delta_joint_interval = 1
-
-        self.pos_thresh = 0.95 * self.check_delta_joint_interval * self.delta_pos_joint_1  # If a joint moved less than this, it is considered to have zero velocity
-
-    def init_delta_joint_vector(self):
+        self.delta_pos_joint_1 = self.joint_speed_rad_per_sec / self.pub_freq
+        self.delta_pos_joint_2 = self.joint_speed_rad_per_sec / self.pub_freq
+        self.delta_pos_joint_3 = self.joint_speed_rad_per_sec / self.pub_freq
         self.delta_vector = np.array([
             0, self.delta_pos_joint_1, self.delta_pos_joint_2, self.delta_pos_joint_3
         ])
-        self.delta_pos_joint_vector = np.tile(self.delta_vector, 5)
 
-    def update_current_pos_joints(self):
-        joint_state = rospy.wait_for_message('/hithand/joint_states', JointState, 1)
-        if joint_state == None:
-            rospy.logerr('No hithand joint state has been received')
-        self.current_pos_joints = np.array(joint_state.position)
-        print('Current joint velocity:')
-        print(joint_state.velocity)
-        print('\n')
+        self.check_vel_interval = 20
+        self.vel_thresh = 1e-1  # In % of expected movement. If a joint moved less than this, it is considered to have zero velocity
+        self.avg_vel = None
+        self.moving_avg_vel = np.zeros([
+            20, self.check_vel_interval
+        ])  # Rows is vel of each joint for one measurement, cols are successive measurements
+
+    def get_delta_joint_vector(self):
+        delta_vector = np.tile(self.delta_vector, 5)
+        delta_vector[-4:] = 2 * delta_vector[-4:]
+        return np.tile(self.delta_vector, 5)
+
+    def cb_update_curr_pos(self, msg):
+        #start = time.time()
+        self.curr_pos = np.array(msg.position)
+        self.curr_vel = np.array(msg.velocity)
+        self.received_curr_pos = True
+
+        # Compute moving avg of last self.check_vel_interval velocity measurements
+        self.moving_avg_vel[:, 1:] = self.moving_avg_vel[:, :-1]  # shift all columns right
+        self.moving_avg_vel[:, 0] = self.curr_vel
+        self.avg_vel = np.sum(self.moving_avg_vel, 1, dtype=np.float) / self.check_vel_interval
+        #print("CB took: " + str(time.time() - start))
 
     def handle_grasp_control_hithand(self, req):
-        self.init_delta_joint_vector()
-        print(self.delta_pos_joint_vector)
+        # First subscribe to the hithand joint state topic, which will continuously update the joint position at 100Hz
+        joint_states_sub = rospy.Subscriber(
+            '/hithand/joint_states', JointState, self.cb_update_curr_pos, tcp_nodelay=True
+        )  # Setting tcp_nodelay true is crucial otherwise the callback won't be executed at 100Hz
+        while True:
+            if self.received_curr_pos:
+                break
 
-        self.update_current_pos_joints()
-        joint_pub_msg = JointState()
-        previous_pos_joints = deepcopy(self.current_pos_joints)
-        desired_pos_joints = deepcopy(previous_pos_joints)
-        # for i in xrange(10 * self.freq):  # this loop runs for 10 seconds max
-        for i in xrange(10):  # this loop runs for 10 seconds max
-            #print(i)
-            if (i % self.check_delta_joint_interval == 0) and (i != 0):
-                self.update_current_pos_joints()
-                # check whether the joint position a few steps ago actually differs from the current joint position. If not velocity is zero and joint should stop moving
-                diff_joint_pos = np.abs(self.current_pos_joints - previous_pos_joints)
-                # set the deltas to zero for the joints with zero velocity in order to not send more position commands to these joints
-                # print('Delta pos joint vector before: ')
-                # print(self.delta_pos_joint_vector)
-                # print('Difference between actual and desired joint position: ')
-                # print(diff_joint_pos)
-                #self.delta_pos_joint_vector[diff_joint_pos < self.pos_thresh] = 0
-                # print('Delta pos joint vector after: ')
-                # print(self.delta_pos_joint_vector)
-                # If the whole delta pos joint vector is zero break the loop, because no joints are moving anymore
-                # if sum(self.delta_pos_joint_vector) == 0:
-                #     break
-                # Update the previous pos joint variable to now be the current joint position
-                previous_pos_joints = self.current_pos_joints
-            desired_pos_joints += self.delta_pos_joint_vector
-            joint_pub_msg.position = desired_pos_joints.tolist()
-            self.joint_command_pub.publish(joint_pub_msg)
+        # Initialize the delta vector every time as this changes during execution
+        delta_pos = self.get_delta_joint_vector()
+
+        joint_pos_msg = JointState()
+        desired_pos = self.curr_pos
+
+        for i in xrange(10 * self.pub_freq):  # this loop runs for 10 seconds max
+            if i > 5 and i % self.check_vel_interval == 0:
+                print("Index_joint_vel AVG: " + str(self.avg_vel[:4]))
+                delta_pos[self.avg_vel < self.vel_thresh] = 0
+                if sum(delta_pos) == 0:
+                    break
+            desired_pos += delta_pos
+            joint_pos_msg.position = desired_pos.tolist()
+            self.joint_command_pub.publish(joint_pos_msg)
             self.rate.sleep()
-            #rospy.sleep(1)
+
+        # Unregister as we don't want to continuously update the joints
+        joint_states_sub.unregister()
+
         res = GraspControlResponse()
         res.success = True
         return res
@@ -85,7 +87,9 @@ class HithandGraspController():
     def handle_reset_hithand_joints(self, req):
         reset_state = JointState()
         reset_state.position = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -0.26, 0, 0, 0]
-        self.joint_command_pub.publish(reset_state)
+        for _ in xrange(10):
+            self.joint_command_pub.publish(reset_state)
+            rospy.sleep(0.3)
         res = SetBoolResponse()
         res.success = True
         return res
@@ -95,18 +99,20 @@ class HithandGraspController():
         rospy.loginfo('Service grasp_control_hithand:')
         rospy.loginfo('Ready to control the hithand for grasping.')
 
-    def create_reset_hithand_joints_server(self):
+    def create_reset_hithand_server(self):
         rospy.Service('reset_hithand_joints', SetBool, self.handle_reset_hithand_joints)
         rospy.loginfo('Service reset_hithand_joints')
         rospy.loginfo('Ready to reset the hithand joint states.')
 
 
+DEBUG = False
+
 if __name__ == "__main__":
     hgc = HithandGraspController()
     if DEBUG:
-        # hgc.handle_reset_hithand_joints(SetBoolRequest())
-        # hgc.handle_grasp_control_hithand(GraspControlRequest())
+        hgc.handle_reset_hithand_joints(SetBoolRequest())
+        hgc.handle_grasp_control_hithand(GraspControlRequest())
         pass
     hgc.create_grasp_control_hithand_server()
-    hgc.create_reset_hithand_joints_server()
+    hgc.create_reset_hithand_server()
     rospy.spin()
