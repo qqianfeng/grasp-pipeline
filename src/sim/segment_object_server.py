@@ -19,7 +19,7 @@ from utils import pcd_from_ros_to_o3d
 import tf2_ros
 import tf
 
-DEBUG = True
+DEBUG = False
 
 
 class ObjectSegmenter():
