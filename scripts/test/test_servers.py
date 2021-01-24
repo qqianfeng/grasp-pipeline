@@ -380,10 +380,10 @@ if __name__ == '__main__':
     # sut.reset_panda_and_hithand()
 
     # # Test random object pose
-    # sut.test_generate_random_object_pose_for_experiment()
+    sut.test_generate_random_object_pose_for_experiment()
 
     # # Test spawning and deleting of objects
-    # sut.test_manage_gazebo_scene_server(object_name, object_model_name, dataset, model_type)
+    sut.test_manage_gazebo_scene_server(object_name, object_model_name, dataset, model_type)
 
     # Test visual data save server
     sut.test_save_visual_data_server()

@@ -161,14 +161,14 @@ class TestGraspController():
 
 if __name__ == '__main__':
     t = TestGraspController()
-    raw_input('Press enter to continue: ')
+    # raw_input('Press enter to continue: ')
     t.reset_hand()
     rospy.sleep(1)
     t.spawn_object()
-    raw_input('Press enter to continue: ')
+    # raw_input('Press enter to continue: ')
     # #t.move_to_marker_position()
     t.move_to_grasp_position()
-    raw_input('Press enter to continue: ')
+    # raw_input('Press enter to continue: ')
     t.grasp_object()
-    raw_input('Press enter to continue: ')
+    # raw_input('Press enter to continue: ')
     t.move_to_lift_position()
