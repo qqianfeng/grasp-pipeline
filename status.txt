@@ -159,16 +159,63 @@
 		- Convex hull makes sense
 		-
 - [PROBLEM] that the simulation gets super slow when in contact with the object
-	- Attempt 1: Simply object and hand geometry 
-	[FIX]: - no camera model: +0.1 RTF
+	- Attempt 1 Simply object and hand geometry 
+	[FIX] - no camera model +0.1 RTF
 	       - Simple hand collision model = +0.1 RTF
 	       - Simple object collision model = +-0.0 RTF
 19.1.21
-- activate conda: eval "$(/home/vm/miniconda3/bin/conda shell.bash hook)" 
-- Task 1: Add inertia tensors based on Meshlab calculations.
-- Task 2: Find a viable grasp controller setting
-- Task 3: Automate mesh processing
-- Task 4: Optimizing the camera plugin:
-	- Disabling color stream
-	- Clipping depth readings, clipping point cloud
+- activate conda eval "$(/home/vm/miniconda3/bin/conda shell.bash hook)" 
+- [Task 1] Add inertia tensors based on Meshlab calculations. [CHECK]
+- [Task 2] Find a viable grasp controller setting             [CHECK]
+- [Task 3] Automate mesh processing                       [Sort of check]:
+- [Task 4] Optimizing the camera plugin                       [CHECK]
+	- Disabling color stream                            [CHECK]
+	- Clipping depth readings, clipping point cloud     [CHECK]
+- [Task 5] Create grasping demo                               [CHECK]
 
+20.1.21
+- [Task 1] Find a viable grasp controller setting            [CHECK]
+	- Need joint effort limits of hithand               [CHECK]
+	- Need realistic friction coefficients of hithand   [CHECK]
+	- Need to think about the grasp closure controller. Right now only controlling one DOF (open close)
+		- UTAH people claim to sample preshape and then close the fingers.
+	- Need to update collision mesh of hithand palm.    [CHECK]  
+		(y > -4*(x-0.035)) , z<-0.002
+		Palm (y > -4*(x-0.032))
+		Middle (y < -4*(x-0.03))
+- [Task 2] Talk with Qian about                              [CHECK]
+	1. Grasp controller Stopping fingers independently, 0 vel? 
+Interesting on grasping control, talk about Salisbury and his Impedance grasping controller
+https://www.robotic.de/fileadmin/robotic/borst/BorstEtAl-ICRA03-HandApplications.pdf: 
+Interesting for grasp impedance adaptation 
+https://www.researchgate.net/publication/326774657_A_Self-Tuning_Impedance_Controller_for_Autonomous_Robotic_Manipulation:
+Also promising https://www.cambridge.org/core/journals/robotica/article/abs/development-and-experimental-evaluation-of-multifingered-robot-hand-with-adaptive-impedance-control-for-unknown-environment-grasping/6D2C90B5824543CDCD64A194C5A8A06D:
+	2. Grasp representation: use joint angles? Use synergistic control?:
+	3. Data collection What should all be recorded? This is the main task, important for whole thesis:
+		- Collect the data on this machine? Then no development possible in parallel:
+			- Get other machine or start working on real robot+hand?: 
+- [Task 3] Optimize camera model [CHECK]
+
+21.1.21 
+- Complete tasks still open from last two days
+- [Task 1] Couple joints of Hithand in Gazebo
+	- Solution 1 just send indentical commands two both joints
+- [Task 2] Spawn the fingers in admissible joint range
+- PROBLEM Hand would vibrate and do weird stuff
+	- Solution Set joint friction to 0 but damping to 10
+		- Might be useful to also change controller settings, expecially p
+		  gain from 100 to 10 e.g.
+	- Update, set realistic joint limits and effort limits + set damping to 0.5
+
+23.1.21
+- [IDEA grasping]: Control the finger tip forces, apply virtual springs between fingertip contact and object center. Control the force and increase for individual fingers if you deviate from center.:
+	- You could first estimate the object center in 3D space
+	- Then move the finger until contact is detected
+	- Record this position in 3D space
+	- Attach springs between finger tip position and and object center. Compute force based on deviation from the center.
+		- In the contact position there should already be some kind of force applied. But if the thumb moves away from it's position it would increase the it's force while the other fingertips would decrease force.
+	- For this I would need to forward kinematics of the hand, but that should be easily obtained. I don't need to estimate much about the contacts just regulate the finger tip positions to remain in this position
+
+24.1.21
+- [Task 1]: Updated the hithand collision meshes
+- [Task 2]: Verify once more the correct behavior of grasping controller
