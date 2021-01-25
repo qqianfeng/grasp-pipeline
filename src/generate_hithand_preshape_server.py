@@ -347,7 +347,7 @@ class GenerateHithandPreshape():
         rospy.loginfo('Grasp orientation = ' + str(quaternion))
         return quaternion
 
-    def find_palm_pose_from_bounding_box_center(self, bounding_box_face):
+    def find_palm_pose_from_bounding_box_face(self, bounding_box_face):
         """ Finds the object point cloud's point closest to the center of a given bounding box face
         and generates a Hithand palm pose given the closest point's surface normal. For top faces the normal is not taken from the object pointcloud but computed as the distance between bounding box center and top face center
         """
@@ -384,7 +384,7 @@ class GenerateHithandPreshape():
             # make sure the normal actually points outwards
             center_to_face = bounding_box_face.center - self.bounding_box_center
             if np.dot(closest_point_normal, center_to_face) < 0.:
-                closest_point_normal = -closest_point_normal
+                closest_point_normal = (-1.) * closest_point_normal
             # Sample hand position
             palm_dist_side_normal_direction = np.random.normal(self.palm_dist_to_side_face_mean,
                                                                self.palm_dist_normal_to_obj_var)
@@ -399,7 +399,7 @@ class GenerateHithandPreshape():
                 bounding_box_orientation_vector = bounding_box_face.orient_b[:]
 
             if bounding_box_orientation_vector[2] < 0:
-                bounding_box_orientation_vector = -bounding_box_orientation_vector
+                bounding_box_orientation_vector = (-1.) * bounding_box_orientation_vector
 
         # Add some extra 3D noise on the palm position
         palm_position = palm_position + np.random.normal(0, self.palm_position_3D_sample_var, 3)
@@ -621,12 +621,12 @@ class GenerateHithandPreshape():
         rospy.loginfo('Sampling grasp preshapes')
         response = GraspPreshapeResponse()
         # Compute bounding box faces
-        bounding_box_faces = self.get_oriented_bounding_box_faces(
-            grasp_object)  # Tested, seems to work fine (visualized)
+        bounding_box_faces = self.get_oriented_bounding_box_faces(grasp_object)
+
         self.palm_goal_pose_world = []
         for i in xrange(len(bounding_box_faces)):
             # Get the desired palm pose given the point from the bounding box
-            palm_pose_world = self.find_palm_pose_from_bounding_box_center(
+            palm_pose_world = self.find_palm_pose_from_bounding_box_face(
                 bounding_box_faces[i])  # Tested, seems to work fine, only visualized position
             if DEBUG:
                 point = np.zeros([3, 2])
