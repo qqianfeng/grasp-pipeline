@@ -19,46 +19,34 @@ from utils import pcd_from_ros_to_o3d
 import tf2_ros
 import tf
 
-DEBUG = False
-
 
 class ObjectSegmenter():
     def __init__(self):
         rospy.init_node("object_segmentation_node")
         self.align_bounding_box = rospy.get_param('align_bounding_box', 'true')
         self.scene_pcd_topic = rospy.get_param('scene_pcd_topic')
+        pcd_topic = rospy.get_param('scene_pcd_topic')
+        self.init_pcd_frame(pcd_topic)
+
         self.x_threshold = 0.1  # Remove all points from pointcloud with x < 0.1, because they belong to panda base
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
         rospy.sleep(0.5)  # essential, otherwise next line crashes
-
-        pcd_topic = rospy.get_param('scene_pcd_topic')
-        if pcd_topic == '/camera/depth/points':
-            pcd_frame = 'camera_depth_optical_frame'
-        elif pcd_topic == '/depth_registered_points':
-            pcd_frame = 'camera_color_optical_frame'
-        else:
-            rospy.logerr(
-                'Wrong parameter set for scene_pcd_topic in grasp_pipeline_servers.launch')
-
         self.transform_camera_world = self.tf_buffer.lookup_transform(
-            'world', pcd_frame, rospy.Time())
-        if not DEBUG:
-            self.bounding_box_corner_pub = rospy.Publisher(
-                '/segmented_object_bounding_box_corner_points',
-                Float64MultiArray,
-                latch=True,
-                queue_size=1)
-            # for the camera position in 3D space w.r.t world
-            self.camera_tf_listener = rospy.Subscriber('/' + pcd_frame + '_in_world',
-                                                       PoseStamped,
-                                                       self.callback_camera_tf,
-                                                       queue_size=5)
-            self.tf_broadcaster_object_pose = tf.TransformBroadcaster()
+            'world', self.pcd_frame, rospy.Time())
+        self.bounding_box_corner_pub = rospy.Publisher(
+            '/segmented_object_bounding_box_corner_points',
+            Float64MultiArray,
+            latch=True,
+            queue_size=1)
+        self.tf_broadcaster_object_pose = tf.TransformBroadcaster()
 
         self.bounding_box_corner_points = None
-        self.world_R_cam = None
-        self.world_t_cam = None
+        self.world_t_cam = np.array([
+            self.transform_camera_world.transform.translation.x,
+            self.transform_camera_world.transform.translation.y,
+            self.transform_camera_world.transform.translation.z
+        ])
         self.colors = np.array(
             [
                 [0, 0, 0],  #black,       left/front/up
@@ -77,6 +65,24 @@ class ObjectSegmenter():
         self.object_center = None
 
     # +++++++++++++++++ Part I: Helper functions ++++++++++++++++++++++++
+    def init_pcd_frame(self, pcd_topic):
+        if pcd_topic == '/camera/depth/points':
+            self.pcd_frame = 'camera_depth_optical_frame'
+        elif pcd_topic == '/depth_registered_points':
+            self.pcd_frame = 'camera_color_optical_frame'
+        else:
+            rospy.logerr(
+                'Wrong parameter set for scene_pcd_topic in grasp_pipeline_servers.launch')
+
+    def visualize_normals(self, pcd):
+        origin = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1)
+        vis = o3d.visualization.Visualizer()
+        vis.create_window()
+        vis.add_geometry(origin)
+        vis.add_geometry(pcd)
+        vis.get_render_option().load_from_json("/home/vm/hand_ws/src/grasp-pipeline/save.json")
+        vis.run()
+
     def custom_draw_scene(self, pcd):
         o3d.visualization.draw_geometries([pcd])
 
@@ -132,15 +138,6 @@ class ObjectSegmenter():
                 (self.object_pose.orientation.x, self.object_pose.orientation.y,
                  self.object_pose.orientation.z, self.object_pose.orientation.w), rospy.Time.now(),
                 "object_pose", "world")
-
-    def callback_camera_tf(self, msg):
-        """ Get the camera transform from ROS and extract the camera 3D position for visualization purposes.
-        """
-        print("Entered callback camera tf")
-        self.camera_tf_listener.unregister()
-        position = msg.pose.position
-        self.world_t_cam = np.array([position.x, position.y, position.z])
-        print("Unsubscribed camera_tf_listener")
 
     def handle_segment_object(self, req):
         print("handle_segment_object received the service call")
@@ -209,7 +206,7 @@ class ObjectSegmenter():
         self.bounding_box_corner_points = np.asarray(object_bounding_box.get_box_points())
         print(self.bounding_box_corner_points)
 
-        self.custom_draw_object(object_pcd, object_bounding_box)
+        #self.custom_draw_object(object_pcd, object_bounding_box)
 
         # compute normals of object
         object_pcd.estimate_normals(
@@ -221,8 +218,9 @@ class ObjectSegmenter():
         rospy.loginfo('Orienting normals towards this location:')
         rospy.loginfo(self.world_t_cam)
         object_pcd.orient_normals_towards_camera_location(self.world_t_cam)
+        print("Original scene point cloud reference frame assumed as: " + str(self.pcd_frame))
         if DEBUG:
-            self.custom_draw_object(object_pcd, object_bounding_box, True)
+            self.visualize_normals(object_pcd)
 
         # Draw object, bounding box and colored corners
         if DEBUG:
@@ -249,9 +247,9 @@ class ObjectSegmenter():
         res.object.header.stamp = rospy.Time.now()
         res.object.pose = self.object_pose
         res.object.object_pcd_path = self.object_pcd_path
-        res.object.width = self.object_size[0].tolist()
-        res.object.height = self.object_size[2].tolist()
-        res.object.depth = self.object_size[1].tolist()
+        res.object.width = self.object_size[0]  # corresponds to x in oriented bb frame
+        res.object.height = self.object_size[1]  # corresponds to y in oriented bb frame
+        res.object.depth = self.object_size[2]  # corresponds to z in oriented bb frame
         res.success = True
 
         self.service_is_called = True
@@ -263,6 +261,8 @@ class ObjectSegmenter():
         rospy.loginfo('Ready to segment the table from the object point cloud.')
 
 
+DEBUG = False
+
 if __name__ == "__main__":
     oseg = ObjectSegmenter()
     oseg.create_segment_object_server()
@@ -273,7 +273,7 @@ if __name__ == "__main__":
         req.scene_pcd_path = "/home/vm/scene.pcd"
         oseg.handle_segment_object(req)
 
-    rate = rospy.Rate(100)
+    rate = rospy.Rate(10)
     while not rospy.is_shutdown():
         oseg.broadcast_object_pose()
         rate.sleep()
