@@ -1,4 +1,5 @@
 bool sample
+GraspObject object
 ---
 geometry_msgs/PoseStamped object_pose
 geometry_msgs/PoseStamped[] palm_goal_pose_world
