@@ -169,27 +169,27 @@
 - [Task 2] Find a viable grasp controller setting             [CHECK]
 - [Task 3] Automate mesh processing                       [Sort of check]:
 - [Task 4] Optimizing the camera plugin                       [CHECK]
-	- Disabling color stream                            [CHECK]
-	- Clipping depth readings, clipping point cloud     [CHECK]
+	- Disabling color stream                              [CHECK]
+	- Clipping depth readings, clipping point cloud       [CHECK]
 - [Task 5] Create grasping demo                               [CHECK]
 
 20.1.21
 - [Task 1] Find a viable grasp controller setting            [CHECK]
-	- Need joint effort limits of hithand               [CHECK]
-	- Need realistic friction coefficients of hithand   [CHECK]
+	- Need joint effort limits of hithand                [CHECK]
+	- Need realistic friction coefficients of hithand    [CHECK]
 	- Need to think about the grasp closure controller. Right now only controlling one DOF (open close)
 		- UTAH people claim to sample preshape and then close the fingers.
-	- Need to update collision mesh of hithand palm.    [CHECK]  
+	- Need to update collision mesh of hithand palm.     [CHECK]  
 		(y > -4*(x-0.035)) , z<-0.002
 		Palm (y > -4*(x-0.032))
 		Middle (y < -4*(x-0.03))
 - [Task 2] Talk with Qian about                              [CHECK]
 	1. Grasp controller Stopping fingers independently, 0 vel? 
 Interesting on grasping control, talk about Salisbury and his Impedance grasping controller
-https://www.robotic.de/fileadmin/robotic/borst/BorstEtAl-ICRA03-HandApplications.pdf: 
+#https://www.robotic.de/fileadmin/robotic/borst/BorstEtAl-ICRA03-HandApplications.pdf: 
 Interesting for grasp impedance adaptation 
-https://www.researchgate.net/publication/326774657_A_Self-Tuning_Impedance_Controller_for_Autonomous_Robotic_Manipulation:
-Also promising https://www.cambridge.org/core/journals/robotica/article/abs/development-and-experimental-evaluation-of-multifingered-robot-hand-with-adaptive-impedance-control-for-unknown-environment-grasping/6D2C90B5824543CDCD64A194C5A8A06D:
+#https://www.researchgate.net/publication/326774657_A_Self-Tuning_Impedance_Controller_for_Autonomous_Robotic_Manipulation:
+#Also promising https://www.cambridge.org/core/journals/robotica/article/abs/development-and-experimental-evaluation-of-multifingered-robot-hand-with-adaptive-impedance-control-for-unknown-environment-grasping/6D2C90B5824543CDCD64A194C5A8A06D:
 	2. Grasp representation: use joint angles? Use synergistic control?:
 	3. Data collection What should all be recorded? This is the main task, important for whole thesis:
 		- Collect the data on this machine? Then no development possible in parallel:
@@ -208,7 +208,7 @@ Also promising https://www.cambridge.org/core/journals/robotica/article/abs/deve
 	- Update, set realistic joint limits and effort limits + set damping to 0.5
 
 23.1.21
-- [IDEA grasping]: Control the finger tip forces, apply virtual springs between fingertip contact and object center. Control the force and increase for individual fingers if you deviate from center.:
+- [IDEA grasping]: Control the finger tip forces, apply virtual springs between fingertip contact and object center. Control the force and increase for individual fingers if you deviate from center.
 	- You could first estimate the object center in 3D space
 	- Then move the finger until contact is detected
 	- Record this position in 3D space
@@ -218,4 +218,18 @@ Also promising https://www.cambridge.org/core/journals/robotica/article/abs/deve
 
 24.1.21
 - [Task 1]: Updated the hithand collision meshes
-- [Task 2]: Verify once more the correct behavior of grasping controller
+- [Task 2]: Verify once more the correct behavior of grasping controller:
+- [Task 3]: Make the preshape sampling work + check problems with reachability. Maybe the workspace is too big. 
+	- For utah people width=x, height=y, depth=z
+	- For me 	  width=x, height=z, depth=y
+	- Actually this isn't true and just depends on rotation of the bounding box coordinate frame
+	- Define center of voxel grid to be the centroid of of points in object segmentation
+	- Estimate the first and second principle axes from PCA to create object reference frame BUT SAY THE FRAME IS ALIGNED RELATIVE TO WORLD FRAME!
+		- Compute the object size along the three coordinates of the object reference frame
+	- They always compute the first and second principal component, which means the width is the longest and height is the second longest dimension. Depth is then the 		  remaining dimension
+		- If the oriented bounding box also uses first and second principal axes then width height and depth should be consistent
+	- oriented bounding box open3d 1. value = longest = x, 2. value = medium = y, 3. value = low = z
+
+25.1.21
+- [Insight]: Utah people set all friction parameters to 1. Of objects and of hand
+	- Meshes of the objects potentially should not be very very wrong
