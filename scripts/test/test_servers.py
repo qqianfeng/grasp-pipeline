@@ -20,6 +20,8 @@ class ServerUnitTester():
         print('Started Unit Tests')
         rospy.init_node('server_unit_tester')
 
+        self.grasp_object = None  # This stores information obtained from the scene segmentation server on the grasp object (like pose, size etc.)
+
         self.object_datasets_folder = rospy.get_param('object_datasets_folder',
                                                       default='/home/vm/object_datasets')
         self.color_img_save_path = rospy.get_param('color_img_save_path',
@@ -94,7 +96,7 @@ class ServerUnitTester():
         res = update_gazebo_object(object_name, object_pose_array, object_model_name, model_type,
                                    dataset)
         self.spawned_object_mesh_path = self.object_datasets_folder + '/' + dataset + \
-            '/models/' + object_model_name + '/google_16k/nontextured.stl'
+            '/models/' + object_model_name + '/google_16k/downsampled.stl'
         self.spawned_object_name = object_name
         result = 'SUCCEEDED' if res else 'FAILED'
         print(result)
@@ -198,6 +200,7 @@ class ServerUnitTester():
         req.scene_pcd_path = self.scene_pcd_path
         req.object_pcd_path = self.object_pcd_path
         res = table_object_segmentation(req)
+        self.grasp_object = res.object
         result = 'SUCCEEDED' if res.success else 'FAILED'
 
         assert os.path.exists(self.object_pcd_path)
@@ -214,9 +217,10 @@ class ServerUnitTester():
         generate_hithand_preshape = rospy.ServiceProxy('generate_hithand_preshape', GraspPreshape)
         req = GraspPreshapeRequest()
         req.sample = True
+        req.object = self.grasp_object
         self.heuristic_preshapes = generate_hithand_preshape(req)
         ## Check what else should be happening here, what should be published etc and try to visualize it
-        msg = rospy.wait_for_message('/publish_box_points', MarkerArray, timeout=5)
+        msg = rospy.wait_for_message('/publish_box_points', MarkerArray, timeout=15)
         print('SUCCEEDED')
 
     def test_choose_specific_grasp_preshape(self, grasp_type):
@@ -366,7 +370,7 @@ if __name__ == '__main__':
     # Test create_moveit_scene
     datasets_base_path = '/home/vm/object_datasets'
     object_mesh_path = datasets_base_path + '/' + dataset + \
-        '/models/' + object_model_name + '/google_16k/nontextured.stl'
+        '/models/' + object_model_name + '/google_16k/downsampled.stl'
     # Test control_hithand_config
     hithand_joint_states = JointState()
     hithand_joint_states.position = [0.2] * 20
@@ -379,10 +383,10 @@ if __name__ == '__main__':
     # # Reset
     # sut.reset_panda_and_hithand()
 
-    # # Test random object pose
+    # Test random object pose
     sut.test_generate_random_object_pose_for_experiment()
 
-    # # Test spawning and deleting of objects
+    # Test spawning and deleting of objects
     sut.test_manage_gazebo_scene_server(object_name, object_model_name, dataset, model_type)
 
     # Test visual data save server
@@ -392,41 +396,41 @@ if __name__ == '__main__':
     sut.test_display_saved_pcd(sut.scene_pcd_path)
 
     # Test object segmentation
-    #sut.test_segment_object_server()
+    sut.test_segment_object_server()
 
     # Test display saved point cloud
-    #sut.test_display_saved_pcd(sut.object_pcd_path)
+    # sut.test_display_saved_pcd(sut.object_pcd_path)
 
     # Test hithand preshape generation server
-    #sut.test_generate_hithand_preshape_server()
+    sut.test_generate_hithand_preshape_server()
 
     # Test moveit spawn object
-    #sut.test_create_moveit_scene_server()
+    sut.test_create_moveit_scene_server()
 
-    # while True:
-    #     # get new position and go there
-    #     sut.test_choose_specific_grasp_preshape('unspecified')
-    #     # Try to find a trajectory
-    #     moveit_result = False
-    #     while (not moveit_result):
-    #         moveit_result = sut.test_arm_moveit_cartesian_pose_planner_server()
+    while True:
+        # get new position and go there
+        sut.test_choose_specific_grasp_preshape('unspecified')
+        # Try to find a trajectory
+        moveit_result = False
+        while (not moveit_result):
+            moveit_result = sut.test_arm_moveit_cartesian_pose_planner_server()
 
-    #     sut.test_execute_joint_trajectory_server(smoothen_trajectory=True)
+        sut.test_execute_joint_trajectory_server(smoothen_trajectory=True)
 
-    #     input = raw_input("Grasp and lift? Press y/n: ")
-    #     if input == 'y':
-    #         # try to grasp the object
-    #         sut.test_grasp_control_hithand_server()
-    #         # try to lift the object
-    #         sut.lift_object()
+        input = raw_input("Grasp and lift? Press y/n: ")
+        if input == 'y':
+            # try to grasp the object
+            sut.test_grasp_control_hithand_server()
+            # try to lift the object
+            sut.lift_object()
 
-    #     # go home
-    #     sut.reset_panda_and_hithand()
+        # go home
+        sut.reset_panda_and_hithand()
 
-    #     # reset object position
-    #     sut.test_manage_gazebo_scene_server(object_name, object_model_name, dataset, model_type)
+        # reset object position
+        sut.test_manage_gazebo_scene_server(object_name, object_model_name, dataset, model_type)
 
-    # Test smoothen trajectory execution
+    # # Test smoothen trajectory execution
     # sut.test_get_smooth_trajectory_server()
 
     # # Make robot go home
@@ -435,8 +439,8 @@ if __name__ == '__main__':
     # # Test execution of smoothen trajectory
     # sut.test_execute_joint_trajectory_server(smoothen_trajectory=True)
 
-    # Test moveit delete object
+    # # Test moveit delete object
     # sut.test_clean_moveit_scene_server()
 
-    # Test hithand control preshape/config
+    # # Test hithand control preshape/config
     # sut.test_control_hithand_config_server(hithand_joint_states)

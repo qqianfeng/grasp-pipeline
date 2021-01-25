@@ -9,7 +9,7 @@ if __name__ == '__main__':
     rospy.init_node('camera_transform_broadcaster_node')
     tfBuffer = tf2_ros.Buffer()
     listener = tf2_ros.TransformListener(tfBuffer)
-    rate = rospy.Rate(1)
+    rate = rospy.Rate(5)
     pcd_topic = rospy.get_param('scene_pcd_topic')
     if pcd_topic == '/camera/depth/points':
         pcd_frame = 'camera_depth_optical_frame'
