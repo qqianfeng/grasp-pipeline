@@ -681,7 +681,7 @@ class GenerateHithandPreshape():
         rospy.loginfo('Ready to generate the grasp preshape.')
 
 
-DEBUG = True
+DEBUG = False
 
 if __name__ == '__main__':
     ghp = GenerateHithandPreshape()

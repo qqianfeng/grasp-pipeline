@@ -13,6 +13,7 @@ from std_msgs.msg import Float64MultiArray
 from visualization_msgs.msg import Marker, MarkerArray
 import open3d as o3d
 from trajectory_smoothing.srv import *
+import time
 
 
 class ServerUnitTester():
@@ -42,7 +43,7 @@ class ServerUnitTester():
         self.max_vel = 0.8 * np.ones(7)
         self.joint_trajectory = None
 
-        self.spawn_object_x_min, self.spawn_object_x_max = 0.7, 0.75
+        self.spawn_object_x_min, self.spawn_object_x_max = 0.6, 0.65
         self.spawn_object_y_min, self.spawn_object_y_max = -0.1, 0.1
         self.table_height = 0
         self.home_joint_states = np.array([0, 0, 0, -1, 0, 1.9884, -1.57])
@@ -72,12 +73,22 @@ class ServerUnitTester():
         pose_array = [r, p, y, x_p, y_p, z_p]
         return pose_array
 
+    def parallel_execute_functions(*functions):
+        """ Run functions in parallel
+        """
+        from multiprocessing import Process
+        processes = []
+        for function in functions:
+            proc = Process(target=function)
+            proc.start()
+            processes.append(proc)
+        for proc in processes:
+            proc.join()
+
 # +++++++++++++++++ Part II: The tests +++++++++++++++++++++++++++++++++++
 
     def test_generate_random_object_pose_for_experiment(self):
-        self.test_count += 1
-        print('Running test_generate_random_object_pose_for_experiment, test number %d' %
-              self.test_count)
+
         rand_x = np.random.uniform(self.spawn_object_x_min, self.spawn_object_x_max)
         rand_y = np.random.uniform(self.spawn_object_y_min, self.spawn_object_y_max)
         rand_z_orientation = np.random.uniform(0., 2 * np.pi)
@@ -85,10 +96,9 @@ class ServerUnitTester():
         object_pose_stamped = self.get_pose_stamped_from_array(object_pose)
         self.spawned_object_pose = object_pose_stamped
 
-        print('SUCCEEDED')
-
     def test_manage_gazebo_scene_server(self, object_name, object_model_name, dataset, model_type):
         self.test_count += 1
+        start_time = time.time()
         print('Running test_manage_gazebo_scene_server, test number %d' % self.test_count)
         update_gazebo_object = rospy.ServiceProxy('update_gazebo_object', UpdateObjectGazebo)
         object_pose_array = self.get_pose_array_from_stamped(self.spawned_object_pose)
@@ -99,10 +109,11 @@ class ServerUnitTester():
             '/models/' + object_model_name + '/google_16k/downsampled.stl'
         self.spawned_object_name = object_name
         result = 'SUCCEEDED' if res else 'FAILED'
-        print(result)
+        print(result + ' after: ' + str(time.time() - start_time))
 
     def test_save_visual_data_server(self, provide_server_with_save_data=False):
         self.test_count += 1
+        start_time = time.time()
         print('Running test_save_visual_data_server, test number %d' % self.test_count)
         # Send to server and wait for response
         save_visual_data = rospy.ServiceProxy('save_visual_data', SaveVisualData)
@@ -122,10 +133,11 @@ class ServerUnitTester():
         res = save_visual_data(req)
         # Print result
         result = 'SUCCEEDED' if res else 'FAILED'
-        print(result)
+        print(result + ' after: ' + str(time.time() - start_time))
 
     def test_display_saved_pcd(self, pcd_save_path):
         self.test_count += 1
+        start_time = time.time()
         print('Running test_display_saved_pcd, test number %d' % self.test_count)
         pcd = o3d.io.read_point_cloud(pcd_save_path)
         origin = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1)
@@ -137,6 +149,7 @@ class ServerUnitTester():
 
     def test_create_moveit_scene_server(self):
         self.test_count += 1
+        start_time = time.time()
         print('Running test_create_moveit_scene_server, test number %d' % self.test_count)
         create_moveit_scene = rospy.ServiceProxy('create_moveit_scene', ManageMoveitScene)
         req = ManageMoveitSceneRequest()
@@ -146,19 +159,21 @@ class ServerUnitTester():
         self.create_scene_response = create_moveit_scene(req)
         res = create_moveit_scene(req)
         result = 'SUCCEEDED' if res else 'FAILED'
-        print(result)
+        print(result + ' after: ' + str(time.time() - start_time))
 
     def test_clean_moveit_scene_server(self):
         self.test_count += 1
+        start_time = time.time()
         print('Running test_clean_moveit_scene_server, test number %d' % self.test_count)
         clean_moveit_scene = rospy.ServiceProxy('clean_moveit_scene', ManageMoveitScene)
         req = ManageMoveitSceneRequest(clean_scene=True)
         res = clean_moveit_scene(req)
         result = 'SUCCEEDED' if res else 'FAILED'
-        print(result)
+        print(result + ' after: ' + str(time.time() - start_time))
 
     def test_control_hithand_config_server(self, go_home=False):
         self.test_count += 1
+        start_time = time.time()
         print('Running test_control_hithand_config_server, test number %d' % self.test_count)
         control_hithand_config = rospy.ServiceProxy('control_hithand_config', ControlHithand)
         if not go_home:
@@ -190,10 +205,11 @@ class ServerUnitTester():
             rospy.loginfo('All gaps are smaller than 0.1')
 
         result = 'SUCCEEDED' if res else 'FAILED'
-        print(result)
+        print(result + ' after: ' + str(time.time() - start_time))
 
     def test_segment_object_server(self):
         self.test_count += 1
+        start_time = time.time()
         print('Running test_segment_object_server, test number %d' % self.test_count)
         table_object_segmentation = rospy.ServiceProxy('segment_object', SegmentGraspObject)
         req = SegmentGraspObjectRequest()
@@ -209,10 +225,11 @@ class ServerUnitTester():
                                      timeout=5)
         assert msg.data is not None
 
-        print(result)
+        print(result + ' after: ' + str(time.time() - start_time))
 
     def test_generate_hithand_preshape_server(self):
         self.test_count += 1
+        start_time = time.time()
         print('Running test_generate_hithand_preshape_server, test number %d' % self.test_count)
         generate_hithand_preshape = rospy.ServiceProxy('generate_hithand_preshape', GraspPreshape)
         req = GraspPreshapeRequest()
@@ -226,7 +243,9 @@ class ServerUnitTester():
     def test_choose_specific_grasp_preshape(self, grasp_type):
         """ This chooses one specific grasp preshape from the preshapes in self.heuristic_preshapes.
         """
+        start_time = time.time()
         self.test_count += 1
+        start_time = time.time()
         print('Running test_choose_specific_grasp_preshape, test number %d' % self.test_count)
 
         if self.heuristic_preshapes == None:
@@ -263,6 +282,7 @@ class ServerUnitTester():
 
     def test_arm_moveit_cartesian_pose_planner_server(self, go_home=False, place_goal_pose=None):
         self.test_count += 1
+        start_time = time.time()
         for i in range(15):
             try:
                 print('Running test_arm_moveit_cartesian_pose_planner_server, test number %d' %
@@ -289,11 +309,12 @@ class ServerUnitTester():
 
         result = 'SUCCEEDED' if res.success else 'FAILED'
 
-        print(result)
+        print(result + ' after: ' + str(time.time() - start_time))
         return res.success
 
     def test_execute_joint_trajectory_server(self, smoothen_trajectory=False):
         self.test_count += 1
+        start_time = time.time()
         print('Running test_execute_joint_trajectory_server, test number %d' % self.test_count)
 
         execute_joint_trajectory = rospy.ServiceProxy('execute_joint_trajectory',
@@ -303,10 +324,11 @@ class ServerUnitTester():
         req.joint_trajectory = self.joint_trajectory
         res = execute_joint_trajectory(req)
         result = 'SUCCEEDED' if res.success else 'FAILED'
-        print(result)
+        print(result + ' after: ' + str(time.time() - start_time))
 
     def test_get_smooth_trajectory_server(self):
         self.test_count += 1
+        start_time = time.time()
         print('Running test_get_smooth_trajectory_server, test number %d' % self.test_count)
 
         smoothen_trajectory = rospy.ServiceProxy('/get_smooth_trajectory', GetSmoothTraj)
@@ -314,32 +336,49 @@ class ServerUnitTester():
 
         self.joint_trajectory = res.smooth_traj  # Joint trajectory is now smooth
         result = 'SUCCEEDED' if res.success else 'FAILED'
-        print(result)
+        print(result + ' after: ' + str(time.time() - start_time))
 
     def template_test(self):
         self.test_count += 1
+        start_time = time.time()
         print('Running test_manage_gazebo_scene_server, test number %d' % self.test_count)
         res = True
         result = 'SUCCEEDED' if res else 'FAILED'
-        print(result)
+        print(result + ' after: ' + str(time.time() - start_time))
 
     def test_grasp_control_hithand_server(self):
         self.test_count += 1
+        start_time = time.time()
         print('Running test_grasp_control_hithand_server, test number %d' % self.test_count)
         grasp_control_hithand = rospy.ServiceProxy('/grasp_control_hithand', GraspControl)
         req = GraspControlRequest()
         res = grasp_control_hithand(req)
         result = 'SUCCEEDED' if res.success else 'FAILED'
-        print(result)
+        print(result + ' after: ' + str(time.time() - start_time))
 
     def test_reset_hithand_joints(self):
         self.test_count += 1
+        start_time = time.time()
         print('Running test_reset_hithand_joints, test number %d' % self.test_count)
         reset_hithand_joints = rospy.ServiceProxy('/reset_hithand_joints', SetBool)
         req = SetBoolRequest()
         res = reset_hithand_joints(req)
         result = 'SUCCEEDED' if res.success else 'FAILED'
-        print(result)
+        print(result + ' after: ' + str(time.time() - start_time))
+
+    def test_update_moveit_scene_server(self):
+        self.test_count += 1
+        start_time = time.time()
+        print('Running test_update_moveit_scene_server, test number %d' % self.test_count)
+        update_moveit_scene = rospy.ServiceProxy('update_moveit_scene', ManageMoveitScene)
+        req = ManageMoveitSceneRequest()
+        req.create_scene = True
+        req.object_mesh_path = self.spawned_object_mesh_path
+        req.object_pose_world = self.spawned_object_pose
+        self.update_scene_response = update_moveit_scene(req)
+        res = update_moveit_scene(req)
+        result = 'SUCCEEDED' if res else 'FAILED'
+        print(result + ' after: ' + str(time.time() - start_time))
 
 
 # ++++++++++++++++++++ Part III Integrated functionality calling multiple test ++++++++++++++++++++++++++++++++++++++
@@ -347,17 +386,22 @@ class ServerUnitTester():
     def lift_object(self):
         # lift the object 15 cm
         print(self.chosen_palm_pose.pose.position)
-        self.chosen_palm_pose.pose.position.z += 0.15
-        self.test_arm_moveit_cartesian_pose_planner_server()
+        lift_pose = self.chosen_palm_pose
+        lift_pose.pose.position.z += 0.15
+        self.test_arm_moveit_cartesian_pose_planner_server(place_goal_pose=lift_pose)
         self.test_execute_joint_trajectory_server(smoothen_trajectory=True)
 
     def reset_panda_and_hithand(self):
+        start = time.time()
         self.test_reset_hithand_joints()
+        print("Resetting hithand took: " + str(time.time() - start))
+        start = time.time()
         panda_joints = rospy.wait_for_message('panda/joint_states', JointState)
         diff = np.abs(self.home_joint_states - np.array(panda_joints.position))
         if np.sum(diff) > 0.3:
             self.test_arm_moveit_cartesian_pose_planner_server(go_home=True)
             self.test_execute_joint_trajectory_server(smoothen_trajectory=True)
+        print("Resetting panda took: " + str(time.time() - start))
 
 if __name__ == '__main__':
     # +++ Define variables for testing +++
@@ -379,35 +423,37 @@ if __name__ == '__main__':
 
     # Tester
     sut = ServerUnitTester()
+    prev_time = time.time()
+    while (True):
+        # # Reset
+        print("Whole pipeline took: " + str(time.time() - prev_time))
+        prev_time = time.time()
+        sut.reset_panda_and_hithand()
 
-    # # Reset
-    # sut.reset_panda_and_hithand()
+        # Test random object pose
+        sut.test_generate_random_object_pose_for_experiment()
 
-    # Test random object pose
-    sut.test_generate_random_object_pose_for_experiment()
+        # Test spawning and deleting of objects
+        sut.test_manage_gazebo_scene_server(object_name, object_model_name, dataset, model_type)
 
-    # Test spawning and deleting of objects
-    sut.test_manage_gazebo_scene_server(object_name, object_model_name, dataset, model_type)
+        # # Test visual data save server
+        sut.test_save_visual_data_server()
 
-    # Test visual data save server
-    sut.test_save_visual_data_server()
+        # Test update moveit scene server
+        sut.test_update_moveit_scene_server()
 
-    # Test display saved point cloud
-    sut.test_display_saved_pcd(sut.scene_pcd_path)
+        # Test display saved point cloud
+        #sut.test_display_saved_pcd(sut.scene_pcd_path)
 
-    # Test object segmentation
-    sut.test_segment_object_server()
+        # Test object segmentation
+        sut.test_segment_object_server()
 
-    # Test display saved point cloud
-    # sut.test_display_saved_pcd(sut.object_pcd_path)
+        # Test display saved point cloud
+        # sut.test_display_saved_pcd(sut.object_pcd_path)
 
-    # Test hithand preshape generation server
-    sut.test_generate_hithand_preshape_server()
+        # Test hithand preshape generation server
+        sut.test_generate_hithand_preshape_server()
 
-    # Test moveit spawn object
-    sut.test_create_moveit_scene_server()
-
-    while True:
         # get new position and go there
         sut.test_choose_specific_grasp_preshape('unspecified')
         # Try to find a trajectory
@@ -423,24 +469,6 @@ if __name__ == '__main__':
             sut.test_grasp_control_hithand_server()
             # try to lift the object
             sut.lift_object()
-
-        # go home
-        sut.reset_panda_and_hithand()
-
-        # reset object position
-        sut.test_manage_gazebo_scene_server(object_name, object_model_name, dataset, model_type)
-
-    # # Test smoothen trajectory execution
-    # sut.test_get_smooth_trajectory_server()
-
-    # # Make robot go home
-    # sut.test_arm_moveit_cartesian_pose_planner_server(pose=None, go_home=True)
-
-    # # Test execution of smoothen trajectory
-    # sut.test_execute_joint_trajectory_server(smoothen_trajectory=True)
-
-    # # Test moveit delete object
-    # sut.test_clean_moveit_scene_server()
 
     # # Test hithand control preshape/config
     # sut.test_control_hithand_config_server(hithand_joint_states)
