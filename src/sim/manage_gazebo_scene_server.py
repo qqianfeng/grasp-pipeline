@@ -58,6 +58,7 @@ class GazeboSceneManager():
         print("RECEIVED REQUEST")
         print(req)
         self.delete_prev_object(req.object_model_name)
+        rospy.sleep(1)
         self.spawn_object(req.object_name, req.object_model_name, req.object_pose_array,
                           req.model_type, req.dataset)
 
