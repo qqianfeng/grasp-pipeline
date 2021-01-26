@@ -33,6 +33,22 @@ class HithandGraspController():
         self.moving_avg_vel = np.zeros([
             20, self.check_vel_interval
         ])  # Rows is vel of each joint for one measurement, cols are successive measurements
+        self.hithand_reset_position = [
+            0, 0.0872665, 0.0872665, 0.0872665, 0, 0.0872665, 0.0872665, 0.0872665, 0, 0.0872665,
+            0.0872665, 0.0872665, 0, 0.0872665, 0.0872665, 0.0872665, -0.26, 0.0872665, 0.0872665,
+            0.0872665
+        ]
+
+    def verify_hithand_needs_reset(self):
+        while True:
+            if self.received_curr_pos:
+                break
+        pos_diff = np.abs(np.array(self.hithand_reset_position) - self.curr_pos)
+        # If at least one joint is more than 1e-3 away from where it's supposed to be, say hithand needs reset
+        if pos_diff[pos_diff > 8e-3].size == 0:
+            return False
+        else:
+            return True
 
     def get_delta_joint_vector(self):
         delta_vector = np.tile(self.delta_vector, 5)
@@ -85,11 +101,20 @@ class HithandGraspController():
         return res
 
     def handle_reset_hithand_joints(self, req):
-        reset_state = JointState()
-        reset_state.position = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -0.26, 0, 0, 0]
-        for _ in xrange(10):
-            self.joint_command_pub.publish(reset_state)
-            rospy.sleep(0.3)
+        joint_states_sub = rospy.Subscriber(
+            '/hithand/joint_states', JointState, self.cb_update_curr_pos, tcp_nodelay=True
+        )  # Setting tcp_nodelay true is crucial otherwise the callback won't be executed at 100Hz
+        needs_reset = self.verify_hithand_needs_reset()
+        joint_states_sub.unregister()
+        # Only command reset position if not in reset position already
+        if needs_reset:
+            reset_state = JointState()
+            reset_state.position = self.hithand_reset_position
+            start = time.time()
+            while self.verify_hithand_needs_reset() and (time.time() - start) < 5:
+                self.joint_command_pub.publish(reset_state)
+                rospy.sleep(0.1)
+
         res = SetBoolResponse()
         res.success = True
         return res
