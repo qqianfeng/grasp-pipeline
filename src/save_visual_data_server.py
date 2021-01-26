@@ -4,21 +4,21 @@ import roslib.packages as rp
 pkg_path = rp.get_pkg_dir('grasp_pipeline')
 import sys
 sys.path.append(pkg_path + '/src')
-from utils import pcd_from_ros_to_o3d
 
 from sensor_msgs.msg import Image, PointCloud2
 from grasp_pipeline.srv import *
 from std_msgs.msg import Header
 from tf2_sensor_msgs.tf2_sensor_msgs import do_transform_cloud
 import tf2_ros
+import tf.transformations as tft
 
 import cv2
 from cv_bridge import CvBridge, CvBridgeError
 import numpy as np
 import os
-from time import time
+import time
 import open3d as o3d
-
+import ros_numpy
 # This module should save, restore and display depth images as well as point clouds
 
 
@@ -41,11 +41,20 @@ class VisualDataSaver():
 
         self.transform_camera_world = self.tf_buffer.lookup_transform(
             'world', pcd_frame, rospy.Time())
+        q = self.transform_camera_world.transform.rotation
+        r = self.transform_camera_world.transform.translation
+        self.world_T_camera = tft.quaternion_matrix([q.x, q.y, q.z, q.w])
+        self.world_T_camera[:, 3] = [r.x, r.y, r.z, 1]
+
         self.scene_pcd_topic = rospy.get_param('scene_pcd_topic')
         self.color_img_topic = rospy.get_param('color_img_topic',
                                                default='/camera/color/image_raw')
         self.depth_img_topic = rospy.get_param('depth_img_topic',
                                                default='/camera/depth/image_raw')
+
+    def draw_pcd(self, pcd):
+        origin = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1)
+        o3d.visualization.draw_geometries([pcd, origin])
 
     def save_depth_img(self, depth_img, depth_img_save_path):
         depth_img_u16 = cv2.normalize(depth_img,
@@ -99,24 +108,29 @@ class VisualDataSaver():
         else:
             color_img = req.color_img
 
-        # Transform the pointcloud message into world frame
-        rospy.loginfo(pcd.header)
-        start = time()
-        pcd_world = do_transform_cloud(pcd, self.transform_camera_world)
-        rospy.loginfo(pcd_world.header)
-        print('Transforming the point cloud took: ')
-        print(time() - start)
-
         # Transform format in order to save data to disk
         depth_img = self.bridge.imgmsg_to_cv2(depth_img, "32FC1")
         color_img = self.bridge.imgmsg_to_cv2(color_img, "bgr8")
-        #start = time()
-        pcd_world_o3d = pcd_from_ros_to_o3d(pcd_world)
-        #print(time() - start)
+
+        # Transform with ros_numpy
+        start = time.time()
+        pcd_o3d = o3d.geometry.PointCloud()
+        pcd_o3d.points = o3d.utility.Vector3dVector(
+            ros_numpy.point_cloud2.pointcloud2_to_xyz_array(pcd))
+        del pcd
+        pcd_o3d.transform(self.world_T_camera)
+        p = np.asarray(pcd_o3d.points)
+        colors = (-3.) * np.linspace(0.1, 0.9, p.shape[0]) - 0.05
+        colors = np.exp(colors)
+        colors = np.array([colors])
+        pcd_o3d.colors = o3d.utility.Vector3dVector(np.tile(colors.T, (1, 3)))
+        print("Ros numpy took: " + str(time.time() - start))
+        #self.draw_pcd(pcd_o3d)
+
         # Actually save the stuff
         self.save_depth_img(depth_img, req.depth_img_save_path)
         self.save_color_img(color_img, req.color_img_save_path)
-        self.save_pcd(pcd_world_o3d, req.scene_pcd_save_path)
+        self.save_pcd(pcd_o3d, req.scene_pcd_save_path)
 
         response = SaveVisualDataResponse()
         response.save_visual_data_success = True
@@ -128,7 +142,15 @@ class VisualDataSaver():
         rospy.loginfo('Ready to save your awesome visual data.')
 
 
+DEBUG = True
+
 if __name__ == "__main__":
     Saver = VisualDataSaver()
+    if DEBUG:
+        req = SaveVisualDataRequest()
+        req.color_img_save_path = '/home/vm/scene.ppm'
+        req.depth_img_save_path = '/home/vm/depth.pgm'
+        req.scene_pcd_save_path = '/home/vm/object.pcd'
+        Saver.handle_visual_data_saver(req)
     Saver.create_save_visual_data_service()
     rospy.spin()
