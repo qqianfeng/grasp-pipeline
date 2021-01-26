@@ -192,8 +192,8 @@ Interesting for grasp impedance adaptation
 #Also promising https://www.cambridge.org/core/journals/robotica/article/abs/development-and-experimental-evaluation-of-multifingered-robot-hand-with-adaptive-impedance-control-for-unknown-environment-grasping/6D2C90B5824543CDCD64A194C5A8A06D:
 	2. Grasp representation: use joint angles? Use synergistic control?:
 	3. Data collection What should all be recorded? This is the main task, important for whole thesis:
-		- Collect the data on this machine? Then no development possible in parallel:
-			- Get other machine or start working on real robot+hand?: 
+		- Collect the data on this machine? Then no development possible in parallel
+			- Get other machine or start working on real robot+hand 
 - [Task 3] Optimize camera model [CHECK]
 
 21.1.21 
@@ -218,7 +218,7 @@ Interesting for grasp impedance adaptation
 
 24.1.21
 - [Task 1]: Updated the hithand collision meshes
-- [Task 2]: Verify once more the correct behavior of grasping controller:
+- [Task 2]: Verify once more the correct behavior of grasping controller
 - [Task 3]: Make the preshape sampling work + check problems with reachability. Maybe the workspace is too big. 
 	- For utah people width=x, height=y, depth=z
 	- For me 	  width=x, height=z, depth=y
@@ -233,3 +233,18 @@ Interesting for grasp impedance adaptation
 25.1.21
 - [Insight]: Utah people set all friction parameters to 1. Of objects and of hand
 	- Meshes of the objects potentially should not be very very wrong
+	- [Resource]: Gives all the masses for YCB objects https://ri.cmu.edu/pub_files/2015/7/ICAR-FINAL.pdf
+- [Task 1]: Test entire grasping pipeline
+	- [Finding 1] Somehow moveit considers self-collision of the hand/robot and won't generate a plan
+	- [Finding 2] Palm should be towards shorter of two sides:
+	- [Finding 3] Need to find good values for hithand-preshape sampling:
+	- [Finding 4] Still need to think about the fact that they say object-centric coordinate system is aligned to world frame:
+		- Potentially should use the bounding box center and not centroid of object cloud :
+- [Task 2]: Optimize performance of grasp pipeline
+	- make moveit scene updateer MUCH faster        [CHECK] 
+	- reset hithand only if needed                  [CHECK]
+	- verify joint angles to be correct:
+- [Task 3]: Verify influence of visual mesh/material on performance, UTAH people have this turned off: 
+
+26.1.21 
+- [Task 1] Optimized the whole pipeline for speed        [CHECK]
