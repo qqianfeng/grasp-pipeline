@@ -193,7 +193,7 @@ class ServerUnitTester():
 
         else:
             # Control the hithand back home
-            req = ControlHithandRequest(go_home=True)
+            req = ControlHithandRequest()
             res = control_hithand_config(req)
             # Check if the joint angles are within a small range of the desired angles
             hithand_current_joint_state = rospy.wait_for_message('/hithand/joint_states',
@@ -280,17 +280,15 @@ class ServerUnitTester():
         self.chosen_is_top_grasp = self.heuristic_preshapes.is_top_grasp[grasp_idx]
         print('SUCCEEDED')
 
-    def test_arm_moveit_cartesian_pose_planner_server(self, go_home=False, place_goal_pose=None):
+    def test_plan_arm_trajectory_server(self, go_home=False, place_goal_pose=None):
         self.test_count += 1
         start_time = time.time()
         for i in range(15):
             try:
-                print('Running test_arm_moveit_cartesian_pose_planner_server, test number %d' %
-                      self.test_count)
+                print('Running test_plan_arm_trajectory_server, test number %d' % self.test_count)
 
-                arm_moveit_cartesian_pose_planner = rospy.ServiceProxy(
-                    'arm_moveit_cartesian_pose_planner', PalmGoalPoseWorld)
-                req = PalmGoalPoseWorldRequest()
+                plan_arm_trajectory = rospy.ServiceProxy('plan_arm_trajectory', PlanArmTrajectory)
+                req = PlanArmTrajectoryRequest()
                 if go_home:
                     req.go_home = True
                 elif place_goal_pose is not None:
@@ -299,13 +297,13 @@ class ServerUnitTester():
                     self.test_choose_specific_grasp_preshape('unspecified')
                     req.palm_goal_pose_world = self.chosen_palm_pose
 
-                res = arm_moveit_cartesian_pose_planner(req)
+                res = plan_arm_trajectory(req)
                 self.joint_trajectory = res.plan_traj
                 if res.success:
                     print('[ARM MOVEIT] Achieved success after %d retries' % i)
                     break
             except rospy.ServiceException, e:
-                rospy.loginfo('Service arm_moveit_cartesian_pose_planner call failed: %s' % e)
+                rospy.loginfo('Service plan_arm_trajectory call failed: %s' % e)
 
         result = 'SUCCEEDED' if res.success else 'FAILED'
 
@@ -350,7 +348,7 @@ class ServerUnitTester():
         self.test_count += 1
         start_time = time.time()
         print('Running test_grasp_control_hithand_server, test number %d' % self.test_count)
-        grasp_control_hithand = rospy.ServiceProxy('/grasp_control_hithand', GraspControl)
+        grasp_control_hithand = rospy.ServiceProxy('grasp_control_hithand', GraspControl)
         req = GraspControlRequest()
         res = grasp_control_hithand(req)
         result = 'SUCCEEDED' if res.success else 'FAILED'
@@ -360,7 +358,7 @@ class ServerUnitTester():
         self.test_count += 1
         start_time = time.time()
         print('Running test_reset_hithand_joints, test number %d' % self.test_count)
-        reset_hithand_joints = rospy.ServiceProxy('/reset_hithand_joints', SetBool)
+        reset_hithand_joints = rospy.ServiceProxy('reset_hithand_joints', SetBool)
         req = SetBoolRequest()
         res = reset_hithand_joints(req)
         result = 'SUCCEEDED' if res.success else 'FAILED'
@@ -380,6 +378,16 @@ class ServerUnitTester():
         result = 'SUCCEEDED' if res else 'FAILED'
         print(result + ' after: ' + str(time.time() - start_time))
 
+    def test_record_grasp_data_server(self):
+        self.test_count += 1
+        start_time = time.time()
+        print('Running test_record_grasp_data, test number %d' % self.test_count)
+        record_grasp_data = rospy.ServiceProxy('record_grasp_data', RecordGraspDataSim)
+        req = RecordGraspDataSimRequest()
+        res = record_grasp_data(req)
+        result = 'SUCCEEDED' if res.success else 'FAILED'
+        print(result + ' after: ' + str(time.time() - start_time))
+
 
 # ++++++++++++++++++++ Part III Integrated functionality calling multiple test ++++++++++++++++++++++++++++++++++++++
 
@@ -388,7 +396,7 @@ class ServerUnitTester():
         print(self.chosen_palm_pose.pose.position)
         lift_pose = self.chosen_palm_pose
         lift_pose.pose.position.z += 0.15
-        self.test_arm_moveit_cartesian_pose_planner_server(place_goal_pose=lift_pose)
+        self.test_plan_arm_trajectory_server(place_goal_pose=lift_pose)
         self.test_execute_joint_trajectory_server(smoothen_trajectory=True)
 
     def reset_panda_and_hithand(self):
@@ -399,7 +407,7 @@ class ServerUnitTester():
         panda_joints = rospy.wait_for_message('panda/joint_states', JointState)
         diff = np.abs(self.home_joint_states - np.array(panda_joints.position))
         if np.sum(diff) > 0.3:
-            self.test_arm_moveit_cartesian_pose_planner_server(go_home=True)
+            self.test_plan_arm_trajectory_server(go_home=True)
             self.test_execute_joint_trajectory_server(smoothen_trajectory=True)
         print("Resetting panda took: " + str(time.time() - start))
 
@@ -459,7 +467,7 @@ if __name__ == '__main__':
         # Try to find a trajectory
         moveit_result = False
         while (not moveit_result):
-            moveit_result = sut.test_arm_moveit_cartesian_pose_planner_server()
+            moveit_result = sut.test_plan_arm_trajectory_server()
 
         sut.test_execute_joint_trajectory_server(smoothen_trajectory=True)
 
@@ -469,6 +477,8 @@ if __name__ == '__main__':
             sut.test_grasp_control_hithand_server()
             # try to lift the object
             sut.lift_object()
+
+        sut.test_record_grasp_data_server()
 
     # # Test hithand control preshape/config
     # sut.test_control_hithand_config_server(hithand_joint_states)
