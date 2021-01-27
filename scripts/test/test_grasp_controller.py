@@ -91,11 +91,10 @@ class TestGraspController():
         self.robot_cartesian_goal_pose = palm_T_world
 
     def plan_joint_trajectory_to_goal(self):
-        arm_moveit_cartesian_pose_planner = rospy.ServiceProxy('arm_moveit_cartesian_pose_planner',
-                                                               PalmGoalPoseWorld)
-        req = PalmGoalPoseWorldRequest()
+        plan_arm_trajectory = rospy.ServiceProxy('plan_arm_trajectory', PlanArmTrajectory)
+        req = PlanArmTrajectoryRequest()
         req.palm_goal_pose_world = self.robot_cartesian_goal_pose
-        res = arm_moveit_cartesian_pose_planner(req)
+        res = plan_arm_trajectory(req)
         self.joint_trajectory_to_goal = res.plan_traj
         return res.success
 
