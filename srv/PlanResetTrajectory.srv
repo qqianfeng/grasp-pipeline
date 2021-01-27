@@ -1,0 +1,3 @@
+---
+bool success
+trajectory_msgs/JointTrajectory trajectory

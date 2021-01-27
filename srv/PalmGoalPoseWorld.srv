@@ -1,6 +1,0 @@
-bool go_home
-bool go_zero
-geometry_msgs/PoseStamped palm_goal_pose_world
----
-bool success
-trajectory_msgs/JointTrajectory plan_traj

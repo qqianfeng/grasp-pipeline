@@ -243,8 +243,21 @@ Interesting for grasp impedance adaptation
 - [Task 2]: Optimize performance of grasp pipeline
 	- make moveit scene updateer MUCH faster        [CHECK] 
 	- reset hithand only if needed                  [CHECK]
-	- verify joint angles to be correct:
+	- verify joint angles to be correct             [CHECK]
 - [Task 3]: Verify influence of visual mesh/material on performance, UTAH people have this turned off: 
 
 26.1.21 
-- [Task 1] Optimized the whole pipeline for speed        [CHECK]
+- [Task 1] Optimized the whole pipeline for speed       [CHECK]
+- [Task 2] Suggestion Karan change the motion planning: 
+- [Task 3] Integrate everything in the grasp pipeline script
+	- [Consid. 1] How many grasps in same position? Top vs. side? Balanced dataset? How many grasps?:
+	- [Consid. 2] Does it make sense to spawn object in same position but not save data again/ segment? --> Verify that that's no problem:
+
+27.1.21
+- [Task 1] Integrate everything in the grasp pipeline script
+	- generate new depth/ color/ pcd img save paths each time:
+	- add reset hithand and panda                              [CHECK]
+	- execute panda and hithand reset in parallel:
+	- give grasp_type to grasp_type chooser?:
+- [Task 2] Save all grasping data
+

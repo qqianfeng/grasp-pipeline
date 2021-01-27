@@ -38,7 +38,8 @@ add_service_files(
     GraspControl.srv
     ManageMoveitScene.srv
     MoveArm.srv
-    PalmGoalPoseWorld.srv
+    PlanArmTrajectory.srv
+    PlanResetTrajectory.srv
     RecordGraspDataSim.srv
     SaveVisualData.srv
     SegmentGraspObject.srv
