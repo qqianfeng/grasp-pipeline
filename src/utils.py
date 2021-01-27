@@ -5,6 +5,8 @@ import sensor_msgs.point_cloud2 as pc2
 import numpy as np
 from std_msgs.msg import Header
 import rospy
+import tf.transformations as tft
+from geometry_msgs.msg import PoseStamped
 
 FIELDS_XYZ = [
     PointField(name='x', offset=0, datatype=PointField.FLOAT32, count=1),
@@ -84,3 +86,34 @@ def pcd_from_o3d_to_ros(o3d_pcd, frame_id):
     # create ros_pcd
     return pc2.create_cloud(header, fields, pcd_data)
 
+
+def wait_for_service(service_name):
+    rospy.loginfo('Waiting for service ' + service_name)
+    rospy.wait_for_service(service_name)
+    rospy.loginfo('Calling service' + service_name)
+
+
+def get_pose_stamped_from_array(pose_array, frame_id='/world'):
+    """Transforms an array pose into a ROS stamped pose.
+    """
+    pose_stamped = PoseStamped()
+    pose_stamped.header.frame_id = frame_id
+    # RPY to quaternion
+    pose_quaternion = tft.quaternion_from_euler(pose_array[0], pose_array[1], pose_array[2])
+    pose_stamped.pose.orientation.x, pose_stamped.pose.orientation.y, \
+            pose_stamped.pose.orientation.z, pose_stamped.pose.orientation.w = pose_quaternion[0], pose_quaternion[1], pose_quaternion[2], pose_quaternion[3]
+    pose_stamped.pose.position.x, pose_stamped.pose.position.y, pose_stamped.pose.position.z = \
+            pose_array[3], pose_array[4], pose_array[5]
+    return pose_stamped
+
+
+def get_pose_array_from_stamped(pose_stamped):
+    """Transforms a stamped pose into a 6D pose array.
+        """
+    r, p, y = tft.euler_from_quaternion([
+        pose_stamped.pose.orientation.x, pose_stamped.pose.orientation.y,
+        pose_stamped.pose.orientation.z, pose_stamped.pose.orientation.w
+    ])
+    x_p, y_p, z_p = pose_stamped.pose.position.x, pose_stamped.pose.position.y, pose_stamped.pose.position.z
+    pose_array = [r, p, y, x_p, y_p, z_p]
+    return pose_array
