@@ -30,10 +30,10 @@ class VisualDataSaver():
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
         rospy.sleep(0.5)  # essential, otherwise next line crashes
 
-        pcd_topic = rospy.get_param('scene_pcd_topic')
-        if pcd_topic == '/camera/depth/points':
+        self.scene_pcd_topic = rospy.get_param('scene_pcd_topic', default='/camera/depth/points')
+        if self.scene_pcd_topic == '/camera/depth/points':
             pcd_frame = 'camera_depth_optical_frame'
-        elif pcd_topic == '/depth_registered_points':
+        elif self.scene_pcd_topic == '/depth_registered_points':
             pcd_frame = 'camera_color_optical_frame'
         else:
             rospy.logerr(
@@ -45,8 +45,8 @@ class VisualDataSaver():
         r = self.transform_camera_world.transform.translation
         self.world_T_camera = tft.quaternion_matrix([q.x, q.y, q.z, q.w])
         self.world_T_camera[:, 3] = [r.x, r.y, r.z, 1]
+        print(self.world_T_camera)
 
-        self.scene_pcd_topic = rospy.get_param('scene_pcd_topic')
         self.color_img_topic = rospy.get_param('color_img_topic',
                                                default='/camera/color/image_raw')
         self.depth_img_topic = rospy.get_param('depth_img_topic',
