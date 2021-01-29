@@ -1,18 +1,24 @@
-int64 grasp_id
 string object_name
-float64 timestamp
+string time_stamp
 bool is_top_grasp
 int32 grasp_success_label
-float64[] object_size
-geometry_msgs/PoseStamped spawned_object_world_pose
+float32[] object_size
+int32[] sparse_voxel_grid
+
+# The true spawn pose in world frame
+geometry_msgs/PoseStamped object_world_sim_pose
+# The pose obtained from segmentation
+geometry_msgs/PoseStamped object_world_seg_pose
+# Preshape and palm pose:
 geometry_msgs/PoseStamped desired_preshape_palm_world_pose
 geometry_msgs/PoseStamped true_preshape_palm_world_pose
 geometry_msgs/PoseStamped closed_palm_world_pose
 geometry_msgs/PoseStamped lifted_palm_world_pose
+# Hithand jointstates
 sensor_msgs/JointState desired_preshape_hithand_joint_state
 sensor_msgs/JointState true_preshape_hithand_joint_state
 sensor_msgs/JointState closed_hithand_joint_state
 sensor_msgs/JointState lifted_hithand_joint_state
 ---
-bool save_success
+bool success
 int64 object_id
