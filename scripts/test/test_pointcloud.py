@@ -1,13 +1,19 @@
 import open3d as o3d
 import numpy as np
 
-pcd = o3d.io.read_point_cloud("/home/vm/test_cloud.pcd")
+pcd = o3d.io.read_point_cloud("/home/vm/scene.pcd")
 
-box = o3d.geometry.TriangleMesh.create_box(width=0.01, height=0.01, depth=0.01)
-box.paint_uniform_color([1, 0, 0])
+#o3d.visualization.draw_geometries([pcd])
 
-box_cam = o3d.geometry.TriangleMesh.create_box(width=0.01, height=0.01, depth=0.01)
-box_cam.paint_uniform_color([0, 1, 0])
-box_cam.translate([0.8275, -0.996, 0.361])
-
-o3d.visualization.draw_geometries([pcd, box, box_cam])
+intrinsics = o3d.camera.PinholeCameraIntrinsic(width=1280,
+                                               height=720,
+                                               fx=695.9951171875,
+                                               fy=695.9951171875,
+                                               cx=640.0,
+                                               cy=360.0)
+depth_image = o3d.io.read_image("/home/vm/depth.png")
+# pcd_from_depth = o3d.geometry.PointCloud().create_from_depth_image(depth=depth_image,
+#                                                                    intrinsic=intrinsics)
+pcd_from_depth = o3d.geometry.PointCloud().create_from_depth_image(
+    depth=depth_image, intrinsic=o3d.camera.PinholeCameraIntrinsic())
+o3d.visualization.draw_geometries([pcd_from_depth])
