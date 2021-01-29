@@ -260,4 +260,26 @@ Interesting for grasp impedance adaptation
 	- execute panda and hithand reset in parallel:
 	- give grasp_type to grasp_type chooser?:
 - [Task 2] Save all grasping data
-
+	- What characterises a grasp
+		0.) Metadata
+			- Grasp number
+			- Grasp type
+			- Grasp object
+			- Grasp pose
+		a.) Used for training the ML model directly
+			- 1. hithand config 5*2 = 10 joints + 6D palm pose = 16 values
+				- 6D palm pose must be in object frame
+			- 2. 32x32x32 voxel grid representation of the object = 32768 values
+			- 3. object height x width x depth = 3 values
+			- 4. grasp label, success/failure = 1 value
+			- 5. grasp stability?! 
+				- Largest disturbance to counter_act?
+				- Or binary, if it can resist certain disturbance
+		b.) Visual data on the grasp
+			- 1. RGB/depth/scene_pcd
+			- 2. object_pcd
+			- 3. RGB/depth/pcd? post grasp
+	- create group for each grasp
+		- create dataset for each value that is important
+29.1.21
+- [Task 1] Test the data save mechanism

@@ -14,6 +14,7 @@ from visualization_msgs.msg import Marker, MarkerArray
 import open3d as o3d
 from trajectory_smoothing.srv import *
 import time
+from datetime import datetime
 
 
 class ServerUnitTester():
@@ -31,7 +32,7 @@ class ServerUnitTester():
                                                    default='/home/vm/depth.pgm')
         self.object_pcd_path = rospy.get_param('object_pcd_path', default='/home/vm/object.pcd')
         self.scene_pcd_path = rospy.get_param('scene_pcd_path', default='/home/vm/scene.pcd')
-        self.depth_topic = rospy.get_param('scene_pcd_topic')
+        self.depth_topic = rospy.get_param('scene_pcd_topic', default='/camera/depth/points')
 
         self.test_count = 0
         self.bridge = CvBridge
@@ -127,8 +128,10 @@ class ServerUnitTester():
             req.color_img = msg_color
             req.depth_img = msg_depth
             req.scene_pcd = msg_pcd
-        req.color_img_save_path = self.color_img_save_path
-        req.depth_img_save_path = self.depth_img_save_path
+        # req.color_img_save_path = self.color_img_save_path
+        req.color_img_save_path = '/home/vm/color.jpg'
+        # req.depth_img_save_path = self.depth_img_save_path
+        req.depth_img_save_path = '/home/vm/depth.png'
         req.scene_pcd_save_path = self.scene_pcd_path
         res = save_visual_data(req)
         # Print result
@@ -384,6 +387,24 @@ class ServerUnitTester():
         print('Running test_record_grasp_data, test number %d' % self.test_count)
         record_grasp_data = rospy.ServiceProxy('record_grasp_data', RecordGraspDataSim)
         req = RecordGraspDataSimRequest()
+        req.object_name = 'dummy_object'
+        req.time_stamp = datetime.now().isoformat()
+        req.is_top_grasp = True
+        req.grasp_success_label = 1
+        req.object_size = [0.1, 0.05, 0.03]
+        req.sparse_voxel_grid = [0] * 300
+        req.object_world_sim_pose = PoseStamped()
+        req.object_world_seg_pose = PoseStamped()
+        # Preshape and palm pose:
+        req.desired_preshape_palm_world_pose = PoseStamped()
+        req.true_preshape_palm_world_pose = PoseStamped()
+        req.closed_palm_world_pose = PoseStamped()
+        req.lifted_palm_world_pose = PoseStamped()
+        # Hithand jointstates
+        req.desired_preshape_hithand_joint_state = JointState()
+        req.true_preshape_hithand_joint_state = JointState()
+        req.closed_hithand_joint_state = JointState()
+        req.lifted_hithand_joint_state = JointState()
         res = record_grasp_data(req)
         result = 'SUCCEEDED' if res.success else 'FAILED'
         print(result + ' after: ' + str(time.time() - start_time))
@@ -432,53 +453,57 @@ if __name__ == '__main__':
     # Tester
     sut = ServerUnitTester()
     prev_time = time.time()
-    while (True):
+    a = True
+    while (a):
+        a = False
+        # Test record grasp tat
+        sut.test_record_grasp_data_server()
         # # Reset
-        print("Whole pipeline took: " + str(time.time() - prev_time))
-        prev_time = time.time()
-        sut.reset_panda_and_hithand()
+        # print("Whole pipeline took: " + str(time.time() - prev_time))
+        # prev_time = time.time()
+        # sut.reset_panda_and_hithand()
 
-        # Test random object pose
-        sut.test_generate_random_object_pose_for_experiment()
+        # # Test random object pose
+        # sut.test_generate_random_object_pose_for_experiment()
 
-        # Test spawning and deleting of objects
-        sut.test_manage_gazebo_scene_server(object_name, object_model_name, dataset, model_type)
+        # # Test spawning and deleting of objects
+        # sut.test_manage_gazebo_scene_server(object_name, object_model_name, dataset, model_type)
 
         # # Test visual data save server
-        sut.test_save_visual_data_server()
+        # sut.test_save_visual_data_server()
 
-        # Test update moveit scene server
-        sut.test_update_moveit_scene_server()
+        # # Test update moveit scene server
+        # sut.test_update_moveit_scene_server()
 
-        # Test display saved point cloud
-        #sut.test_display_saved_pcd(sut.scene_pcd_path)
+        # # Test display saved point cloud
+        # #sut.test_display_saved_pcd(sut.scene_pcd_path)
 
-        # Test object segmentation
-        sut.test_segment_object_server()
+        # # Test object segmentation
+        # sut.test_segment_object_server()
 
-        # Test display saved point cloud
-        # sut.test_display_saved_pcd(sut.object_pcd_path)
+        # # Test display saved point cloud
+        # # sut.test_display_saved_pcd(sut.object_pcd_path)
 
-        # Test hithand preshape generation server
-        sut.test_generate_hithand_preshape_server()
+        # # Test hithand preshape generation server
+        # sut.test_generate_hithand_preshape_server()
 
-        # get new position and go there
-        sut.test_choose_specific_grasp_preshape('unspecified')
-        # Try to find a trajectory
-        moveit_result = False
-        while (not moveit_result):
-            moveit_result = sut.test_plan_arm_trajectory_server()
+        # # get new position and go there
+        # sut.test_choose_specific_grasp_preshape('unspecified')
+        # # Try to find a trajectory
+        # moveit_result = False
+        # while (not moveit_result):
+        #     moveit_result = sut.test_plan_arm_trajectory_server()
 
-        sut.test_execute_joint_trajectory_server(smoothen_trajectory=True)
+        # sut.test_execute_joint_trajectory_server(smoothen_trajectory=True)
 
-        input = raw_input("Grasp and lift? Press y/n: ")
-        if input == 'y':
-            # try to grasp the object
-            sut.test_grasp_control_hithand_server()
-            # try to lift the object
-            sut.lift_object()
+        # input = raw_input("Grasp and lift? Press y/n: ")
+        # if input == 'y':
+        #     # try to grasp the object
+        #     sut.test_grasp_control_hithand_server()
+        #     # try to lift the object
+        #     sut.lift_object()
 
-        sut.test_record_grasp_data_server()
+        # sut.test_record_grasp_data_server()
 
     # # Test hithand control preshape/config
     # sut.test_control_hithand_config_server(hithand_joint_states)
