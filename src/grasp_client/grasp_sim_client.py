@@ -9,28 +9,30 @@ sys.path.append('..')
 from utils import wait_for_service, get_pose_stamped_from_array, get_pose_array_from_stamped
 import numpy as np
 from std_srvs.srv import SetBool, SetBoolRequest
+import os
 
 
 class GraspClient():
     """ This class is a wrapper around all the individual functionality involved in grasping experiments.
     """
-    def __init__(self):
+    def __init__(self, grasp_data_recording_path):
         rospy.init_node('grasp_client')
         self.object_datasets_folder = rospy.get_param('object_datasets_folder')
-        self.color_img_save_path = rospy.get_param('color_img_save_path')
-        self.depth_img_save_path = rospy.get_param('depth_img_save_path')
-        self.object_pcd_path = rospy.get_param('object_pcd_path')
-        self.scene_pcd_path = rospy.get_param('scene_pcd_path')
-
+        self.grasp_data_recording_path = grasp_data_recording_path
+        self.create_grasp_folder_structure(self.grasp_data_recording_path)
         # Save metainformation on object to be grasped in these vars
-        self.object_name = None
-        self.object_mesh_path = None
-        self.object_pose_stamped = None
+        self.object_metadata = dict()  # This dict holds info about object name, pose, meshpath
         self._setup_workspace_boundaries()
 
         self.depth_img = None
         self.color_img = None
         self.pcd = None
+
+        # These variables get changed dynamically during execution to store relevant data under correct folder
+        self.color_img_save_path = None
+        self.depth_img_save_path = None
+        self.scene_pcd_save_path = '/home/vm/scene.pcd'
+        self.object_pcd_save_path = '/home/vm/object.pcd'
 
         self.segmented_object_pcd = None
         self.segmented_object_width = None
@@ -50,10 +52,52 @@ class GraspClient():
         self.object_lift_height = 0.15  # Lift the object 15 cm
 
     # +++++++ PART I: First part are all the "helper functions" w/o interface to any other nodes/services ++++++++++
+
+    def create_grasp_folder_structure(self, base_path):
+        rec_sess_path = base_path + 'grasp_data/recording_sessions'
+        if os.path.exists(rec_sess_path):
+            self.sess_id_num = int(sorted(os.listdir(rec_sess_path))[-1].split('_')[-1]) + 1
+            if os.listdir(rec_sess_path + '/recording_session_' +
+                          str(self.sess_id_num - 1).zfill(4)):
+                self.grasp_id_num = int(
+                    sorted(
+                        os.listdir(rec_sess_path + '/recording_session_' +
+                                   str(self.sess_id_num - 1).zfill(4)))[-1].split('_')[-1])
+            else:
+                self.grasp_id_num = 0
+        else:  # if the path did not exist yet, this is the first recording
+            self.sess_id_num = 1
+            self.grasp_id_num = 0
+            os.makedirs(rec_sess_path)
+            rospy.loginfo('This is the first recording, no prior recordings found.')
+
+        self.sess_id_str = str(self.sess_id_num).zfill(4)
+        self.grasp_id_str = str(self.grasp_id_num).zfill(6)
+        rospy.loginfo('Session id: ' + self.sess_id_str)
+        rospy.loginfo('Grasp id: ' + self.grasp_id_str)
+        self.curr_rec_sess_path = rec_sess_path + '/recording_session_' + self.sess_id_str
+        os.mkdir(self.curr_rec_sess_path)
+
     def update_object_metadata(self, object_metadata):
         """ Update the metainformation about the object to be grasped
         """
-        raise NotImplementedError
+        self.object_metadata = object_metadata
+
+    def create_dirs_new_grasp_trial(self):
+        """ This should be called anytime before a new grasp trial is attempted as it will create the necessary folder structure.
+        """
+        self.grasp_id_num += 1
+        self.grasp_id_str = str(self.grasp_id_num).zfill(6)
+
+        rospy.loginfo('Grasp id: ' + self.grasp_id_str)
+
+        self.curr_grasp_trial_path = self.curr_rec_sess_path + '/grasp_' + self.grasp_id_str
+        if os.path.exists(self.curr_grasp_trial_path):
+            rospy.logerr("Path for grasp trial already exists, something is wrong.")
+        os.mkdir(self.curr_grasp_trial_path)
+        os.mkdir(self.curr_grasp_trial_path + '/during_grasp')
+        os.mkdir(self.curr_grasp_trial_path + '/post_grasp')
+        os.mkdir(self.curr_grasp_trial_path + '/pre_grasp')
 
     def _setup_workspace_boundaries(self):
         """ Sets the boundaries in which an object can be spawned and placed.
@@ -130,12 +174,19 @@ class GraspClient():
         """
         wait_for_service('execute_joint_trajectory')
         try:
-            execute_joint_trajectory = rospy.ServiceProxy('execute_joint_trajectory',
-                                                          ExecuteJointTrajectory)
-            req = ExecuteJointTrajectoryRequest()
-            req.smoothen_trajectory = smoothen_trajectory
-            req.joint_trajectory = self.panda_planned_joint_trajectory
-            res = execute_joint_trajectory(req)
+            if self.panda_planned_joint_trajectory == None:
+                rospy.logerr(
+                    'No joint trajectory has been computed. Call plan_joint_trajectory server first'
+                )
+            elif len(self.panda_planned_joint_trajectory.points):
+                execute_joint_trajectory = rospy.ServiceProxy('execute_joint_trajectory',
+                                                              ExecuteJointTrajectory)
+                req = ExecuteJointTrajectoryRequest()
+                req.smoothen_trajectory = smoothen_trajectory
+                req.joint_trajectory = self.panda_planned_joint_trajectory
+                res = execute_joint_trajectory(req)
+            else:
+                rospy.loginfo('The joint trajectory in planned_panda_joint_trajectory was empty.')
         except rospy.ServiceException, e:
             rospy.loginfo('Service execute_joint_trajectory call failed: %s' % e)
         rospy.loginfo('Service execute_joint_trajectory is executed.')
@@ -183,7 +234,7 @@ class GraspClient():
         except rospy.ServiceException, e:
             rospy.loginfo('Service plan_arm_trajectory call failed: %s' % e)
         rospy.loginfo('Service plan_arm_trajectory is executed %s.' % str(res.success))
-        self.panda_planned_joint_trajectory = res.plan_traj
+        self.panda_planned_joint_trajectory = res.trajectory
         return res.success
 
     def plan_reset_trajectory_client(self):
@@ -192,16 +243,15 @@ class GraspClient():
             plan_reset_trajectory = rospy.ServiceProxy('plan_reset_trajectory',
                                                        PlanResetTrajectory)
             res = plan_reset_trajectory(PlanResetTrajectoryRequest())
-            self.panda_planned_joint_trajectory = res.plan_traj
+            self.panda_planned_joint_trajectory = res.trajectory
         except rospy.ServiceException, e:
             rospy.loginfo('Service plan_reset_trajectory call failed: %s' % e)
         rospy.loginfo('Service plan_reset_trajectory is executed.')
 
-    def record_grasp_data_client(self)
+    def record_grasp_data_client(self):
         wait_for_service('record_grasp_data')
         try:
-            record_grasp_data = rospy.ServiceProxy('record_grasp_data',
-                                                      RecordGraspDataSim)
+            record_grasp_data = rospy.ServiceProxy('record_grasp_data', RecordGraspDataSim)
             res = record_grasp_data(RecordGraspDataSimRequest())
         except rospy.ServiceException, e:
             rospy.loginfo('Service record_grasp_data call failed: %s' % e)
@@ -215,8 +265,8 @@ class GraspClient():
             reset_hithand = rospy.ServiceProxy('reset_hithand_joints', SetBool)
             res = reset_hithand(SetBoolRequest(data=True))
         except rospy.ServiceException, e:
-            rospy.loginfo('Service save_visual_data call failed: %s' % e)
-        rospy.loginfo('Service save_visual_data is executed.')
+            rospy.loginfo('Service reset_hithand_joints call failed: %s' % e)
+        rospy.loginfo('Service reset_hithand_joints is executed.')
 
     def save_visual_data_client(self):
         wait_for_service('save_visual_data')
@@ -228,7 +278,7 @@ class GraspClient():
             req.scene_pcd = self.pcd
             req.color_img_save_path = self.color_img_save_path
             req.depth_img_save_path = self.depth_img_save_path
-            req.scene_pcd_save_path = self.scene_pcd_path
+            req.scene_pcd_save_path = self.scene_pcd_save_path
             res = save_visual_data(req)
         except rospy.ServiceException, e:
             rospy.loginfo('Service save_visual_data call failed: %s' % e)
@@ -239,8 +289,8 @@ class GraspClient():
         try:
             segment_object = rospy.ServiceProxy('segment_object', SegmentGraspObject)
             req = SegmentGraspObjectRequest()
-            req.scene_pcd_path = self.scene_pcd_path
-            req.object_pcd_path = self.object_pcd_path
+            req.scene_pcd_path = self.scene_pcd_save_path
+            req.object_pcd_path = self.object_pcd_save_path
             res = segment_object(req)
         except rospy.ServiceException, e:
             rospy.loginfo('Service segment_object call failed: %s' % e)
@@ -294,11 +344,34 @@ class GraspClient():
         # Update moveit scene object
         self.update_moveit_scene_client()
 
+    def set_visual_data_save_paths(self, grasp_phase):
+        if grasp_phase == 'pre':
+            folder_name = '/pre_grasp/'
+        elif grasp_phase == 'during':
+            folder_name = '/during_grasp/'
+        elif grasp_phase == 'post':
+            folder_name = '/post_grasp/'
+        else:
+            rospy.logerr('Given grasp_phase is not valid. Must be pre, during or post.')
+
+        self.depth_img_save_path = self.curr_grasp_trial_path + folder_name + 'depth.png'
+        self.color_img_save_path = self.curr_grasp_trial_path + folder_name + 'color.jpg'
+
     def save_data_post_grasp(self):
         self.save_visual_data_client()
         self.record_grasp_data_client()
 
+    def save_only_depth_and_color(self, grasp_phase):
+        """ Saves only depth and color by setting scene_pcd_save_path to None. Resets scene_pcd_save_path afterwards.
+        """
+        self.set_visual_data_save_paths(grasp_phase=grasp_phase)
+        pcd_save_path_temp = self.scene_pcd_save_path
+        self.scene_pcd_save_path = None
+        self.save_visual_data_client()
+        self.scene_pcd_save_path = pcd_save_path_temp
+
     def save_visual_data_and_segment_object(self):
+        self.set_visual_data_save_paths(grasp_phase='pre')
         self.save_visual_data_client()
         self.segment_object_client()
 
@@ -326,6 +399,9 @@ class GraspClient():
 
         # Close the hand
         self.grasp_control_hithand_client()
+
+        # Save visual data after hand is closed
+        self.save_only_depth_and_color(grasp_phase='during')
 
         # Lift the object
         lift_pose = self.chosen_palm_pose
