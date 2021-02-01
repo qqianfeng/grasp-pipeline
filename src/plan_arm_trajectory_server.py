@@ -73,7 +73,7 @@ class CartesianPoseMoveitPlanner():
             res.trajectory = plan.joint_trajectory
         return res
 
-    def handle_plan_arm_reset_trajectory(self, req):
+    def handle_plan_reset_trajectory(self, req):
         panda_joint_state = rospy.wait_for_message('panda/joint_states', JointState)
         diff = np.abs(self.home_joint_states - np.array(panda_joint_state.position))
         res = PlanResetTrajectoryResponse()
@@ -89,6 +89,9 @@ class CartesianPoseMoveitPlanner():
             rospy.loginfo("No plan for going home could be found.")
             res.success = False
             return res
+        if len(plan.joint_trajectory.points) > 0:
+            rospy.loginfo("Panda is already in home position, no need to reset.")
+            res.success = False
         else:
             res.success = True
             res.trajectory = plan.joint_trajectory
@@ -103,9 +106,9 @@ class CartesianPoseMoveitPlanner():
         rospy.loginfo('Ready to plan for given palm goal poses.')
 
     def create_plan_arm_reset_trajectory(self):
-        rospy.Service('plan_arm_reset_trajectory', PlanResetTrajectory,
-                      self.handle_plan_arm_reset_trajectory)
-        rospy.loginfo('Service plan_arm_trajectory:')
+        rospy.Service('plan_reset_trajectory', PlanResetTrajectory,
+                      self.handle_plan_reset_trajectory)
+        rospy.loginfo('Service plan_reset_trajectory:')
         rospy.loginfo('Ready to plan reset trajectory')
 
 
