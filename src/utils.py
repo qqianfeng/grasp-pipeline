@@ -90,7 +90,7 @@ def pcd_from_o3d_to_ros(o3d_pcd, frame_id):
 def wait_for_service(service_name):
     rospy.loginfo('Waiting for service ' + service_name)
     rospy.wait_for_service(service_name)
-    rospy.loginfo('Calling service' + service_name)
+    rospy.loginfo('Calling service ' + service_name)
 
 
 def get_pose_stamped_from_array(pose_array, frame_id='/world'):
