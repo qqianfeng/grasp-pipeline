@@ -86,19 +86,39 @@ class VisualDataSaver():
         return pcd
 
     def handle_visual_data_saver(self, req):
-        # First of all, delete any old files with the same name, because they are not being replaced when saving a second time
-        if os.path.exists(req.scene_pcd_save_path):
-            os.remove(req.scene_pcd_save_path)
+        ############ Handle PCD ###############
+        if req.scene_pcd_save_path is not None:
+            if os.path.exists(req.scene_pcd_save_path):
+                os.remove(req.scene_pcd_save_path)
+
+            if req.scene_pcd.data == '':
+                pcd = rospy.wait_for_message(self.scene_pcd_topic, PointCloud2, timeout=5)
+            else:
+                pcd = req.scene_pcd
+
+            # Transform with ros_numpy
+            start = time.time()
+            pcd_o3d = o3d.geometry.PointCloud()
+            pcd_o3d.points = o3d.utility.Vector3dVector(
+                ros_numpy.point_cloud2.pointcloud2_to_xyz_array(pcd))
+            del pcd
+            pcd_o3d.transform(self.world_T_camera)
+            p = np.asarray(pcd_o3d.points)
+            colors = (-3.) * np.linspace(0.1, 0.9, p.shape[0]) - 0.05
+            colors = np.exp(colors)
+            colors = np.array([colors])
+            pcd_o3d.colors = o3d.utility.Vector3dVector(np.tile(colors.T, (1, 3)))
+            print("Ros numpy took: " + str(time.time() - start))
+            #self.draw_pcd(pcd_o3d)
+            self.save_pcd(pcd_o3d, req.scene_pcd_save_path)
+
+        ####### Handle depth and color ##########
         if os.path.exists(req.depth_img_save_path):
             os.remove(req.depth_img_save_path)
         if os.path.exists(req.color_img_save_path):
             os.remove(req.color_img_save_path)
 
         # Now check if the request contains data for pcd, depth and rgb. If not grab the current scene from the topic
-        if req.scene_pcd.data == '':
-            pcd = rospy.wait_for_message(self.scene_pcd_topic, PointCloud2, timeout=5)
-        else:
-            pcd = req.scene_pcd
         if req.depth_img.data == '':
             depth_img = rospy.wait_for_message(self.depth_img_topic, Image, timeout=5)
         else:
@@ -112,25 +132,9 @@ class VisualDataSaver():
         depth_img = self.bridge.imgmsg_to_cv2(depth_img, "32FC1")
         color_img = self.bridge.imgmsg_to_cv2(color_img, "bgr8")
 
-        # Transform with ros_numpy
-        start = time.time()
-        pcd_o3d = o3d.geometry.PointCloud()
-        pcd_o3d.points = o3d.utility.Vector3dVector(
-            ros_numpy.point_cloud2.pointcloud2_to_xyz_array(pcd))
-        del pcd
-        pcd_o3d.transform(self.world_T_camera)
-        p = np.asarray(pcd_o3d.points)
-        colors = (-3.) * np.linspace(0.1, 0.9, p.shape[0]) - 0.05
-        colors = np.exp(colors)
-        colors = np.array([colors])
-        pcd_o3d.colors = o3d.utility.Vector3dVector(np.tile(colors.T, (1, 3)))
-        print("Ros numpy took: " + str(time.time() - start))
-        #self.draw_pcd(pcd_o3d)
-
         # Actually save the stuff
         self.save_depth_img(depth_img, req.depth_img_save_path)
         self.save_color_img(color_img, req.color_img_save_path)
-        self.save_pcd(pcd_o3d, req.scene_pcd_save_path)
 
         response = SaveVisualDataResponse()
         response.save_visual_data_success = True
