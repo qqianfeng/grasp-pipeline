@@ -53,7 +53,7 @@
 
 
     <!-- Moveit planner node for panda arm -->
-    <node name="arm_moveit_planner_server_node" pkg="grasp_pipeline" type="arm_moveit_planner_server.py" output="screen"/>
+    <node name="plan_arm_trajectory_server_node" pkg="grasp_pipeline" type="plan_arm_trajectory_server.py" output="screen"/>
 
     <!-- SMOOTH THE TRAJECTORY /-->
     <node name="get_smooth_trajectory_node" pkg="trajectory_smoothing" type="service" output="screen"/>
