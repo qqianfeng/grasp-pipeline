@@ -5,7 +5,8 @@ import shutil
 
 base_folder = '/home/vm/object_datasets'
 
-datasets = ['ycb', 'kit', 'bigbird']
+#datasets = ['kit', 'ycb', 'bigbird']
+datasets = ['kit']
 
 if __name__ == "__main__":
     # Iterate over all datasets
@@ -54,7 +55,7 @@ if __name__ == "__main__":
                                                     'textured.obj')
                     collision_mesh_path = os.path.join(objects_raw_folder, model_name,
                                                        'google_16k',
-                                                       model_name + '_convex_hull.stl')
+                                                       model_name + '_250_collision.stl')
                     texture_mesh_path = os.path.join(objects_raw_folder, model_name, 'google_16k',
                                                      'texture_map.png')
                     inertia_mesh_path = os.path.join(objects_raw_folder, model_name, 'google_16k',
@@ -98,36 +99,52 @@ if __name__ == "__main__":
                 texture_mesh_path = os.path.join(objects_raw_folder, model_name, model_name,
                                                  'textured_meshes',
                                                  'optimized_poisson_texture_mapped_mesh.png')
-                collision_mesh_path = os.path.join(objects_raw_folder, model_name, model_name,
-                                                   'meshes', model_name + '_convex_hull.obj')
+                inertia_mesh_path = os.path.join(objects_raw_folder, model_name, model_name,
+                                                 'meshes', model_name + '_convex_hull.obj')
 
             # Copy the material, visual and collision meshes to their new destinations
-            shutil.copyfile(visual_mesh_path,
-                            os.path.join(model_dest_folder,
-                                         visual_mesh_path.split('/')[-1]))
-            shutil.copyfile(collision_mesh_path,
-                            os.path.join(model_dest_folder,
-                                         collision_mesh_path.split('/')[-1]))
             shutil.copyfile(texture_mesh_path,
                             os.path.join(model_dest_folder,
                                          texture_mesh_path.split('/')[-1]))
+            visual_mesh = trimesh.load(visual_mesh_path)
+            if dataset == 'ycb' or dataset == 'bigbird':
+                shutil.copyfile(visual_mesh_path,
+                                os.path.join(model_dest_folder,
+                                             visual_mesh_path.split('/')[-1]))
+                shutil.copyfile(
+                    collision_mesh_path,
+                    os.path.join(model_dest_folder,
+                                 collision_mesh_path.split('/')[-1]))
+            else:
+                collision_mesh = trimesh.load(collision_mesh_path)
 
-            # Load the mesh visual mesh as this is used for computing inertia and mass.
-            mesh = trimesh.load(visual_mesh_path)
-            if mesh.is_watertight:
+                visual_mesh.apply_scale(0.001)
+                collision_mesh.apply_scale(0.001)
+
+                visual_mesh.export(os.path.join(model_dest_folder,
+                                                visual_mesh_path.split('/')[-1]))
+                collision_mesh.export(
+                    os.path.join(model_dest_folder,
+                                 collision_mesh_path.split('/')[-1]))
+            # Load the visual mesh as this is used for computing inertia and mass.
+            if visual_mesh.is_watertight:
                 pass
             else:
-                mesh = trimesh.load(inertia_mesh_path)
-                assert mesh.is_watertight
+                visual_mesh = trimesh.load(inertia_mesh_path)
+                assert visual_mesh.is_watertight
+                if dataset == 'kit':
+                    visual_mesh.apply_scale(0.001)
 
             # Set the density to 100kg/m3 (1/10th of water density )
-            mesh.density = 100.
+            visual_mesh.density = 100.
             # Mass and moment of inertia
-            mass_text = str(mesh.mass)
-            tf = mesh.principal_inertia_transform
-            inertia = trimesh.inertia.transform_inertia(tf, mesh.moment_inertia)
+            mass_text = str(visual_mesh.mass)
+            print("Object mass is: " + mass_text)
+            tf = visual_mesh.principal_inertia_transform
+            inertia = trimesh.inertia.transform_inertia(tf, visual_mesh.moment_inertia)
+            #print("Inertia is: " + str(inertia))
             # Center of mass
-            com_vec = mesh.center_mass.tolist()
+            com_vec = visual_mesh.center_mass.tolist()
             eul = trimesh.transformations.euler_from_matrix(np.linalg.inv(tf), axes="sxyz")
             com_vec.extend(list(eul))
             com_text = str(com_vec)
@@ -136,7 +153,7 @@ if __name__ == "__main__":
             com_text = com_text.replace(",", "")
 
             # Set config text
-            config_text = config_template_text.replace('$MODEL', model_name)
+            config_text = config_template_text.replace('$MODEL_NAME', model_name)
             with open(os.path.join(model_dest_folder, "model.config"), "w") as f:
                 f.write(config_text)
 
@@ -146,7 +163,7 @@ if __name__ == "__main__":
             model_text = model_text.replace('$COLLISION_MESH_NAME',
                                             collision_mesh_path.split('/')[-1])
             model_text = model_text.replace('$VISUAL_MESH_NAME', visual_mesh_path.split('/')[-1])
-            model_text = model_text.replace('$MATERIAL_NAME', texture_mesh_path.split('/')[-1])
+            model_text = model_text.replace('$MATERIAL_NAME', model_name + '.material')
             model_text = model_text.replace("$MASS", mass_text)
             model_text = model_text.replace("$COM_POSE", com_text)
             model_text = model_text.replace("$IXX", str(inertia[0][0]))
