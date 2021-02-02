@@ -2,7 +2,7 @@
 import pymeshlab
 import os
 
-dataset = 'ycb'
+dataset = 'bigbird'
 
 objects_raw_folder = '/home/vm/object_datasets/objects_raw'
 
@@ -29,17 +29,18 @@ if __name__ == "__main__":
     elif dataset == 'bigbird':
         i = 0
         #for model_name in folder_names:
-        for i in range(86, 300):
+        for i in range(0, 300):
             #i += 1
             model_name = folder_names[i]
             print('processing model: ' + model_name + '. Iteration: ' + str(i))
             mesh_load_path = os.path.join(objects_raw_folder, model_name, model_name, 'meshes',
-                                          'poisson.ply')
+                                          'tsdf.ply')
             mesh_save_path = os.path.join(objects_raw_folder, model_name, model_name, 'meshes',
                                           model_name + '_250_collision.obj')
 
             ms.load_new_mesh(mesh_load_path)
 
+            ms.apply_filter('convex_hull')
             ms.apply_filter('simplification_quadric_edge_collapse_decimation',
                             targetfacenum=250,
                             preservetopology=False)

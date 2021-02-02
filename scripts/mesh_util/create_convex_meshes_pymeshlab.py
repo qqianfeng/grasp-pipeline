@@ -2,7 +2,7 @@
 import pymeshlab
 import os
 
-dataset = 'ycb'
+dataset = 'bigbird'
 
 objects_raw_folder = '/home/vm/object_datasets/objects_raw'
 
@@ -25,11 +25,11 @@ if __name__ == "__main__":
 
     elif dataset == 'bigbird':
         #for model_name in folder_names:
-        for i in range(40, 300):
+        for i in range(0, 300):
             model_name = folder_names[i]
             print('processing model: ' + model_name + '. Iteration: ' + str(i))
             mesh_load_path = os.path.join(objects_raw_folder, model_name, model_name, 'meshes',
-                                          'poisson.ply')
+                                          'tsdf.ply')
             mesh_save_path = os.path.join(objects_raw_folder, model_name, model_name, 'meshes',
                                           model_name + '_convex_hull.obj')
 

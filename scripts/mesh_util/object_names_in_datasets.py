@@ -1,29 +1,3 @@
-YCB_OBJECTS_FULL = [
-    "001_chips_can", "002_master_chef_can", "003_cracker_box", "004_sugar_box",
-    "005_tomato_soup_can", "006_mustard_bottle", "007_tuna_fish_can", "008_pudding_box",
-    "009_gelatin_box", "010_potted_meat_can", "011_banana", "012_strawberry", "013_apple",
-    "014_lemon", "015_peach", "016_pear", "017_orange", "018_plum", "019_pitcher_base",
-    "021_bleach_cleanser", "022_windex_bottle", "023_wine_glass", "024_bowl", "025_mug",
-    "026_sponge", "027-skillet", "028_skillet_lid", "029_plate", "030_fork", "031_spoon",
-    "032_knife", "033_spatula", "035_power_drill", "036_wood_block", "037_scissors", "038_padlock",
-    "039_key", "040_large_marker", "041_small_marker", "042_adjustable_wrench",
-    "043_phillips_screwdriver", "044_flat_screwdriver", "046_plastic_bolt", "047_plastic_nut",
-    "048_hammer", "049_small_clamp", "050_medium_clamp", "051_large_clamp",
-    "052_extra_large_clamp", "053_mini_soccer_ball", "054_softball", "055_baseball",
-    "056_tennis_ball", "057_racquetball", "058_golf_ball", "059_chain", "061_foam_brick",
-    "062_dice", "063-a_marbles", "063-b_marbles", "063-c_marbles", "063-d_marbles",
-    "063-e_marbles", "063-f_marbles", "065-a_cups", "065-b_cups", "065-c_cups", "065-d_cups",
-    "065-e_cups", "065-f_cups", "065-g_cups", "065-h_cups", "065-i_cups", "065-j_cups",
-    "070-a_colored_wood_blocks", "070-b_colored_wood_blocks", "071_nine_hole_peg_test",
-    "072-a_toy_airplane", "072-b_toy_airplane", "072-c_toy_airplane", "072-d_toy_airplane",
-    "072-e_toy_airplane", "072-f_toy_airplane", "072-g_toy_airplane", "072-h_toy_airplane",
-    "072-i_toy_airplane", "072-j_toy_airplane", "072-k_toy_airplane", "073-a_lego_duplo",
-    "073-b_lego_duplo", "073-c_lego_duplo", "073-d_lego_duplo", "073-e_lego_duplo",
-    "073-f_lego_duplo", "073-g_lego_duplo", "073-h_lego_duplo", "073-i_lego_duplo",
-    "073-j_lego_duplo", "073-k_lego_duplo", "073-l_lego_duplo", "073-m_lego_duplo", "076_timer",
-    "077_rubiks_cube"
-]
-
 YCB_OBJECTS = [
     "001_chips_can", "002_master_chef_can", "003_cracker_box", "004_sugar_box",
     "005_tomato_soup_can", "006_mustard_bottle", "007_tuna_fish_can", "008_pudding_box",
@@ -47,7 +21,7 @@ YCB_OBJECTS = [
     "073-k_lego_duplo", "073-l_lego_duplo", "073-m_lego_duplo", "076_timer", "077_rubiks_cube"
 ]
 
-BIG_BIRD_OBJECTS = [
+BIGBIRD_OBJECTS = [
     '3m_high_tack_spray_adhesive', 'advil_liqui_gels', 'aunt_jemima_original_syrup',
     'bai5_sumatra_dragonfruit', 'band_aid_clear_strips', 'band_aid_sheer_strips',
     'blue_clover_baby_toy', 'bumblebee_albacore', 'campbells_chicken_noodle_soup',
@@ -97,7 +71,7 @@ BIG_BIRD_OBJECTS = [
     'vo5_tea_therapy_healthful_green_tea_smoothing_shampoo',
     'white_rain_sensations_apple_blossom_hydrating_body_wash',
     'white_rain_sensations_ocean_mist_hydrating_body_wash',
-    'white_rain_sensations_ocean_mist_hydrating_conditioner', 'windex', 'zilla_night_black_heat'
+    'white_rain_sensations_ocean_mist_hydrating_conditioner', 'zilla_night_black_heat'
 ]
 
 KIT_OBJECTS = [
@@ -125,19 +99,32 @@ KIT_OBJECTS = [
     'WhippedCream2', 'WhippedCream', 'WhiteCup', 'Wineglass', 'YellowSaltCube2', 'YellowSaltCube',
     'YellowSaltCylinderSmall', 'YellowSaltCylinder'
 ]
-#print(len(YCB_OBJECTS + KIT_OBJECTS + BIG_BIRD_OBJECTS))
 
-# import os
+YCB_OBJECTS_FULL = [
+    "001_chips_can", "002_master_chef_can", "003_cracker_box", "004_sugar_box",
+    "005_tomato_soup_can", "006_mustard_bottle", "007_tuna_fish_can", "008_pudding_box",
+    "009_gelatin_box", "010_potted_meat_can", "011_banana", "012_strawberry", "013_apple",
+    "014_lemon", "015_peach", "016_pear", "017_orange", "018_plum", "019_pitcher_base",
+    "021_bleach_cleanser", "022_windex_bottle", "023_wine_glass", "024_bowl", "025_mug",
+    "026_sponge", "027-skillet", "028_skillet_lid", "029_plate", "030_fork", "031_spoon",
+    "032_knife", "033_spatula", "035_power_drill", "036_wood_block", "037_scissors", "038_padlock",
+    "039_key", "040_large_marker", "041_small_marker", "042_adjustable_wrench",
+    "043_phillips_screwdriver", "044_flat_screwdriver", "046_plastic_bolt", "047_plastic_nut",
+    "048_hammer", "049_small_clamp", "050_medium_clamp", "051_large_clamp",
+    "052_extra_large_clamp", "053_mini_soccer_ball", "054_softball", "055_baseball",
+    "056_tennis_ball", "057_racquetball", "058_golf_ball", "059_chain", "061_foam_brick",
+    "062_dice", "063-a_marbles", "063-b_marbles", "063-c_marbles", "063-d_marbles",
+    "063-e_marbles", "063-f_marbles", "065-a_cups", "065-b_cups", "065-c_cups", "065-d_cups",
+    "065-e_cups", "065-f_cups", "065-g_cups", "065-h_cups", "065-i_cups", "065-j_cups",
+    "070-a_colored_wood_blocks", "070-b_colored_wood_blocks", "071_nine_hole_peg_test",
+    "072-a_toy_airplane", "072-b_toy_airplane", "072-c_toy_airplane", "072-d_toy_airplane",
+    "072-e_toy_airplane", "072-f_toy_airplane", "072-g_toy_airplane", "072-h_toy_airplane",
+    "072-i_toy_airplane", "072-j_toy_airplane", "072-k_toy_airplane", "073-a_lego_duplo",
+    "073-b_lego_duplo", "073-c_lego_duplo", "073-d_lego_duplo", "073-e_lego_duplo",
+    "073-f_lego_duplo", "073-g_lego_duplo", "073-h_lego_duplo", "073-i_lego_duplo",
+    "073-j_lego_duplo", "073-k_lego_duplo", "073-l_lego_duplo", "073-m_lego_duplo", "076_timer",
+    "077_rubiks_cube"
+]
 
-# base_path = '/home/vm/object_datasets/kit/'
-# ogre = '/home/vm/object_datasets/OgreObjectModelsScaled/'
-# l = sorted(os.listdir(ogre))
-# model_names = []
-# for i in range(len(l)):
-#     if i % 3 == 0:
-#         model_names.append(l[i].split('_')[0])
+print("Total number of objects: " + str(len(YCB_OBJECTS + KIT_OBJECTS + BIGBIRD_OBJECTS)))
 
-# print model_names
-
-# for obj in KIT_OBJECTS:
-#     os.mkdir(base_path + obj)
