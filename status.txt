@@ -298,7 +298,17 @@ Interesting for grasp impedance adaptation
 			- 3. collision mesh
 	- [Finding 1] Apply extra transformation to inertia tensor. Hithand model inertia tensor might be incorrect:
 		- trimesh cant work with dae. Maybe convert hithand models to stl/obj and then try inertia transformation (priority is medium to low):
+
 01.2.21
 - [Task 1] Finish mesh preparation , prepare_objects_gazebo kit dataset      [CHECK]
+	- [Finding 1] KIT need roll of 1.57 to be upright
+	- [Finding 2] Material does not look correct
 - [Task 2] Finish data acquisition pipeline to be able to do everything:
            from spawning an object to recording data:
+- [Task 3] Find good camera real pose:
+	- D415 works much better than D455
+	- x-y-z should be 0.4 - 0.65 - 0.35
+- [Task 4] Setup second machine in the office:
+- [Task 5] Integrate D415 model into Gazebo, replace D435
+
+
