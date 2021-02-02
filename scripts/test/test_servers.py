@@ -74,7 +74,7 @@ class ServerUnitTester():
         pose_array = [r, p, y, x_p, y_p, z_p]
         return pose_array
 
-    def parallel_execute_functions(*functions):
+    def parallel_execute_functions(self, *functions):
         """ Run functions in parallel
         """
         from multiprocessing import Process
@@ -455,55 +455,55 @@ if __name__ == '__main__':
     prev_time = time.time()
     a = True
     while (a):
-        a = False
-        # Test record grasp tat
+        #a = False
+        # Test record grasp data
         sut.test_record_grasp_data_server()
-        # # Reset
-        # print("Whole pipeline took: " + str(time.time() - prev_time))
-        # prev_time = time.time()
-        # sut.reset_panda_and_hithand()
+        # Reset
+        print("Whole pipeline took: " + str(time.time() - prev_time))
+        prev_time = time.time()
+        sut.reset_panda_and_hithand()
 
-        # # Test random object pose
-        # sut.test_generate_random_object_pose_for_experiment()
+        # Test random object pose
+        sut.test_generate_random_object_pose_for_experiment()
 
-        # # Test spawning and deleting of objects
-        # sut.test_manage_gazebo_scene_server(object_name, object_model_name, dataset, model_type)
+        # Test spawning and deleting of objects
+        sut.test_manage_gazebo_scene_server(object_name, object_model_name, dataset, model_type)
 
-        # # Test visual data save server
-        # sut.test_save_visual_data_server()
+        # Test visual data save server
+        sut.test_save_visual_data_server()
 
-        # # Test update moveit scene server
-        # sut.test_update_moveit_scene_server()
+        # Test update moveit scene server
+        sut.test_update_moveit_scene_server()
 
-        # # Test display saved point cloud
-        # #sut.test_display_saved_pcd(sut.scene_pcd_path)
+        # Test display saved point cloud
+        #sut.test_display_saved_pcd(sut.scene_pcd_path)
 
-        # # Test object segmentation
-        # sut.test_segment_object_server()
+        # Test object segmentation
+        sut.test_segment_object_server()
 
-        # # Test display saved point cloud
-        # # sut.test_display_saved_pcd(sut.object_pcd_path)
+        # Test display saved point cloud
+        # sut.test_display_saved_pcd(sut.object_pcd_path)
 
-        # # Test hithand preshape generation server
-        # sut.test_generate_hithand_preshape_server()
+        # Test hithand preshape generation server
+        sut.test_generate_hithand_preshape_server()
 
-        # # get new position and go there
-        # sut.test_choose_specific_grasp_preshape('unspecified')
-        # # Try to find a trajectory
-        # moveit_result = False
-        # while (not moveit_result):
-        #     moveit_result = sut.test_plan_arm_trajectory_server()
+        # get new position and go there
+        sut.test_choose_specific_grasp_preshape('unspecified')
+        # Try to find a trajectory
+        moveit_result = False
+        while (not moveit_result):
+            moveit_result = sut.test_plan_arm_trajectory_server()
 
-        # sut.test_execute_joint_trajectory_server(smoothen_trajectory=True)
+        sut.test_execute_joint_trajectory_server(smoothen_trajectory=True)
 
-        # input = raw_input("Grasp and lift? Press y/n: ")
-        # if input == 'y':
-        #     # try to grasp the object
-        #     sut.test_grasp_control_hithand_server()
-        #     # try to lift the object
-        #     sut.lift_object()
+        input = raw_input("Grasp and lift? Press y/n: ")
+        if input == 'y':
+            # try to grasp the object
+            sut.test_grasp_control_hithand_server()
+            # try to lift the object
+            sut.lift_object()
 
-        # sut.test_record_grasp_data_server()
+        sut.test_record_grasp_data_server()
 
     # # Test hithand control preshape/config
     # sut.test_control_hithand_config_server(hithand_joint_states)
