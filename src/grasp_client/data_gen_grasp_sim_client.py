@@ -20,7 +20,7 @@ class MetaDataHandler():
         """ Iterates through all objects in all datasets and returns object_metadata. Gives a new object each time it is called.
         """
         # When this is called a new object is requested
-        self.object_ix += 1
+        self.object_ix += 4
 
         # Check if we are past the last object of the dataset. If so take next dataset
         if self.object_ix == len(self.datasets[self.dataset_ix]):
@@ -28,8 +28,6 @@ class MetaDataHandler():
             self.dataset_ix += 1
             if self.dataset_ix == 3:
                 self.dataset_ix = 0
-        else:
-            self.object_ix += 1
 
         # Set some relevant variables
         curr_dataset = self.datasets[self.dataset_ix]
@@ -37,12 +35,13 @@ class MetaDataHandler():
         object_name = curr_dataset[self.object_ix]
         curr_object_path = os.path.join(self.gazebo_objects_path, curr_dataset_name, object_name)
         files = os.listdir(curr_object_path)
-        collision_mesh = [s for s in files if "collision" in s]
+        collision_mesh = [s for s in files if "collision" in s][0]
 
         # Create the final metadata dict to return
         object_metadata = dict()
         object_metadata["name"] = object_name
-        object_metadata["mesh_path"] = os.path.join(curr_object_path, collision_mesh)
+        object_metadata["model_file"] = os.path.join(curr_object_path, object_name + '.sdf')
+        object_metadata["collision_mesh_path"] = os.path.join(curr_object_path, collision_mesh)
         object_metadata["dataset"] = curr_dataset
         object_metadata["pose_world"] = None
 
