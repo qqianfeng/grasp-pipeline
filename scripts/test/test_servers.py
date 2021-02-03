@@ -97,17 +97,20 @@ class ServerUnitTester():
         object_pose_stamped = self.get_pose_stamped_from_array(object_pose)
         self.spawned_object_pose = object_pose_stamped
 
-    def test_manage_gazebo_scene_server(self, object_name, object_model_name, dataset, model_type):
+    def test_manage_gazebo_scene_server(self, object_name, object_model_file, model_type='sdf'):
         self.test_count += 1
         start_time = time.time()
         print('Running test_manage_gazebo_scene_server, test number %d' % self.test_count)
         update_gazebo_object = rospy.ServiceProxy('update_gazebo_object', UpdateObjectGazebo)
         object_pose_array = self.get_pose_array_from_stamped(self.spawned_object_pose)
-
-        res = update_gazebo_object(object_name, object_pose_array, object_model_name, model_type,
-                                   dataset)
-        self.spawned_object_mesh_path = self.object_datasets_folder + '/' + dataset + \
-            '/models/' + object_model_name + '/google_16k/downsampled.stl'
+        req = UpdateObjectGazeboRequest()
+        req.object_name = object_name
+        req.object_model_file = object_model_file
+        req.object_pose_array = object_pose_array
+        req.model_type = model_type
+        res = update_gazebo_object(req)
+        self.spawned_object_mesh_path = self.object_datasets_folder + '/' + 'ycb' + \
+            '/models/' + object_name + '/google_16k/downsampled.stl'
         self.spawned_object_name = object_name
         result = 'SUCCEEDED' if res else 'FAILED'
         print(result + ' after: ' + str(time.time() - start_time))
@@ -436,14 +439,12 @@ if __name__ == '__main__':
     # +++ Define variables for testing +++
     # ++++++++++++++++++++++++++++++++++++
     # Test spawn/delete Gazebo
-    object_name = 'mustard_bottle'
-    object_model_name = '006_mustard_bottle'
-    model_type = 'sdf'
-    dataset = 'ycb'
+    object_name = '006_mustard_bottle'
+    model_file = '/home/vm/object_datasets/objects_gazebo/ycb/006_mustard_bottle/006_mustard_bottle.sdf'
     # Test create_moveit_scene
     datasets_base_path = '/home/vm/object_datasets'
-    object_mesh_path = datasets_base_path + '/' + dataset + \
-        '/models/' + object_model_name + '/google_16k/downsampled.stl'
+    object_mesh_path = datasets_base_path + '/' + 'ycb'+ \
+        '/models/' + object_name + '/google_16k/downsampled.stl'
     # Test control_hithand_config
     hithand_joint_states = JointState()
     hithand_joint_states.position = [0.2] * 20
@@ -457,7 +458,7 @@ if __name__ == '__main__':
     while (a):
         #a = False
         # Test record grasp data
-        sut.test_record_grasp_data_server()
+        #sut.test_record_grasp_data_server()
         # Reset
         print("Whole pipeline took: " + str(time.time() - prev_time))
         prev_time = time.time()
@@ -467,7 +468,7 @@ if __name__ == '__main__':
         sut.test_generate_random_object_pose_for_experiment()
 
         # Test spawning and deleting of objects
-        sut.test_manage_gazebo_scene_server(object_name, object_model_name, dataset, model_type)
+        sut.test_manage_gazebo_scene_server(object_name, model_file)
 
         # Test visual data save server
         sut.test_save_visual_data_server()
