@@ -14,7 +14,6 @@ class GazeboSceneManager():
         rospy.init_node('manage_gazebo_scene_server')
         rospy.loginfo('Node: manage_gazebo_scene_server')
         self.prev_object_model_name = None
-        self.object_datasets_folder = rospy.get_param('object_datasets_folder') + '/'
 
     def delete_object(self, object_model_name):
         try:
@@ -30,12 +29,10 @@ class GazeboSceneManager():
             return
         self.delete_object(self.prev_object_model_name)
 
-    def spawn_object(self, object_name, object_model_name, object_pose_array, model_type, dataset):
+    def spawn_object(self, object_name, object_model_file, object_pose_array, model_type):
         rospy.wait_for_service('/gazebo/spawn_' + model_type + '_model')
         try:
-            with open(
-                    self.object_datasets_folder + dataset + '/models/' + object_model_name + '/' +
-                    object_name + '.' + model_type, 'r') as f:
+            with open(object_model_file, 'r') as f:
                 model_file = f.read()
             quaternion = quaternion_from_euler(object_pose_array[0], object_pose_array[1],
                                                object_pose_array[2])
@@ -47,20 +44,20 @@ class GazeboSceneManager():
             initial_pose.orientation.y = quaternion[1]
             initial_pose.orientation.z = quaternion[2]
             initial_pose.orientation.w = quaternion[3]
-            rospy.loginfo('Spawning model: ' + object_model_name)
+            rospy.loginfo('Spawning model: ' + object_name)
             spawn_model = rospy.ServiceProxy('/gazebo/spawn_' + model_type + '_model', SpawnModel)
-            spawn_model(object_model_name, model_file, '', initial_pose, 'world')
-            self.prev_object_model_name = object_model_name
+            spawn_model(object_name, model_file, '', initial_pose, 'world')
+            self.prev_object_model_name = object_name
         except rospy.ServiceException as e:
             print "Service call failed: %s" % e
 
     def handle_update_gazebo_object(self, req):
         print("RECEIVED REQUEST")
         print(req)
-        self.delete_prev_object(req.object_model_name)
+        self.delete_prev_object(req.object_name)
         rospy.sleep(1)
-        self.spawn_object(req.object_name, req.object_model_name, req.object_pose_array,
-                          req.model_type, req.dataset)
+        self.spawn_object(req.object_name, req.object_model_file, req.object_pose_array,
+                          req.model_type)
 
         response = UpdateObjectGazeboResponse()
         response.success = True
