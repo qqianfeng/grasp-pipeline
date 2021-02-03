@@ -109,7 +109,7 @@ class VisualDataSaver():
             colors = np.array([colors])
             pcd_o3d.colors = o3d.utility.Vector3dVector(np.tile(colors.T, (1, 3)))
             print("Ros numpy took: " + str(time.time() - start))
-            #self.draw_pcd(pcd_o3d)
+            self.draw_pcd(pcd_o3d)
             self.save_pcd(pcd_o3d, req.scene_pcd_save_path)
 
         ####### Handle depth and color ##########
@@ -137,7 +137,7 @@ class VisualDataSaver():
         self.save_color_img(color_img, req.color_img_save_path)
 
         response = SaveVisualDataResponse()
-        response.save_visual_data_success = True
+        response.success = True
         return response
 
     def create_save_visual_data_service(self):
@@ -146,7 +146,7 @@ class VisualDataSaver():
         rospy.loginfo('Ready to save your awesome visual data.')
 
 
-DEBUG = True
+DEBUG = False
 
 if __name__ == "__main__":
     Saver = VisualDataSaver()

@@ -6,4 +6,4 @@ string scene_pcd_save_path
 string depth_img_save_path
 string color_img_save_path
 ---
-bool save_visual_data_success
+bool success
