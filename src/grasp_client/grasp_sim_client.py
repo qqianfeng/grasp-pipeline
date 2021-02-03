@@ -48,6 +48,7 @@ class GraspClient():
         self.panda_planned_joint_trajectory = None
         self.smooth_trajectories = True
         self.num_of_replanning_attempts = 5
+        self.num_poses = 50
 
         self.object_lift_height = 0.15  # Lift the object 15 cm
 
@@ -147,7 +148,10 @@ class GraspClient():
         elif grasp_type == 'top':
             rand_int = np.random.randint(0, len(top_grasp_idxs))
             grasp_idx = side_grasp_idxs[rand_int]
+        print('Chosen grasp_idx is: ' + str(grasp_idx))
+        print('Chosen palm pose is: ')
         self.chosen_palm_pose = self.heuristic_preshapes.palm_goal_pose_world[grasp_idx]
+        print(self.chosen_palm_pose)
         self.chosen_hithand_joint_state = self.heuristic_preshapes.hithand_joint_state[grasp_idx]
         self.chosen_is_top_grasp = self.heuristic_preshapes.is_top_grasp[grasp_idx]
 
@@ -208,7 +212,7 @@ class GraspClient():
     def grasp_control_hithand_client(self):
         """ Call server to close hithand fingers and stop when joint velocities are close to zero.
         """
-        wait_for_service('gras_control_hithand')
+        wait_for_service('grasp_control_hithand')
         try:
             grasp_control_hithand = rospy.ServiceProxy('grasp_control_hithand', GraspControl)
             req = GraspControlRequest()
@@ -273,9 +277,6 @@ class GraspClient():
         try:
             save_visual_data = rospy.ServiceProxy('save_visual_data', SaveVisualData)
             req = SaveVisualDataRequest()
-            req.color_img = self.color_img
-            req.depth_img = self.depth_img
-            req.scene_pcd = self.pcd
             req.color_img_save_path = self.color_img_save_path
             req.depth_img_save_path = self.depth_img_save_path
             req.scene_pcd_save_path = self.scene_pcd_save_path
@@ -302,7 +303,7 @@ class GraspClient():
             update_moveit_scene = rospy.ServiceProxy('update_moveit_scene', ManageMoveitScene)
             # print(self.spawned_object_mesh_path)
             req = ManageMoveitSceneRequest()
-            req.object_mesh_path = self.spawned_object_mesh_path
+            req.object_mesh_path = self.object_metadata["collision_mesh_path"]
             req.object_pose_world = self.object_pose_stamped
             self.update_scene_response = update_moveit_scene(req)
         except rospy.ServiceException, e:
@@ -313,13 +314,16 @@ class GraspClient():
     def update_gazebo_object_client(self):
         """Gazebo management client, deletes previous object and spawns new object
         """
-        raise NotImplementedError
         wait_for_service('update_gazebo_object')
         object_pose_array = get_pose_array_from_stamped(self.object_pose_stamped)
         try:
             update_gazebo_object = rospy.ServiceProxy('update_gazebo_object', UpdateObjectGazebo)
-            res = update_gazebo_object(object_name, object_pose_array, object_model_name,
-                                       model_type, dataset)
+            req = UpdateObjectGazeboRequest()
+            req.object_name = self.object_metadata["name"]
+            req.object_model_file = self.object_metadata["model_file"]
+            req.object_pose_array = object_pose_array
+            req.model_type = 'sdf'
+            res = update_gazebo_object(req)
         except rospy.ServiceException, e:
             rospy.loginfo('Service update_gazebo_object call failed: %s' % e)
         rospy.loginfo('Service update_gazebo_object is executed %s.' % str(res))
@@ -382,23 +386,31 @@ class GraspClient():
 
     def grasp_and_lift_object(self):
         # Control the hithand to it's preshape
-        self.control_hithand_config_client()
+        #self.control_hithand_config_client()
 
         # Generate a robot trajectory to move to desired pose
         moveit_plan_exists = self.plan_arm_trajectory_client()
-        if not moveit_plan_exists:
-            for i in range(self.num_of_replanning_attempts):
-                moveit_plan_exists = self.plan_arm_trajectory_client()
-                if moveit_plan_exists:
-                    rospy.loginfo("Found valid moveit plan after %d tries." % i + 1)
-                    break
+        for j in range(self.num_poses):
+            if moveit_plan_exists:
+                break
+            self.choose_specific_grasp_preshape(grasp_type='unspecified')
+            if not moveit_plan_exists:
+                for i in range(self.num_of_replanning_attempts):
+                    moveit_plan_exists = self.plan_arm_trajectory_client()
+                    if moveit_plan_exists:
+                        rospy.loginfo("Found valid moveit plan after " + str(i + 1) + " tries")
+                        break
         # Possibly trajectory/pose needs an extra validity check or smth like that
-
+        if not moveit_plan_exists:
+            rospy.loginfo("No moveit plan could be found")
+            return
         # Execute the generated joint trajectory
         self.execute_joint_trajectory_client(smoothen_trajectory=self.smooth_trajectories)
 
-        # Close the hand
-        self.grasp_control_hithand_client()
+        letter = raw_input("Grasp object? Y/n: ")
+        if letter == 'y' or letter == 'Y':
+            # Close the hand
+            self.grasp_control_hithand_client()
 
         # Save visual data after hand is closed
         self.save_only_depth_and_color(grasp_phase='during')
