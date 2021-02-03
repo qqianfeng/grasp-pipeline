@@ -105,7 +105,6 @@ class HithandGraspController():
             '/hithand/joint_states', JointState, self.cb_update_curr_pos, tcp_nodelay=True
         )  # Setting tcp_nodelay true is crucial otherwise the callback won't be executed at 100Hz
         needs_reset = self.verify_hithand_needs_reset()
-        joint_states_sub.unregister()
         # Only command reset position if not in reset position already
         if needs_reset:
             reset_state = JointState()
@@ -114,6 +113,8 @@ class HithandGraspController():
             while self.verify_hithand_needs_reset() and (time.time() - start) < 5:
                 self.joint_command_pub.publish(reset_state)
                 rospy.sleep(0.1)
+
+        joint_states_sub.unregister()
 
         res = SetBoolResponse()
         res.success = True

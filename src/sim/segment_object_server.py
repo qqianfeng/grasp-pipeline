@@ -211,16 +211,16 @@ class ObjectSegmenter():
         # compute normals of object
         object_pcd.estimate_normals(
             search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.2, max_nn=50))
-        if DEBUG:
-            self.custom_draw_object(object_pcd, object_bounding_box, True)
+
+        self.custom_draw_object(object_pcd, object_bounding_box, True)
 
         # orient normals towards camera
         rospy.loginfo('Orienting normals towards this location:')
         rospy.loginfo(self.world_t_cam)
         object_pcd.orient_normals_towards_camera_location(self.world_t_cam)
         print("Original scene point cloud reference frame assumed as: " + str(self.pcd_frame))
-        if DEBUG:
-            self.visualize_normals(object_pcd)
+
+        self.visualize_normals(object_pcd)
 
         # Draw object, bounding box and colored corners
         if DEBUG:
