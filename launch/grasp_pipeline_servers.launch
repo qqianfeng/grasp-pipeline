@@ -4,7 +4,7 @@
     <!-- +++++++NOTE: The different paths in the args must be modified for your machine. ++++++++ -->
     <arg name="sim"                     default="true"/>
     <arg name="object_datasets_folder"  default="/home/vm/object_datasets"/>
-    <arg name="object_pcd_path"          default="/home/vm/object.pcd"/>
+    <arg name="object_pcd_path"         default="/home/vm/object.pcd"/>
     <arg name="scene_pcd_path"          default="/home/vm/scene.pcd"/>
     <arg name="color_img_save_path"     default="/home/vm/scene.ppm"/>
     <arg name="depth_img_save_path"     default="/home/vm/depth.pgm"/>
@@ -23,9 +23,6 @@
     <param name="depth_img_topic"         value="$(arg depth_img_topic)"        type="string" />   
 
     <!-- +++++++++++++++++++++++++++++++++++++++++++++++++++ -->
-    <!-- Publish the paths of scene and object point cloud-->
-    <node name="point_cloud_save_publisher_node" pkg="grasp_pipeline" type="publish_point_cloud_save_path.py" output="screen"/>
-
 
     <!-- Manage moveit scene -->
     <node name="manage_moveit_scene_node" pkg="grasp_pipeline"
