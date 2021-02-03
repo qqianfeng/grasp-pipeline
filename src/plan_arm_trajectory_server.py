@@ -89,7 +89,7 @@ class CartesianPoseMoveitPlanner():
             rospy.loginfo("No plan for going home could be found.")
             res.success = False
             return res
-        if len(plan.joint_trajectory.points) > 0:
+        if len(plan.joint_trajectory.points) == 0:
             rospy.loginfo("Panda is already in home position, no need to reset.")
             res.success = False
         else:
