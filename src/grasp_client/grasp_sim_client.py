@@ -4,6 +4,7 @@ from geometry_msgs.msg import PoseStamped
 import tf.transformations as tft
 from grasp_pipeline.srv import *
 from sensor_msgs.msg import JointState
+from gazebo_msgs.srv import GetModelState, GetModelStateRequest
 import sys
 sys.path.append('..')
 from utils import wait_for_service, get_pose_stamped_from_array, get_pose_array_from_stamped
@@ -50,7 +51,10 @@ class GraspClient():
         self.num_of_replanning_attempts = 5
         self.num_poses = 50
 
-        self.object_lift_height = 0.15  # Lift the object 15 cm
+        self.object_lift_height = 0.2  # Lift the object 15 cm
+        self.success_tolerance_lift_height = 0.05
+        self.grasp_obj_from_seg_server = None
+        self.grasp_label = None
 
     # +++++++ PART I: First part are all the "helper functions" w/o interface to any other nodes/services ++++++++++
 
@@ -151,6 +155,7 @@ class GraspClient():
         print('Chosen grasp_idx is: ' + str(grasp_idx))
         print('Chosen palm pose is: ')
         self.chosen_palm_pose = self.heuristic_preshapes.palm_goal_pose_world[grasp_idx]
+        self.chosen_grasp_idx = grasp_idx
         print(self.chosen_palm_pose)
         self.chosen_hithand_joint_state = self.heuristic_preshapes.hithand_joint_state[grasp_idx]
         self.chosen_is_top_grasp = self.heuristic_preshapes.is_top_grasp[grasp_idx]
@@ -203,11 +208,31 @@ class GraspClient():
             generate_hithand_preshape = rospy.ServiceProxy('generate_hithand_preshape',
                                                            GraspPreshape)
             req = GraspPreshapeRequest()
+            if self.grasp_obj_from_seg_server is not None:
+                req.object = self.grasp_obj_from_seg_server
+            else:
+                raise Exception(
+                    "grasp_obj_from_seg_server attribute is None. Should hold information about grasp object. Call segemtation server first."
+                )
             req.sample = True
             self.heuristic_preshapes = generate_hithand_preshape(req)
         except rospy.ServiceException, e:
             rospy.loginfo('Service generate_hithand_preshape call failed: %s' % e)
         rospy.loginfo('Service generate_hithand_preshape is executed.')
+
+    def get_grasp_object_pose_client(self):
+        """ Get the current pose of the grasp object from Gazebo.
+        """
+        wait_for_service('gazebo/get_model_state')
+        try:
+            get_model_state = rospy.ServiceProxy('gazebo/get_model_state', GetModelState)
+            req = GetModelStateRequest()
+            req.model_name = self.object_metadata["name"]
+            res = get_model_state(req)
+        except rospy.ServiceException, e:
+            rospy.loginfo('Service grasp_control_hithand call failed: %s' % e)
+        rospy.loginfo('Service grasp_control_hithand is executed.')
+        return res.pose
 
     def grasp_control_hithand_client(self):
         """ Call server to close hithand fingers and stop when joint velocities are close to zero.
@@ -234,7 +259,7 @@ class GraspClient():
                 req.palm_goal_pose_world = place_goal_pose
             else:
                 req.palm_goal_pose_world = self.chosen_palm_pose
-                res = moveit_cartesian_pose_planner(req)
+            res = moveit_cartesian_pose_planner(req)
         except rospy.ServiceException, e:
             rospy.loginfo('Service plan_arm_trajectory call failed: %s' % e)
         rospy.loginfo('Service plan_arm_trajectory is executed %s.' % str(res.success))
@@ -293,6 +318,7 @@ class GraspClient():
             req.scene_pcd_path = self.scene_pcd_save_path
             req.object_pcd_path = self.object_pcd_save_path
             res = segment_object(req)
+            self.grasp_obj_from_seg_server = res.object
         except rospy.ServiceException, e:
             rospy.loginfo('Service segment_object call failed: %s' % e)
         rospy.loginfo('Service segment_object is executed.')
@@ -330,6 +356,22 @@ class GraspClient():
         return res.success
 
     # ++++++++ PART III: The third part consists of all the main logic/orchestration of Parts I and II ++++++++++++
+    def label_grasp(self):
+        object_pose = self.get_grasp_object_pose_client()
+        object_pos_delta_z = np.abs(object_pose.position.z -
+                                    self.object_pose_stamped.pose.position.z)
+        if object_pos_delta_z > (self.object_lift_height - self.success_tolerance_lift_height):
+            self.grasp_label = 1
+        else:
+            self.grasp_label = 0
+
+        rospy.loginfo("The grasp label is: " + str(self.grasp_label))
+
+    def remove_unreachable_pose(self):
+        del self.heuristic_preshapes.palm_goal_pose_world[self.chosen_grasp_idx]
+        del self.heuristic_preshapes.hithand_joint_state[self.chosen_grasp_idx]
+        del self.heuristic_preshapes.is_top_grasp[self.chosen_grasp_idx]
+
     def reset_hithand_and_panda(self):
         self.reset_hithand_joints_client()
         self.plan_reset_trajectory_client()
@@ -370,7 +412,7 @@ class GraspClient():
         """
         self.set_visual_data_save_paths(grasp_phase=grasp_phase)
         pcd_save_path_temp = self.scene_pcd_save_path
-        self.scene_pcd_save_path = None
+        self.scene_pcd_save_path = ''
         self.save_visual_data_client()
         self.scene_pcd_save_path = pcd_save_path_temp
 
@@ -393,6 +435,12 @@ class GraspClient():
         for j in range(self.num_poses):
             if moveit_plan_exists:
                 break
+            self.remove_unreachable_pose()
+            if len(self.heuristic_preshapes.palm_goal_pose) == 0:
+                rospy.loginfo(
+                    'All poses have been removed, because they were either executed or are not feasible'
+                )
+                return
             self.choose_specific_grasp_preshape(grasp_type='unspecified')
             if not moveit_plan_exists:
                 for i in range(self.num_of_replanning_attempts):
@@ -420,3 +468,6 @@ class GraspClient():
         lift_pose.pose.position.z += self.object_lift_height
         self.plan_arm_trajectory_client(place_goal_pose=lift_pose)
         self.execute_joint_trajectory_client(smoothen_trajectory=True)
+
+        # Evaluate success
+        self.label_grasp()
