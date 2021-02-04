@@ -87,7 +87,7 @@ class VisualDataSaver():
 
     def handle_visual_data_saver(self, req):
         ############ Handle PCD ###############
-        if req.scene_pcd_save_path is not None:
+        if req.scene_pcd_save_path is not '':
             if os.path.exists(req.scene_pcd_save_path):
                 os.remove(req.scene_pcd_save_path)
 
