@@ -3,13 +3,15 @@ import rospy
 from grasp_pipeline.srv import *
 import open3d as o3d
 import os
+import copy
 import time
 import numpy as np
 from scipy.spatial.transform import Rotation
 import copy
 from std_msgs.msg import Float64MultiArray
-from geometry_msgs.msg import PoseStamped, Pose
+from geometry_msgs.msg import PoseStamped, Pose, PointStamped
 from sensor_msgs.msg import PointCloud2
+from visualization_msgs.msg import MarkerArray, Marker
 import tf.transformations as tft
 import roslib.packages as rp
 pkg_path = rp.get_pkg_dir('grasp_pipeline')
@@ -39,6 +41,10 @@ class ObjectSegmenter():
             Float64MultiArray,
             latch=True,
             queue_size=1)
+        self.bounding_box_corner_vis_pub = rospy.Publisher('/box_corner_points',
+                                                           MarkerArray,
+                                                           queue_size=1,
+                                                           latch=True)
         self.tf_broadcaster_object_pose = tf.TransformBroadcaster()
 
         self.bounding_box_corner_points = None
@@ -139,6 +145,29 @@ class ObjectSegmenter():
                  self.object_pose.orientation.z, self.object_pose.orientation.w), rospy.Time.now(),
                 "object_pose", "world")
 
+    def publish_box_corner_points(self, points_stamped, color=(1., 0., 0.)):
+        markerArray = MarkerArray()
+        for i, pnt in enumerate(points_stamped):
+            marker = Marker()
+            marker.header.frame_id = pnt.header.frame_id
+            marker.type = marker.SPHERE
+            marker.action = marker.ADD
+            marker.scale.x = 0.03
+            marker.scale.y = 0.03
+            marker.scale.z = 0.03
+            marker.pose.orientation.w = 1.0
+            marker.color.a = 1.0
+            marker.color.r = color[0]
+            marker.color.g = color[1]
+            marker.color.b = color[2]
+
+            marker.pose.position.x = pnt.point.x
+            marker.pose.position.y = pnt.point.y
+            marker.pose.position.z = pnt.point.z
+            marker.id = i
+            markerArray.markers.append(marker)
+        self.bounding_box_corner_vis_pub.publish(markerArray)
+
     def handle_segment_object(self, req):
         print("handle_segment_object received the service call")
 
@@ -206,6 +235,16 @@ class ObjectSegmenter():
         self.bounding_box_corner_points = np.asarray(object_bounding_box.get_box_points())
         print(self.bounding_box_corner_points)
 
+        # Publish the bounding box corner points for visualization in Rviz
+        box_corners_world_frame = []
+        corner_stamped_world = PointStamped()
+        corner_stamped_world.header.frame_id = 'world'
+        for corner in self.bounding_box_corner_points:
+            corner_stamped_world.point.x = corner[0]
+            corner_stamped_world.point.y = corner[1]
+            corner_stamped_world.point.z = corner[2]
+            box_corners_world_frame.append(copy.deepcopy(corner_stamped_world))
+        self.publish_box_corner_points(box_corners_world_frame)
         #self.custom_draw_object(object_pcd, object_bounding_box)
 
         # compute normals of object
