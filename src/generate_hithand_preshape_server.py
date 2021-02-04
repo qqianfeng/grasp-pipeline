@@ -18,12 +18,13 @@ import open3d as o3d
 class BoundingBoxFace():
     """Simple class to store properties of a bounding box face.
     """
-    def __init__(self, center, orient_a, orient_b, height, width, is_top=False):
+    def __init__(self, color, center, orient_a, orient_b, size_a, size_b, is_top=False):
         self.center = np.array(center)
         self.orient_a = orient_a
         self.orient_b = orient_b
-        self.height = height
-        self.width = width
+        self.size_a = size_a
+        self.size_b = size_b
+        self.color = color
         self.is_top = is_top
 
 
@@ -39,8 +40,23 @@ class GenerateHithandPreshape():
         self.service_is_called = False
 
         self.bounding_box_center_pub = rospy.Publisher(
-            '/publish_box_points', MarkerArray, queue_size=1,
+            '/box_center_points', MarkerArray, queue_size=1,
             latch=True)  # publishes the bounding box center points
+        self.bounding_box_face_centers_pub = rospy.Publisher(
+            '/box_face_center_points', MarkerArray, queue_size=1,
+            latch=True)  # publishes the bounding box center points
+
+        self.colors = np.array([
+            [0, 0, 0],  #black,       left/front/up
+            [1, 0, 0],  #red          right/front/up
+            [0, 1, 0],  #green        left/front/down
+            [0, 0, 1],  #blue         left/back/up
+            [0.5, 0.5, 0.5],  #grey   right/back/down
+            [0, 1, 1],  # light blue   left/back/down
+            [1, 1, 0],  # yellow      right/back/up
+            [1, 0, 1],
+        ])
+
         self.tf_broadcaster_palm_poses = tf.TransformBroadcaster()
         # Get parameters from the ROS parameter server
         self.palm_dist_to_top_face_mean = rospy.get_param(
@@ -80,8 +96,8 @@ class GenerateHithandPreshape():
         # Set up the joint angle limits for sampling
         self.setup_joint_angle_limits()
 
-        self.palm_rand_pose_parameter_pos = 0.01
-        self.palm_rand_pose_parameter_orient = 1
+        self.palm_rand_pose_parameter_pos = 0.05
+        self.palm_rand_pose_parameter_orient = 0.05  # percentage of pi. 1 means sample +-180 degrees around initial palm pose
 
     # ++++++++++++++++++++++ PART I: Helper/initialization functions +++++++++++++++++++++++
     def setup_joint_angle_limits(self):
@@ -237,6 +253,30 @@ class GenerateHithandPreshape():
             markerArray.markers.append(marker)
         self.bounding_box_center_pub.publish(markerArray)
 
+    def publish_face_centers(self, points_stamped):
+        markerArray = MarkerArray()
+        for i, pnt in enumerate(points_stamped):
+            marker = Marker()
+            color = self.colors[i, :]
+            marker.header.frame_id = pnt.header.frame_id
+            marker.type = marker.SPHERE
+            marker.action = marker.ADD
+            marker.scale.x = 0.03
+            marker.scale.y = 0.03
+            marker.scale.z = 0.03
+            marker.pose.orientation.w = 1.0
+            marker.color.a = 1.0
+            marker.color.r = color[0]
+            marker.color.g = color[1]
+            marker.color.b = color[2]
+
+            marker.pose.position.x = pnt.point.x
+            marker.pose.position.y = pnt.point.y
+            marker.pose.position.z = pnt.point.z
+            marker.id = i
+            markerArray.markers.append(marker)
+        self.bounding_box_face_centers_pub.publish(markerArray)
+
     def visualize(self, points):
         pcd_vis = o3d.geometry.PointCloud()
         pcd_vis.points = o3d.utility.Vector3dVector(points)
@@ -320,8 +360,10 @@ class GenerateHithandPreshape():
 
         return sample_palm_pose
 
-    def sample_palm_orientation(self, object_point_normal, bounding_box_orientation_vector):
-        """ Sample the hand wrist roll uniformly. 
+    def find_full_palm_orientation(self, object_point_normal, bounding_box_orientation_vector):
+        """ Finds the full palm orientation py projecting the bounding box orientation vector 
+        (which gives the rough direction for the thumb, or more accurately the y-axis of the palm_link_hithand)
+        by projecting into into the tangent space of the object point normal. 
 
         For the palm frame, x: palm normal, y: thumb, z: middle finger
         """
@@ -363,9 +405,16 @@ class GenerateHithandPreshape():
             palm_position = bounding_box_face.center + palm_dist_top_in_normal_direction * top_face_normal
 
             # Part II: Compute vector to determine orientation of palm pose
-            bounding_box_orientation_vector = bounding_box_face.orient_a[:] + bounding_box_face.orient_b[:]
-            #if bounding_box_orientation_vector[1] > 0: # the y component should not be positive because the thumb will be roughly aligned with the
-            #    bb_orientation_vec = -bb_orientation_vec
+            # bounding_box_orientation_vector = bounding_box_face.orient_a[:] + bounding_box_face.orient_b[:]
+            # For our setup and with the chosen palm frame a successful top grasp should roughly align the palm link y axis (green in RViz) with the long side of the bounding box orientation vector
+            if bounding_box_face.size_a >= bounding_box_face.size_b:
+                bounding_box_orientation_vector = bounding_box_face.orient_a
+            else:
+                bounding_box_orientation_vector = bounding_box_face.orient_b
+
+            # the x component of palm frame orientation should be positive
+            # if bounding_box_orientation_vector[0] < 0:
+            #     bounding_box_orientation_vector = (-1) * bounding_box_orientation_vector
         else:
             # Part I: Sample the position of the palm pose
             #find the closest point in the point cloud
@@ -409,9 +458,9 @@ class GenerateHithandPreshape():
             0., self.wrist_roll_orientation_var, 3)
         bounding_box_orientation_vector /= np.linalg.norm(bounding_box_orientation_vector)
 
-        # Sample orientation
-        palm_orientation_quat = self.sample_palm_orientation(closest_point_normal,
-                                                             bounding_box_orientation_vector)
+        # Find the full palm orientation from the bounding box orientation vector (which is the desired vector for the palm link y-direction) and object point normal
+        palm_orientation_quat = self.find_full_palm_orientation(closest_point_normal,
+                                                                bounding_box_orientation_vector)
 
         # Put this into a Stamped Pose for publishing
         palm_pose = PoseStamped()
@@ -435,74 +484,80 @@ class GenerateHithandPreshape():
         # The 1. and 5. point of bounding_box_corner points are cross-diagonal
         # Also the bounding box axis are aligned to the world frame
         x_axis, y_axis, z_axis = np.array([1, 0, 0]), np.array([0, 1, 0]), np.array([0, 0, 1])
-        size_x, size_y, size_z = self.object_size[0], self.object_size[1], self.object_size[2]
-        faces_world_frame = [
-            BoundingBoxFace(center=0.5 * (self.bbp1 + self.bbp6),
-                            orient_a=y_axis,
-                            orient_b=z_axis,
-                            height=size_y,
-                            width=size_z),
-            BoundingBoxFace(center=0.5 * (self.bbp1 + self.bbp7),
-                            orient_a=x_axis,
-                            orient_b=z_axis,
-                            height=size_x,
-                            width=size_z),
-            BoundingBoxFace(center=0.5 * (self.bbp1 + self.bbp8),
-                            orient_a=x_axis,
-                            orient_b=y_axis,
-                            height=size_x,
-                            width=size_y),
-            BoundingBoxFace(center=0.5 * (self.bbp5 + self.bbp2),
-                            orient_a=y_axis,
-                            orient_b=z_axis,
-                            height=size_y,
-                            width=size_z),
-            BoundingBoxFace(center=0.5 * (self.bbp5 + self.bbp3),
-                            orient_a=x_axis,
-                            orient_b=y_axis,
-                            height=size_x,
-                            width=size_y),
-            BoundingBoxFace(center=0.5 * (self.bbp5 + self.bbp4),
-                            orient_a=x_axis,
-                            orient_b=z_axis,
-                            height=size_x,
-                            width=size_z)
-        ]
-        # find the top face
-        faces_world_frame = sorted(faces_world_frame, key=lambda x: x.center[2])
-        faces_world_frame[-1].is_top = True
-        # Delete the bottom face
-        del faces_world_frame[0]
-        # Sort along the x axis and delete the face furthes away (robot can't comfortably reach it)
-        faces_world_frame = sorted(faces_world_frame, key=lambda x: x.center[0])
-        del faces_world_frame[-1]
-        # Sort along y axis and delete the face furthest away (no normals in this area)
-        faces_world_frame = sorted(faces_world_frame, key=lambda x: x.center[1])
-        del faces_world_frame[-1]
+        # size_x, size_y, size_z = self.object_size[0], self.object_size[1], self.object_size[2]
+        # faces_world_frame = [
+        #     BoundingBoxFace(color="black",
+        #                     center=0.5 * (self.bbp1 + self.bbp6),
+        #                     orient_a=y_axis,
+        #                     orient_b=z_axis,
+        #                     size_a=size_y,
+        #                     size_b=size_z),
+        #     BoundingBoxFace(color="red",
+        #                     center=0.5 * (self.bbp1 + self.bbp7),
+        #                     orient_a=x_axis,
+        #                     orient_b=z_axis,
+        #                     size_a=size_x,
+        #                     size_b=size_z),
+        #     BoundingBoxFace(color="green",
+        #                     center=0.5 * (self.bbp1 + self.bbp8),
+        #                     orient_a=x_axis,
+        #                     orient_b=y_axis,
+        #                     size_a=size_x,
+        #                     size_b=size_y),
+        #     BoundingBoxFace(color="blue",
+        #                     center=0.5 * (self.bbp5 + self.bbp2),
+        #                     orient_a=y_axis,
+        #                     orient_b=z_axis,
+        #                     size_a=size_y,
+        #                     size_b=size_z),
+        #     BoundingBoxFace(color="grey",
+        #                     center=0.5 * (self.bbp5 + self.bbp3),
+        #                     orient_a=x_axis,
+        #                     orient_b=y_axis,
+        #                     size_a=size_x,
+        #                     size_b=size_y),
+        #     BoundingBoxFace(color="light_blue",
+        #                     center=0.5 * (self.bbp5 + self.bbp4),
+        #                     orient_a=x_axis,
+        #                     orient_b=z_axis,
+        #                     size_a=size_x,
+        #                     size_b=size_z)
+        # ]
+        # # find the top face
+        # faces_world_frame = sorted(faces_world_frame, key=lambda x: x.center[2])
+        # faces_world_frame[-1].is_top = True
+        # # Delete the bottom face
+        # del faces_world_frame[0]
+        # # Sort along the x axis and delete the face furthes away (robot can't comfortably reach it)
+        # faces_world_frame = sorted(faces_world_frame, key=lambda x: x.center[0])
+        # del faces_world_frame[-1]
+        # # Sort along y axis and delete the face furthest away (no normals in this area)
+        # faces_world_frame = sorted(faces_world_frame, key=lambda x: x.center[1])
+        # del faces_world_frame[-1]
 
-        # Publish the bounding box face center points for visualization in RVIZ
-        face_centers_world_frame = []
-        center_stamped_world = PointStamped()
-        center_stamped_world.header.frame_id = 'world'
-        for i, face in enumerate(faces_world_frame):
-            center_stamped_world.point.x = face.center[0]
-            center_stamped_world.point.y = face.center[1]
-            center_stamped_world.point.z = face.center[2]
-            face_centers_world_frame.append(copy.deepcopy(center_stamped_world))
-        if not DEBUG:
-            self.publish_points(face_centers_world_frame)
+        # # Publish the bounding box face center points for visualization in RVIZ
+        # face_centers_world_frame = []
+        # center_stamped_world = PointStamped()
+        # center_stamped_world.header.frame_id = 'world'
+        # for i, face in enumerate(faces_world_frame):
+        #     center_stamped_world.point.x = face.center[0]
+        #     center_stamped_world.point.y = face.center[1]
+        #     center_stamped_world.point.z = face.center[2]
+        #     face_centers_world_frame.append(copy.deepcopy(center_stamped_world))
+        # if not DEBUG:
+        #     self.publish_points(face_centers_world_frame)
 
-        # If the object is too short, only select top grasps.
-        rospy.loginfo('##########################')
-        rospy.loginfo('Obj_height: %s' % size_z)
-        if DEBUG:
-            points_array = np.array([bb.center for bb in faces_world_frame])
-            #self.visualize(points_array)
-        if size_z < self.min_object_height:
-            rospy.loginfo('Object is short, only use top grasps!')
-            return [faces_world_frame[0]]
+        # # If the object is too short, only select top grasps.
+        # rospy.loginfo('##########################')
+        # rospy.loginfo('Obj_height: %s' % size_z)
+        # if DEBUG:
+        #     points_array = np.array([bb.center for bb in faces_world_frame])
+        #     #self.visualize(points_array)
+        # if size_z < self.min_object_height:
+        #     rospy.loginfo('Object is short, only use top grasps!')
+        #     return [faces_world_frame[0]]
 
-        return faces_world_frame
+        # return faces_world_frame
 
     def get_oriented_bounding_box_faces(self, grasp_object):
         """ Get the center points of 3 oriented bounding box faces, 1 top and 2 closest to camera.
@@ -517,37 +572,53 @@ class GenerateHithandPreshape():
         z_axis_world_frame = object_T_world[:3, 2]
 
         faces_world_frame = [
-            BoundingBoxFace(center=0.5 * (self.bbp1 + self.bbp6),
+            BoundingBoxFace(color="black",
+                            center=0.5 * (self.bbp1 + self.bbp6),
                             orient_a=y_axis_world_frame,
                             orient_b=z_axis_world_frame,
-                            height=grasp_object.height,
-                            width=grasp_object.depth),
-            BoundingBoxFace(center=0.5 * (self.bbp1 + self.bbp7),
+                            size_a=grasp_object.height,
+                            size_b=grasp_object.depth),
+            BoundingBoxFace(color="red",
+                            center=0.5 * (self.bbp1 + self.bbp7),
                             orient_a=x_axis_world_frame,
                             orient_b=z_axis_world_frame,
-                            height=grasp_object.width,
-                            width=grasp_object.depth),
-            BoundingBoxFace(center=0.5 * (self.bbp1 + self.bbp8),
+                            size_a=grasp_object.width,
+                            size_b=grasp_object.depth),
+            BoundingBoxFace(color="green",
+                            center=0.5 * (self.bbp1 + self.bbp8),
                             orient_a=x_axis_world_frame,
                             orient_b=y_axis_world_frame,
-                            height=grasp_object.width,
-                            width=grasp_object.height),
-            BoundingBoxFace(center=0.5 * (self.bbp5 + self.bbp2),
+                            size_a=grasp_object.width,
+                            size_b=grasp_object.height),
+            BoundingBoxFace(color="blue",
+                            center=0.5 * (self.bbp5 + self.bbp2),
                             orient_a=y_axis_world_frame,
                             orient_b=z_axis_world_frame,
-                            height=grasp_object.height,
-                            width=grasp_object.depth),
-            BoundingBoxFace(center=0.5 * (self.bbp5 + self.bbp3),
-                            orient_a=x_axis_world_frame,
-                            orient_b=y_axis_world_frame,
-                            height=grasp_object.width,
-                            width=grasp_object.height),
-            BoundingBoxFace(center=0.5 * (self.bbp5 + self.bbp4),
+                            size_a=grasp_object.height,
+                            size_b=grasp_object.depth),
+            BoundingBoxFace(color="grey",
+                            center=0.5 * (self.bbp5 + self.bbp3),
                             orient_a=x_axis_world_frame,
                             orient_b=z_axis_world_frame,
-                            height=grasp_object.width,
-                            width=grasp_object.depth)
+                            size_a=grasp_object.width,
+                            size_b=grasp_object.depth),
+            BoundingBoxFace(color="light_blue",
+                            center=0.5 * (self.bbp5 + self.bbp4),
+                            orient_a=x_axis_world_frame,
+                            orient_b=y_axis_world_frame,
+                            size_a=grasp_object.width,
+                            size_b=grasp_object.height)
         ]
+        # Publish the bounding box face center points for visualization in RVIZ
+        face_centers_world_frame = []
+        center_stamped_world = PointStamped()
+        center_stamped_world.header.frame_id = 'world'
+        for i, face in enumerate(faces_world_frame):
+            center_stamped_world.point.x = face.center[0]
+            center_stamped_world.point.y = face.center[1]
+            center_stamped_world.point.z = face.center[2]
+            face_centers_world_frame.append(copy.deepcopy(center_stamped_world))
+        self.publish_face_centers(face_centers_world_frame)
         # find the top face
         faces_world_frame = sorted(faces_world_frame, key=lambda x: x.center[2])
         faces_world_frame[-1].is_top = True
@@ -636,6 +707,7 @@ class GenerateHithandPreshape():
                 self.visualize(point.T)
             self.palm_goal_pose_world.append(palm_pose_world)
 
+            # Set the rand pose limits for subsequent uniform sampling around the previously found palm_pose_world as initial pose.
             self.set_palm_rand_pose_limits(palm_pose_world)
             if DEBUG:
                 point = np.zeros([3, self.num_samples_per_preshape])
@@ -681,7 +753,7 @@ class GenerateHithandPreshape():
         rospy.loginfo('Ready to generate the grasp preshape.')
 
 
-DEBUG = False
+DEBUG = True
 
 if __name__ == '__main__':
     ghp = GenerateHithandPreshape()
@@ -699,7 +771,7 @@ if __name__ == '__main__':
     #     ghp.handle_generate_hithand_preshape(req)
 
     ghp.create_hithand_preshape_server()
-    rate = rospy.Rate(100)
+    rate = rospy.Rate(10)
     while not rospy.is_shutdown():
         ghp.broadcast_palm_poses()
         rate.sleep()
