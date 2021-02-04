@@ -18,7 +18,7 @@ class CartesianPoseMoveitPlanner():
         self.scene = moveit_commander.PlanningSceneInterface()
         self.group = moveit_commander.MoveGroupCommander('panda_arm')
 
-        self.group.set_planner_id('RRTConnectConfigDefault')
+        self.group.set_planner_id('RRTConnectkConfigDefault')
         self.group.set_planning_time(10)
         self.group.set_num_planning_attempts(3)
 
