@@ -3,12 +3,15 @@ string time_stamp
 bool is_top_grasp
 int32 grasp_success_label
 float32[] object_size
+float32[] object_size_unaligned
 int32[] sparse_voxel_grid
 
 # The true spawn pose in world frame
 geometry_msgs/PoseStamped object_world_sim_pose
 # The pose obtained from segmentation
 geometry_msgs/PoseStamped object_world_seg_pose
+# The object pose from segmentation after aligning it to world frame
+geometry_msgs/PoseStamped object_world_algined_pose
 # Preshape and palm pose:
 geometry_msgs/PoseStamped desired_preshape_palm_world_pose
 geometry_msgs/PoseStamped true_preshape_palm_world_pose
