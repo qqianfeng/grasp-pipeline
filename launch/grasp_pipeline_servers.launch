@@ -76,4 +76,6 @@
     <!--Launch node which advertises service to segment the table from an object -->
     <node name="object_segmentation_node" pkg="grasp_pipeline" type="segment_object_server.py" output="screen"/>
    
+    <!-- Node to update palm and object poses-->
+    <node name="update_object_pose_node" pkg="grasp_pipeline" type="update_object_and_palm_tf.py" output="screen"/>
 </launch>
