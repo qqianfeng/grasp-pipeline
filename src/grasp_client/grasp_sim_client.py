@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import rospy
 from geometry_msgs.msg import PoseStamped
+import tf
 import tf.transformations as tft
 from grasp_pipeline.srv import *
 from sensor_msgs.msg import JointState
@@ -8,6 +9,7 @@ from gazebo_msgs.srv import GetModelState, GetModelStateRequest
 import sys
 sys.path.append('..')
 from utils import wait_for_service, get_pose_stamped_from_array, get_pose_array_from_stamped
+from align_object_frame import align_object
 import numpy as np
 from std_srvs.srv import SetBool, SetBoolRequest
 import os
@@ -24,6 +26,7 @@ class GraspClient():
         # Save metainformation on object to be grasped in these vars
         self.object_metadata = dict()  # This dict holds info about object name, pose, meshpath
         self._setup_workspace_boundaries()
+        self.tf_listener = tf.TransformListener()
 
         self.depth_img = None
         self.color_img = None
@@ -53,7 +56,7 @@ class GraspClient():
 
         self.object_lift_height = 0.2  # Lift the object 15 cm
         self.success_tolerance_lift_height = 0.05
-        self.grasp_obj_from_seg_server = None
+        self.object_segment_response = None
         self.grasp_label = None
 
     # +++++++ PART I: First part are all the "helper functions" w/o interface to any other nodes/services ++++++++++
@@ -208,11 +211,11 @@ class GraspClient():
             generate_hithand_preshape = rospy.ServiceProxy('generate_hithand_preshape',
                                                            GraspPreshape)
             req = GraspPreshapeRequest()
-            if self.grasp_obj_from_seg_server is not None:
-                req.object = self.grasp_obj_from_seg_server
+            if self.object_segment_response is not None:
+                req.object = self.object_segment_response.object
             else:
                 raise Exception(
-                    "grasp_obj_from_seg_server attribute is None. Should hold information about grasp object. Call segemtation server first."
+                    "self.object_segment_response.object attribute is None. Should hold information about grasp object. Call segemtation server first."
                 )
             req.sample = True
             self.heuristic_preshapes = generate_hithand_preshape(req)
@@ -310,15 +313,20 @@ class GraspClient():
             rospy.loginfo('Service save_visual_data call failed: %s' % e)
         rospy.loginfo('Service save_visual_data is executed.')
 
-    def segment_object_client(self):
+    def segment_object_client(self, align_object_world=True):
         wait_for_service('segment_object')
         try:
             segment_object = rospy.ServiceProxy('segment_object', SegmentGraspObject)
             req = SegmentGraspObjectRequest()
             req.scene_pcd_path = self.scene_pcd_save_path
             req.object_pcd_path = self.object_pcd_save_path
-            res = segment_object(req)
-            self.grasp_obj_from_seg_server = res.object
+            self.object_segment_response = segment_object(req)
+            if align_object_world:
+                self.object_segment_response.object = align_object(
+                    self.object_segment_response.object, self.tf_listener)
+                self.object_metadata[
+                    "object_pose_world_aligned"] = self.object_segment_response.object.pose
+                self.update_object_pose_aligned_client()
         except rospy.ServiceException, e:
             rospy.loginfo('Service segment_object call failed: %s' % e)
         rospy.loginfo('Service segment_object is executed.')
@@ -352,8 +360,23 @@ class GraspClient():
             res = update_gazebo_object(req)
         except rospy.ServiceException, e:
             rospy.loginfo('Service update_gazebo_object call failed: %s' % e)
-        rospy.loginfo('Service update_gazebo_object is executed %s.' % str(res))
+        rospy.loginfo('Service update_gazebo_object is executed %s.' % str(res.success))
         return res.success
+
+    def update_object_pose_aligned_client(self):
+        wait_for_service("update_grasp_object_pose")
+        try:
+            update_grasp_object_pose = rospy.ServiceProxy('update_grasp_object_pose',
+                                                          UpdateObjectPose)
+            req = UpdateObjectPoseRequest()
+            obj_world_pose_stamp = PoseStamped()
+            obj_world_pose_stamp.header.frame_id = self.object_segment_response.object.header.frame_id
+            obj_world_pose_stamp.pose = self.object_metadata["object_pose_world_aligned"]
+            req.object_pose_world = obj_world_pose_stamp
+            res = update_grasp_object_pose(req)
+        except rospy.ServiceException, e:
+            rospy.loginfo('Service update_gazebo_object call failed: %s' % e)
+        rospy.loginfo('Service update_grasp_object_pose is executed %s.' % str(res.success))
 
     # ++++++++ PART III: The third part consists of all the main logic/orchestration of Parts I and II ++++++++++++
     def label_grasp(self):
@@ -400,8 +423,10 @@ class GraspClient():
         else:
             rospy.logerr('Given grasp_phase is not valid. Must be pre, during or post.')
 
-        self.depth_img_save_path = self.curr_grasp_trial_path + folder_name + 'depth.png'
-        self.color_img_save_path = self.curr_grasp_trial_path + folder_name + 'color.jpg'
+        self.depth_img_save_path = self.curr_grasp_trial_path + folder_name + self.object_metadata[
+            "name"] + '_depth.png'
+        self.color_img_save_path = self.curr_grasp_trial_path + folder_name + self.object_metadata[
+            "name"] + '_color.jpg'
 
     def save_data_post_grasp(self):
         self.save_visual_data_client()
@@ -421,6 +446,9 @@ class GraspClient():
         self.save_visual_data_client()
         self.segment_object_client()
 
+    def store_poses_and_joint_states_in_instance_variable(self, grasp_phase):
+        raise NotImplementedError
+
     def generate_hithand_preshape(self):
         """ Generate multiple grasp preshapes, which get stored in instance variable.
         """
@@ -436,7 +464,7 @@ class GraspClient():
             if moveit_plan_exists:
                 break
             self.remove_unreachable_pose()
-            if len(self.heuristic_preshapes.palm_goal_pose) == 0:
+            if len(self.heuristic_preshapes.palm_goal_pose_world) == 0:
                 rospy.loginfo(
                     'All poses have been removed, because they were either executed or are not feasible'
                 )
