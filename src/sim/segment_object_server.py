@@ -213,11 +213,9 @@ class ObjectSegmenter():
         self.object_size = object_bounding_box.extent
         self.object_center = object_pcd.get_center()
         self.object_R = copy.deepcopy(object_bounding_box.R)
+        self.object_R[:, 2] = np.cross(self.object_R[:, 0], self.object_R[:, 1])
         # Attention, self.object_R can be an improper rotation meaning det(R)=-1, therefore check which eigenvalue is negative and turn the corresponding column of rotation matrix around
-        eigs = np.linalg.eigvals(self.object_R)
-        for i in range(3):
-            if eigs[i] < 0:
-                self.object_R[:, i] = (-1) * self.object_R[:, i]
+        #eigs = np.linalg.eigvals(self.object_R)
         object_T_world = np.eye(4)
         object_T_world[:3, :3] = self.object_R
         object_quat = tft.quaternion_from_matrix(object_T_world)
@@ -259,7 +257,7 @@ class ObjectSegmenter():
         object_pcd.orient_normals_towards_camera_location(self.world_t_cam)
         print("Original scene point cloud reference frame assumed as: " + str(self.pcd_frame))
 
-        self.visualize_normals(object_pcd)
+        #self.visualize_normals(object_pcd)
 
         # Draw object, bounding box and colored corners
         if DEBUG:
