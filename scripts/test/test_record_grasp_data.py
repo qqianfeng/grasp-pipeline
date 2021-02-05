@@ -3,6 +3,22 @@ import h5py
 from datetime import datetime
 from geometry_msgs.msg import PoseStamped
 
+with h5py.File("/home/vm/Downloads/merged_grasp_data_10_sets.h5", "r") as hdf:
+    keys = hdf.keys()
+    whd = [x for x in keys if "dim_w_h_d" in x]
+    source = [x for x in keys if "source" in x]
+
+    for i, name in enumerate(whd):
+        print(hdf[source[i]][()])
+        print(hdf[whd[i]][()])
+        if i == 50:
+            break
+    # print(hdf["grasp_0_source_info"][()])
+    # print(hdf["grasp_0_config_obj"][()])
+    # print(hdf["grasp_0_dim_w_h_d"][()])
+    # print(hdf["grasp_0_top_grasp"][()])
+    # print(hdf["grasp_0_label"][()])
+
 
 def print_attrs(name, obj):
     print name
