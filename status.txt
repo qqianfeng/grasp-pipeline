@@ -336,5 +336,6 @@ on performance, UTAH people have this turned off        [CHECK]
 			- transform point cloud from world frame to object centric frame 
 			- find x,y,z bounds of new transformed point cloud
 - [Task 11] Process the collision meshes from text file:
+- [Task 12] Integrate the full mesh voxelization
 
 
