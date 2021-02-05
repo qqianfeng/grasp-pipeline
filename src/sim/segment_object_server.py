@@ -268,7 +268,7 @@ class ObjectSegmenter():
             os.remove(self.object_pcd_path)
         o3d.io.write_point_cloud(self.object_pcd_path, object_pcd)
         if req.object_pcd_record_path != '':
-            o3d.io.write_point_cloud(req.object_pcd_record_path)
+            o3d.io.write_point_cloud(req.object_pcd_record_path, object_pcd)
         print("Object.pcd saved successfully with normals oriented towards camera")
 
         # Publish and latch newly computed dimensions and bounding box points
