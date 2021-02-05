@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 import rospy
+import datetime
 from geometry_msgs.msg import PoseStamped
 import tf
 import tf.transformations as tft
 from grasp_pipeline.srv import *
+from std_msgs.msg import Header
 from sensor_msgs.msg import JointState
 from gazebo_msgs.srv import GetModelState, GetModelStateRequest
 import sys
@@ -25,7 +27,10 @@ class GraspClient():
         self.create_grasp_folder_structure(self.grasp_data_recording_path)
         # Save metainformation on object to be grasped in these vars
         self.object_metadata = dict()  # This dict holds info about object name, pose, meshpath
+        self.palm_poses = dict()  # Saves the palm poses at different stages of the experiment
+        self.hand_joint_states = dict()  # Saves the joint states at different stages
         self._setup_workspace_boundaries()
+
         self.tf_listener = tf.TransformListener()
 
         self.depth_img = None
@@ -125,7 +130,7 @@ class GraspClient():
         rospy.loginfo('Generated random object pose:')
         rospy.loginfo(object_pose)
         object_pose_stamped = get_pose_stamped_from_array(object_pose)
-        self.object_pose_stamped = object_pose_stamped
+        self.object_metadata["sim_pose"] = object_pose_stamped
 
     def choose_specific_grasp_preshape(self, grasp_type):
         """ This chooses one specific grasp preshape from the preshapes in self.heuristic_preshapes.
@@ -162,6 +167,11 @@ class GraspClient():
         print(self.chosen_palm_pose)
         self.chosen_hithand_joint_state = self.heuristic_preshapes.hithand_joint_state[grasp_idx]
         self.chosen_is_top_grasp = self.heuristic_preshapes.is_top_grasp[grasp_idx]
+
+        # Add selected pose and joint state as desired palm pose and joint state to dict
+        self.palm_poses["desired_pre"] = self.chosen_palm_pose
+        self.hand_joint_states["desired_pre"] = self.chosen_hithand_joint_state
+
 
     # ++++++++ PART II: Second part consist of all clients that interact with different nodes/services ++++++++++++
     def control_hithand_config_client(self, go_home=False, close_hand=False):
@@ -223,6 +233,16 @@ class GraspClient():
             rospy.loginfo('Service generate_hithand_preshape call failed: %s' % e)
         rospy.loginfo('Service generate_hithand_preshape is executed.')
 
+    def get_hand_palm_pose_and_joint_state(self):
+        """ Returns a list with
+            1. first 3 entries being the palm position and last 4 the orientation quaternion.
+            2. hithand joint state
+        """
+        (palm_trans, palm_rot) = self.tf_listener.lookupTransform
+        palm_pose_list = [palm_trans[0], palm_trans[1], palm_trans[2], palm_rot[0], palm_rot[1], palm_rot[2], palm_rot[3]]
+        joint_state = rospy.wait_for_message("/hithand/joint_states", JointState, timeout=5)
+        return palm_pose_list, joint_state
+
     def get_grasp_object_pose_client(self):
         """ Get the current pose of the grasp object from Gazebo.
         """
@@ -282,9 +302,28 @@ class GraspClient():
 
     def record_grasp_data_client(self):
         wait_for_service('record_grasp_data')
+        raise NotImplementedError # NEED TO SAVE DESIRED PALM POSE IN OBJECT ALIGNED FRAME
         try:
             record_grasp_data = rospy.ServiceProxy('record_grasp_data', RecordGraspDataSim)
             res = record_grasp_data(RecordGraspDataSimRequest())
+            res.object_name = self.object_metadata["name"]
+            res.time_stamp = datetime.datetime.now().isoformat()
+            res.is_top_grasp = self.chosen_is_top_grasp
+            res.grasp_success_label = self.grasp_label
+            res.object_size = self.object_metadata["aligned_dim_whd"]
+            res.oibject_size_aligned = self.object_metadata["seg_dim_whd"]
+            res.sparse_voxel_grid = EOFError # NOT IMPLEMENTED
+            res.object_world_sim_pose = self.object_metadata["sim_pose"]
+            res.object_world_seg_pose = self.object_metadata["seg_pose"]
+            res.object_world_aligned_pose = self.object_metadata["aligned_pose"]
+            res.desired_preshape_palm_world_pose = self.palm_poses["desired_pre"]
+            res.true_preshape_palm_world_pose = self.palm_poses["true_pre"]
+            res.closed_preshape_palm_world_pose = self.palm_poses["closed"]
+            res.lifted_preshape_palm_world_pose = self.palm_poses["lifted"]
+            res.desired_preshape_hithand_joint_state = self.hand_joint_states["desired_pre"]
+            res.true_preshape_hithand_joint_state = self.hand_joint_states["true_pre"]
+            res.closed_hithand_joint_state = self.hand_joint_states["closed"]
+            res.lifted_hithand_joint_state = self.hand_joint_states["lifted"]
         except rospy.ServiceException, e:
             rospy.loginfo('Service record_grasp_data call failed: %s' % e)
         rospy.loginfo('Service record_grasp_data is executed.')
@@ -321,11 +360,14 @@ class GraspClient():
             req.scene_pcd_path = self.scene_pcd_save_path
             req.object_pcd_path = self.object_pcd_save_path
             self.object_segment_response = segment_object(req)
+            self.object_metadata["seg_pose"] = PoseStamped(header=Header(frame_id='world'), pose=self.object_segment_response.object.pose
+            self.object_metadata["seg_dim_whd"] = [self.object_segment_response.object.width, self.object_segment_response.object.height, self.object_segment_response.object.depth]
             if align_object_world:
                 self.object_segment_response.object = align_object(
                     self.object_segment_response.object, self.tf_listener)
-                self.object_metadata[
-                    "object_pose_world_aligned"] = self.object_segment_response.object.pose
+                self.object_metadata["aligned_pose"] = PoseStamped(header=Header(frame_id='world'), pose=self.object_segment_response.object.pose)
+                self.object_metadata["aligned_dim_whd"] = [self.object_segment_response.object.width, self.object_segment_response.object.height, self.object_segment_response.object.depth]
+
                 self.update_object_pose_aligned_client()
         except rospy.ServiceException, e:
             rospy.loginfo('Service segment_object call failed: %s' % e)
@@ -338,7 +380,7 @@ class GraspClient():
             # print(self.spawned_object_mesh_path)
             req = ManageMoveitSceneRequest()
             req.object_mesh_path = self.object_metadata["collision_mesh_path"]
-            req.object_pose_world = self.object_pose_stamped
+            req.object_pose_world = self.object_metadata["sim_pose"]
             self.update_scene_response = update_moveit_scene(req)
         except rospy.ServiceException, e:
             rospy.loginfo('Service update_moveit_scene call failed: %s' % e)
@@ -349,7 +391,7 @@ class GraspClient():
         """Gazebo management client, deletes previous object and spawns new object
         """
         wait_for_service('update_gazebo_object')
-        object_pose_array = get_pose_array_from_stamped(self.object_pose_stamped)
+        object_pose_array = get_pose_array_from_stamped(self.object_metadata["sim_pose"])
         try:
             update_gazebo_object = rospy.ServiceProxy('update_gazebo_object', UpdateObjectGazebo)
             req = UpdateObjectGazeboRequest()
@@ -371,7 +413,7 @@ class GraspClient():
             req = UpdateObjectPoseRequest()
             obj_world_pose_stamp = PoseStamped()
             obj_world_pose_stamp.header.frame_id = self.object_segment_response.object.header.frame_id
-            obj_world_pose_stamp.pose = self.object_metadata["object_pose_world_aligned"]
+            obj_world_pose_stamp.pose = self.object_metadata["aligned_pose"]
             req.object_pose_world = obj_world_pose_stamp
             res = update_grasp_object_pose(req)
         except rospy.ServiceException, e:
@@ -382,7 +424,7 @@ class GraspClient():
     def label_grasp(self):
         object_pose = self.get_grasp_object_pose_client()
         object_pos_delta_z = np.abs(object_pose.position.z -
-                                    self.object_pose_stamped.pose.position.z)
+                                    self.object_metadata["sim_pose"].pose.position.z)
         if object_pos_delta_z > (self.object_lift_height - self.success_tolerance_lift_height):
             self.grasp_label = 1
         else:
@@ -404,7 +446,7 @@ class GraspClient():
         # Generate a random valid object pose
         if generate_random_pose:
             self.generate_random_object_pose_for_experiment()
-        elif self.object_pose_stamped == None:
+        elif self.object_metadata["sim_pose"] == None:
             rospy.logerr(
                 "Object pose has not been initialized yet and generate_random_pose is false. Either set true or update object pose."
             )
@@ -428,7 +470,7 @@ class GraspClient():
         self.color_img_save_path = self.curr_grasp_trial_path + folder_name + self.object_metadata[
             "name"] + '_color.jpg'
 
-    def save_data_post_grasp(self):
+    def save_visual_data_and_record_grasp(self):
         self.save_visual_data_client()
         self.record_grasp_data_client()
 
@@ -483,10 +525,16 @@ class GraspClient():
         # Execute the generated joint trajectory
         self.execute_joint_trajectory_client(smoothen_trajectory=self.smooth_trajectories)
 
+        # Get the current actual joint position and palm pose
+        self.palm_poses["true_pre"], self.hand_joint_states["true_pre"] = self.get_hand_palm_pose_and_joint_state()
+
         letter = raw_input("Grasp object? Y/n: ")
         if letter == 'y' or letter == 'Y':
             # Close the hand
             self.grasp_control_hithand_client()
+
+        # Get the current actual joint position and palm pose
+        self.palm_poses["closed"], self.hand_joint_states["closed"] = self.get_hand_palm_pose_and_joint_state()
 
         # Save visual data after hand is closed
         self.save_only_depth_and_color(grasp_phase='during')
@@ -496,6 +544,9 @@ class GraspClient():
         lift_pose.pose.position.z += self.object_lift_height
         self.plan_arm_trajectory_client(place_goal_pose=lift_pose)
         self.execute_joint_trajectory_client(smoothen_trajectory=True)
+
+        # Get the joint position and palm pose after lifting
+        self.palm_poses["lifted"], self.hand_joint_states["lifted"] = self.get_hand_palm_pose_and_joint_state()
 
         # Evaluate success
         self.label_grasp()
