@@ -323,7 +323,7 @@ on performance, UTAH people have this turned off        [CHECK]
 	- come up with a good way to prune grasps which are not executed / not feaible:
 - [Task 8] Create list with only feasible objects from all datasets:
 - [Task 9] Save images as object name:
-- [Task 10] Fix discrepancies of object centric reference frame and storage of dim_w_h_d:
+- [Task 10] Fix discrepancies of object centric reference frame and storage of dim_w_h_d
 	- For utah people 
 		(middle-big) width=x, 
 		(smallest)   height=y,
@@ -336,6 +336,12 @@ on performance, UTAH people have this turned off        [CHECK]
 			- transform point cloud from world frame to object centric frame 
 			- find x,y,z bounds of new transformed point cloud
 - [Task 11] Process the collision meshes from text file:
-- [Task 12] Integrate the full mesh voxelization
-
+- [Task 12] Integrate the full mesh voxelization:
+- [Task 13] Find realistic workspace bounds:
+- [Task 14] Decide which center to use as object cloud center bounding box or cloud
+	- decided for point cloud mean
+- [Task 15] Treat KIT objects special, spawn high and roll pi/2:
+- [Task 16] Save palm pose in object frame
+- [Task 17] Parallel execute panda and hithand reset motion:
+- [Task 18] Prune out poses for which no IK solution can be obtained:
 
