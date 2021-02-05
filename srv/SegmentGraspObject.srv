@@ -1,5 +1,6 @@
 string scene_pcd_path
 string object_pcd_path
+string object_pcd_record_path
 ---
 GraspObject object
 bool success

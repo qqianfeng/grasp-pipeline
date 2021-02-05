@@ -42,6 +42,7 @@ class GraspClient():
         self.depth_img_save_path = None
         self.scene_pcd_save_path = '/home/vm/scene.pcd'
         self.object_pcd_save_path = '/home/vm/object.pcd'
+        self.object_pcd_record_path = ''
 
         self.segmented_object_pcd = None
         self.segmented_object_width = None
@@ -359,6 +360,7 @@ class GraspClient():
             req = SegmentGraspObjectRequest()
             req.scene_pcd_path = self.scene_pcd_save_path
             req.object_pcd_path = self.object_pcd_save_path
+            req.object_pcd_record_path = self.object_pcd_record_path
             self.object_segment_response = segment_object(req)
             self.object_metadata["seg_pose"] = PoseStamped(header=Header(frame_id='world'), pose=self.object_segment_response.object.pose
             self.object_metadata["seg_dim_whd"] = [self.object_segment_response.object.width, self.object_segment_response.object.height, self.object_segment_response.object.depth]
@@ -458,6 +460,7 @@ class GraspClient():
     def set_visual_data_save_paths(self, grasp_phase):
         if grasp_phase == 'pre':
             folder_name = '/pre_grasp/'
+            self.object_pcd_record_path = self.curr_grasp_trial_path + folder_name + self.object_metadata["name"] + '.pcd'
         elif grasp_phase == 'during':
             folder_name = '/during_grasp/'
         elif grasp_phase == 'post':
