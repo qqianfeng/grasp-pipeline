@@ -44,6 +44,8 @@ add_service_files(
     SaveVisualData.srv
     SegmentGraspObject.srv
     UpdateObjectGazebo.srv
+    UpdateObjectPose.srv
+    UpdatePalmPose.srv
 )
 
 generate_messages(

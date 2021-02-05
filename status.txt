@@ -300,7 +300,7 @@ on performance, UTAH people have this turned off        [CHECK]
 	- [Finding 1] Apply extra transformation to inertia tensor. Hithand model inertia tensor might be incorrect:
 		- trimesh cant work with dae. Maybe convert hithand models to stl/obj and then try inertia transformation (priority is medium to low):
 
-01.2.21/02.2.21
+01.2.21-07.02.21
 - [Task 1] Finish mesh preparation , prepare_objects_gazebo kit dataset    [CHECK]
 	- [Finding 1] KIT need roll of 1.57 to be upright
 	- [Finding 2] Material does not look correct for Chips Can
@@ -322,5 +322,19 @@ on performance, UTAH people have this turned off        [CHECK]
 	- make sure thumb is always pointing up:
 	- come up with a good way to prune grasps which are not executed / not feaible:
 - [Task 8] Create list with only feasible objects from all datasets:
+- [Task 9] Save images as object name:
+- [Task 10] Fix discrepancies of object centric reference frame and storage of dim_w_h_d:
+	- For utah people 
+		(middle-big) width=x, 
+		(smallest)   height=y,
+		(biggest)    depth=z 
+	- Segmentation working
+		1. Transform point cloud to world frame
+		2. Find cloud bounding box PCA
+			- Centroid, eigenvalues and eigenvectors from PCA
+			- find 3rd column of rotation matrix as cross product of the first two
+			- transform point cloud from world frame to object centric frame 
+			- find x,y,z bounds of new transformed point cloud
+- [Task 11] Process the collision meshes from text file:
 
 
