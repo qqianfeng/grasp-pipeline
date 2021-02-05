@@ -10,8 +10,8 @@ class MetaDataHandler():
     """ Simple class to help iterate through objects and 
     """
     def __init__(self, gazebo_objects_path='/home/vm/object_datasets/objects_gazebo'):
-        self.datasets = [YCB_OBJECTS, KIT_OBJECTS, BIGBIRD_OBJECTS]
-        self.datasets_name = ['ycb', 'kit', 'bigbird']
+        self.datasets = [KIT_OBJECTS, YCB_OBJECTS, BIGBIRD_OBJECTS]
+        self.datasets_name = ['kit', 'bigbird', 'ycb']
         self.object_ix = -1
         self.dataset_ix = 0
         self.gazebo_objects_path = gazebo_objects_path
@@ -42,8 +42,17 @@ class MetaDataHandler():
         object_metadata["name"] = object_name
         object_metadata["model_file"] = os.path.join(curr_object_path, object_name + '.sdf')
         object_metadata["collision_mesh_path"] = os.path.join(curr_object_path, collision_mesh)
-        object_metadata["dataset"] = curr_dataset
-        object_metadata["pose_world"] = None
+        object_metadata["dataset"] = curr_dataset_name
+        object_metadata["sim_pose"] = None
+        object_metadata["seg_pose"] = None
+        object_metadata["aligned_pose"] = None
+        object_metadata["seg_dim_whd"] = None
+        object_metadata["aligned_dim_whd"] = None
+        object_metadata["spawn_height_z"] = 0.01
+        object_metadata["spawn_angle_roll"] = 0
+        if curr_dataset_name == 'kit':
+            object_metadata["spawn_height_z"] = 0.1
+            object_metadata["spawn_angle_roll"] = 1.57079632679
 
         rospy.loginfo('Trying to grasp object: %s' % object_metadata["name"])
 
@@ -52,8 +61,7 @@ class MetaDataHandler():
 
 if __name__ == '__main__':
     # Define variables for nested for loops
-    num_grasps_per_pose = 5  # how many sampled grasp poses to evaluate for object in same position
-    num_poses_per_object = 5  # how many random poses should be tried for one object
+    num_poses_per_object = 5  # how many sampled grasp poses to evaluate for object in same position
 
     # Some relevant variables
     data_recording_path = '/home/vm/'
@@ -67,14 +75,14 @@ if __name__ == '__main__':
     while True:
         grasp_client.create_dirs_new_grasp_trial()
 
-        # Reset panda and hithand
-        grasp_client.reset_hithand_and_panda()
-
         # Specify the object to be grasped, its pose, dataset, type, name etc.
         object_metadata = metadata_handler.choose_next_grasp_object()
         grasp_client.update_object_metadata(object_metadata)
 
         for _ in xrange(num_poses_per_object):
+            # Reset panda and hithand
+            grasp_client.reset_hithand_and_panda()
+
             # Spawn a new object in Gazebo and moveit in a random valid pose and delete the old object
             grasp_client.spawn_object(generate_random_pose=True)
 
@@ -86,23 +94,14 @@ if __name__ == '__main__':
             # Also one specific desired grasp preshape should be chosen. This preshape (characterized by the palm position, hithand joint states, and the is_top boolean gets stored in other instance variables)
             grasp_client.generate_hithand_preshape()
 
-            for i in xrange(num_grasps_per_pose):
-                if i != 0:  # Spawn object in same pose, just choose different grasp configuration. No need for segmentation etc as it won't be different
+            # Grasp types can be either unspecified, top, or side
+            grasp_type = 'unspecified'
 
-                    grasp_client.reset_hithand_and_panda()
+            # From the sampled preshapes choose one specific for execution
+            grasp_client.choose_specific_grasp_preshape(grasp_type=grasp_type)
 
-                    grasp_client.spawn_object(generate_random_pose=False)
+            # Grasp and lift object
+            grasp_arm_plan = grasp_client.grasp_and_lift_object()
 
-                    grasp_client.save_only_depth_and_color(grasp_phase='pre')
-
-                # Grasp types can be either unspecified, top, or side
-                grasp_type = 'unspecified'
-
-                # From the sampled preshapes choose one specific for execution
-                grasp_client.choose_specific_grasp_preshape(grasp_type=grasp_type)
-
-                # Grasp and lift object
-                grasp_arm_plan = grasp_client.grasp_and_lift_object()
-
-                # Save all grasp data including post grasp images
-                grasp_client.save_visual_data_and_record_grasp()
+            # Save all grasp data including post grasp images
+            grasp_client.save_visual_data_and_record_grasp()
