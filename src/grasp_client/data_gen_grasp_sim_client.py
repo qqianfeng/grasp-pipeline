@@ -105,4 +105,4 @@ if __name__ == '__main__':
                 grasp_arm_plan = grasp_client.grasp_and_lift_object()
 
                 # Save all grasp data including post grasp images
-                grasp_client.save_data_post_grasp()
+                grasp_client.save_visual_data_and_record_grasp()
