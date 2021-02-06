@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import rospy
 from grasp_pipeline.srv import *
 from geometry_msgs.msg import Pose, Quaternion
