@@ -76,6 +76,32 @@ BIGBIRD_OBJECTS = [
 
 KIT_OBJECTS = [
     'Amicelli', 'BakingSoda', 'BakingVanilla', 'BathDetergent', 'BlueSaltCube', 'BroccoliSoup',
+    'CatLying', 'CatSitting', 'CeylonTea', 'ChickenSoup', 'ChocSticks2', 'ChocSticks',
+    'ChocoIcing', 'ChocolateBars', 'ChoppedTomatoes', 'CleaningCloths', 'Clown', 'CoffeeCookies',
+    'CoffeeFilters2', 'CoffeeFilters', 'CokePlasticLarge', 'CokePlasticSmallGrasp',
+    'CokePlasticSmall', 'CondensedMilk', 'CoughDropsBerries', 'CoughDropsHoney', 'CoughDropsLemon',
+    'Curry', 'DanishHam', 'Deodorant', 'Dog', 'DropsCherry', 'DropsOrange', 'Dwarf', 'FennelTea',
+    'Fish', 'FizzyTabletsCalcium', 'FizzyTablets', 'FlowerCup', 'FruitBars', 'FruitDrink',
+    'FruitTea', 'Glassbowl', 'GreenCup', 'GreenSaltCylinder', 'HamburgerSauce', 'Heart1',
+    'HerbSalt', 'HeringTin', 'HotPot2', 'HotPot', 'HygieneSpray', 'InstantDumplings',
+    'InstantIceCoffee', 'InstantMousse', 'InstantSauce2', 'InstantSauce', 'InstantSoup',
+    'InstantTomatoSoup', 'JamSugar', 'KnaeckebrotRye', 'Knaeckebrot', 'KoalaCandy', 'LetterP',
+    'LivioClassicOil', 'LivioSunflowerOil', 'Margarine', 'Marjoram', 'MashedPotatoes',
+    'MelforBottle', 'MilkDrinkVanilla', 'MilkRice', 'Moon', 'MuesliBars', 'NutCandy', 'NutellaGo',
+    'OrangeMarmelade', 'OrgFruitTea', 'OrgHerbTea', 'Paprika', 'PatchesSensitive', 'Patches',
+    'Peanuts2', 'Peanuts', 'Peas', 'PineappleSlices', 'Pitcher', 'Pony', 'PotatoeDumplings',
+    'PotatoeStarch', 'PotatoeSticks', 'PowderedSugarMill', 'PowderedSugar', 'RavioliLarge',
+    'RedCup', 'Rice', 'RuskWholemeal', 'Rusk', 'SardinesCan', 'SauceThickener', 'SauerkrautSmall',
+    'Sauerkraut', 'Seal', 'Shampoo', 'ShowerGel', 'SmacksCereals', 'SmallGlass', 'SoftCakeOrange',
+    'SoftCheese', 'Sprayflask', 'Sprudelflasche', 'StrawberryPorridge', 'Sweetener',
+    'TomatoHerbSauce', 'TomatoSauce', 'TomatoSoup', 'Toothpaste', 'Tortoise', 'ToyCarYelloq',
+    'VitalisCereals', 'Wafflerolls', 'Waterglass', 'WhippedCream2', 'WhippedCream', 'WhiteCup',
+    'Wineglass', 'YellowSaltCube2', 'YellowSaltCube', 'YellowSaltCylinderSmall',
+    'YellowSaltCylinder'
+]
+
+KIT_OBJECTS_FULL = [
+    'Amicelli', 'BakingSoda', 'BakingVanilla', 'BathDetergent', 'BlueSaltCube', 'BroccoliSoup',
     'CatLying', 'CatSitting', 'CeylonTea', 'ChickenSoup', 'ChocMarshmallows', 'ChocSticks2',
     'ChocSticks', 'ChocoIcing', 'ChocolateBars', 'ChoppedTomatoes', 'CleaningCloths', 'Clown',
     'CoffeeBox', 'CoffeeCookies', 'CoffeeFilters2', 'CoffeeFilters', 'CokePlasticLarge',
