@@ -4,13 +4,17 @@ import numpy as np
 import open3d as o3d
 from sensor_msgs.msg import PointCloud2
 from grasp_planner.srv import *
+import tf.transformations as tft
+import tf
 
-SHOW_PCD = False
+SHOW_PCD = True
 
 
 class VoxelGenerator():
     def __init__(self):
         rospy.init_node("generate_voxel_from_pcd_node")
+        self.object_T_world = None
+        self.tf_listener = tf.TransformListener()
 
     def show_pcd(self, pcd):
         origin = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1)
@@ -44,15 +48,27 @@ class VoxelGenerator():
                     voxel_grid.append(np.array([voxel_loc_x, voxel_loc_y, voxel_loc_z]))
         return voxel_grid
 
+    def update_transform_object_world(self):
+        (trans, quat) = self.tf_listener.lookupTransform('object_pose_aligned', 'world',
+                                                         rospy.Time())
+        self.object_T_world = tft.quaternion_matrix([quat[0], quat[1], quat[2], quat[3]])
+        self.object_T_world[:, 3] = [trans[0], trans[1], trans[2], 1]
+
     def handle_generate_voxel_from_pcd(self, req):
+
         object_pcd = o3d.io.read_point_cloud(req.object_pcd_path)
+
         # Display point cloud for debugging purposes
-        if show_PCD:
-            self.show_pcd(object_pcd)
-        # Transform point cloud to object centric frame by translating the object point cloud by it's center, which is also the origin of the object centric frame. The object centric frame is aligned with the world frame which is why no rotation is applied
-        object_pcd.translate((-1.) * object_pcd.get_center())
         if SHOW_PCD:
             self.show_pcd(object_pcd)
+
+        # Transform point cloud to object centric frame by translating the object point cloud by it's center, which is also the origin of the object centric frame. The object centric frame is aligned with the world frame which is why no rotation is applied
+        self.update_transform_object_world()
+        object_pcd.transform(self.object_T_world)
+
+        if SHOW_PCD:
+            self.show_pcd(object_pcd)
+
         # Generate voxel grid representation from pcd
         voxel_grid = self.generate_voxel_grid_from_pcd(object_pcd, req.voxel_size, req.voxel_dim)
         voxels_num = len(voxel_grid)
