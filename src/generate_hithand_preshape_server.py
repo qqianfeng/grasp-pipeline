@@ -278,6 +278,7 @@ class GenerateHithandPreshape():
         self.bounding_box_face_centers_pub.publish(markerArray)
 
     def visualize(self, points):
+        return
         pcd_vis = o3d.geometry.PointCloud()
         pcd_vis.points = o3d.utility.Vector3dVector(points)
         pcd_vis.paint_uniform_color([1, 0, 0])
