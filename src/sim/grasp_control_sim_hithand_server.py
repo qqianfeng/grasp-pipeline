@@ -3,6 +3,7 @@ import rospy
 import time
 from grasp_pipeline.srv import *
 from sensor_msgs.msg import JointState
+from std_msgs.msg import Bool
 import numpy as np
 from copy import deepcopy
 from std_srvs.srv import SetBool, SetBoolResponse, SetBoolRequest
@@ -16,6 +17,11 @@ class HithandGraspController():
         self.pub_freq = 100
         self.rate = rospy.Rate(self.pub_freq)
         self.joint_command_pub = rospy.Publisher('/hithand/joint_cmd', JointState, queue_size=1)
+        self.start_reset_cond = True
+        self.start_reset_sub = rospy.Subscriber("/start_hithand_reset",
+                                                Bool,
+                                                callback=self.cb_start_reset_pub,
+                                                queue_size=1)
 
         self.curr_pos = None
         self.received_curr_pos = False
@@ -54,6 +60,26 @@ class HithandGraspController():
         delta_vector = np.tile(self.delta_vector, 5)
         delta_vector[-4:] = 2 * delta_vector[-4:]
         return np.tile(self.delta_vector, 5)
+
+    def cb_start_reset_pub(self, msg):
+        print("Start reset pub callback entered")
+        if msg.data == self.start_reset_cond:
+            print("Start reset pub callback EXECUTE")
+            self.start_reset_cond = not self.start_reset_cond
+            joint_states_sub = rospy.Subscriber(
+                '/hithand/joint_states', JointState, self.cb_update_curr_pos, tcp_nodelay=True
+            )  # Setting tcp_nodelay true is crucial otherwise the callback won't be executed at 100Hz
+            needs_reset = self.verify_hithand_needs_reset()
+            # Only command reset position if not in reset position already
+            if needs_reset:
+                reset_state = JointState()
+                reset_state.position = self.hithand_reset_position
+                start = time.time()
+                while self.verify_hithand_needs_reset() and (time.time() - start) < 5:
+                    self.joint_command_pub.publish(reset_state)
+                    rospy.sleep(0.1)
+
+            joint_states_sub.unregister()
 
     def cb_update_curr_pos(self, msg):
         #start = time.time()
