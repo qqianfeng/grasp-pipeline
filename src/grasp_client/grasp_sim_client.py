@@ -11,7 +11,7 @@ from sensor_msgs.msg import JointState
 from gazebo_msgs.srv import GetModelState, GetModelStateRequest
 import sys
 sys.path.append('..')
-from utils import wait_for_service, get_pose_stamped_from_array, get_pose_array_from_stamped
+from utils import wait_for_service, get_pose_stamped_from_array, get_pose_array_from_stamped, plot_voxel
 from align_object_frame import align_object
 import numpy as np
 from std_srvs.srv import SetBool, SetBoolRequest
@@ -73,6 +73,11 @@ class GraspClient():
             0.0872665, 0.0872665, 0, 0.0872665, 0.0872665, 0.0872665, -0.26, 0.0872665, 0.0872665,
             0.0872665
         ]
+
+        # For voxel server
+        self.voxel_grid_dim = np.array([26, 26, 26])
+        self.voxel_grid_dim_full = np.array([32, 32, 32])
+        self.voxel_translation_dim = (self.voxel_grid_dim_full - self.voxel_grid_dim) // 2
 
     # +++++++ PART I: First part are all the "helper functions" w/o interface to any other nodes/services ++++++++++
     def parallel_execute_functions(self, functions):
@@ -265,6 +270,35 @@ class GraspClient():
         except rospy.ServiceException, e:
             rospy.loginfo('Service generate_hithand_preshape call failed: %s' % e)
         rospy.loginfo('Service generate_hithand_preshape is executed.')
+
+    def generate_voxel_from_pcd(self, show_voxel):
+        """ Generates centered sparse voxel grid from segmented object pcd.
+        """
+        wait_for_service("generate_voxel_from_pcd")
+        try:
+            generate_voxel_from_pcd = rospy.ServiceProxy("generate_voxel_from_pcd", GenVoxelFromPcd)
+
+            # First compute the voxel size from the object dimensions
+            object_max_dim = np.max([self.object_metadata["aligned_dim_whd"]])
+            voxel_dim = object_max_dim / self.voxel_grid_dim
+
+            # Generate request
+            req = GenVoxelFromPcdRequest()
+            req.object_pcd_path = self.object_pcd_save_path
+            req.voxel_dim = self.voxel_grid_dim
+            req.voxel_translateion_dim = self.voxel_translation_dim
+            req.voxel_size = voxel_size
+
+            # Get result
+            res = generate_voxel_from_pcd(req)
+            self.object_metadata["sparse_voxel_grid"] = res.voxel_grid
+
+            # Show the voxel grid
+            if show_voxel:
+                voxel_grid = np.reshape(res.voxel_grid, [len(res.voxel_grid) / 3, 3])
+                plot_voxel(voxel_grid, voxel_res=self.voxel_grid_dim_full)              
+
+
 
     def get_hand_palm_pose_and_joint_state(self):
         """ Returns a list with
