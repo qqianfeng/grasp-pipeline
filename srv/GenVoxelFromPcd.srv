@@ -1,0 +1,6 @@
+string object_pcd_path
+int32[] voxel_dim
+int32[] voxel_translation_dim
+float32[] voxel_size
+---
+int32[] voxel_grid
