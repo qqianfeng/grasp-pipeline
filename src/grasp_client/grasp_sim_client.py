@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 import rospy
 import datetime
+import time
 from geometry_msgs.msg import PoseStamped
 import tf
 import tf.transformations as tft
 from grasp_pipeline.srv import *
-from std_msgs.msg import Header
+from std_msgs.msg import Header, Bool
 from sensor_msgs.msg import JointState
 from gazebo_msgs.srv import GetModelState, GetModelStateRequest
 import sys
@@ -65,6 +66,13 @@ class GraspClient():
         self.success_tolerance_lift_height = 0.05
         self.object_segment_response = None
         self.grasp_label = None
+
+        self.trigger_cond = False
+        self.hithand_reset_position = [
+            0, 0.0872665, 0.0872665, 0.0872665, 0, 0.0872665, 0.0872665, 0.0872665, 0, 0.0872665,
+            0.0872665, 0.0872665, 0, 0.0872665, 0.0872665, 0.0872665, -0.26, 0.0872665, 0.0872665,
+            0.0872665
+        ]
 
     # +++++++ PART I: First part are all the "helper functions" w/o interface to any other nodes/services ++++++++++
     def parallel_execute_functions(self, functions):
@@ -186,6 +194,15 @@ class GraspClient():
         self.palm_poses["desired_pre"] = self.chosen_palm_pose
         self.hand_joint_states["desired_pre"] = self.chosen_hithand_joint_state
 
+    def verify_hithand_needs_reset(self):
+        curr_pos = rospy.wait_for_message('/hithand/joint_states', JointState).position
+        pos_diff = np.abs(np.array(self.hithand_reset_position) - curr_pos)
+        # If at least one joint is more than 1e-3 away from where it's supposed to be, say hithand needs reset
+        if pos_diff[pos_diff > 8e-3].size == 0:
+            return False
+        else:
+            return True
+
     # ++++++++ PART II: Second part consist of all clients that interact with different nodes/services ++++++++++++
     def control_hithand_config_client(self, go_home=False, close_hand=False):
         wait_for_service('control_hithand_config')
@@ -220,7 +237,9 @@ class GraspClient():
                 req.smoothen_trajectory = smoothen_trajectory
                 req.joint_trajectory = self.panda_planned_joint_trajectory
                 res = execute_joint_trajectory(req)
+                return True
             else:
+                return False
                 rospy.loginfo('The joint trajectory in planned_panda_joint_trajectory was empty.')
         except rospy.ServiceException, e:
             rospy.loginfo('Service execute_joint_trajectory call failed: %s' % e)
@@ -346,6 +365,11 @@ class GraspClient():
             rospy.loginfo('Service record_grasp_data call failed: %s' % e)
         rospy.loginfo('Service record_grasp_data is executed.')
 
+    def reset_hithand_from_topic(self):
+        pub = rospy.Publisher("/start_hithand_reset", Bool, latch=True)
+        self.trigger_cond = not self.trigger_cond
+        pub.publish(Bool(data=self.trigger_cond))
+
     def reset_hithand_joints_client(self):
         """ Server call to reset the hithand joints.
         """
@@ -468,9 +492,18 @@ class GraspClient():
         """
         self.plan_reset_trajectory_client()
         # Parallel execute these:
-        self.parallel_execute_functions([
-            self.execute_joint_trajectory_client, self.reset_hithand_joints_client
-        ])
+        # self.parallel_execute_functions([
+        #     self.reset_hithand_joints_client, self.execute_joint_trajectory_client
+        # ])
+        #self.reset_hithand_joints_client()
+        self.reset_hithand_from_topic()
+        self.execute_joint_trajectory_client()
+        # Introduce a backup if reset from topic is failing
+        start = time.time()
+        if self.verify_hithand_needs_reset():
+            self.reset_hithand_joints_client()
+            self.trigger_cond = not self.trigger_cond
+        print("Took: " + str(time.time() - start))
 
     def spawn_object(self, generate_random_pose):
         # Generate a random valid object pose
@@ -509,7 +542,7 @@ class GraspClient():
 
     def save_visual_data_and_record_grasp(self):
         self.save_visual_data_client()
-        self.record_grasp_data_client()
+        #self.record_grasp_data_client()
 
     def save_only_depth_and_color(self, grasp_phase):
         """ Saves only depth and color by setting scene_pcd_save_path to None. Resets scene_pcd_save_path afterwards.
@@ -581,8 +614,17 @@ class GraspClient():
         # Lift the object
         lift_pose = self.chosen_palm_pose
         lift_pose.pose.position.z += self.object_lift_height
-        self.plan_arm_trajectory_client(place_goal_pose=lift_pose)
-        self.execute_joint_trajectory_client(smoothen_trajectory=True)
+        execution_success = False
+        start = time.time()
+        while not execution_success:
+            if time.time() - start > 60:
+                rospy.loginfo('Could not find a lift pose')
+                break
+            self.plan_arm_trajectory_client(place_goal_pose=lift_pose)
+            execution_success = self.execute_joint_trajectory_client(smoothen_trajectory=True)
+            lift_pose.pose.position.x += np.random.uniform(-0.05, 0.05)
+            lift_pose.pose.position.y += np.random.uniform(-0.05, 0.05)
+            lift_pose.pose.position.z += np.random.uniform(0, 0.1)
 
         # Get the joint position and palm pose after lifting
         self.palm_poses["lifted"], self.hand_joint_states[
