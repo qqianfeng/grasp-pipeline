@@ -5,6 +5,8 @@ import os
 import shutil
 from object_names_in_datasets import YCB_OBJECTS, KIT_OBJECTS, BIGBIRD_OBJECTS
 
+kit_no_roll_angle = [""]
+
 
 class MetaDataHandler():
     """ Simple class to help iterate through objects and 
@@ -20,7 +22,7 @@ class MetaDataHandler():
         """ Iterates through all objects in all datasets and returns object_metadata. Gives a new object each time it is called.
         """
         # When this is called a new object is requested
-        self.object_ix += 4
+        self.object_ix += 11
 
         # Check if we are past the last object of the dataset. If so take next dataset
         if self.object_ix == len(self.datasets[self.dataset_ix]):
@@ -53,6 +55,9 @@ class MetaDataHandler():
         if curr_dataset_name == 'kit':
             object_metadata["spawn_height_z"] = 0.1
             object_metadata["spawn_angle_roll"] = 1.57079632679
+            if object_name in kit_no_roll_angle:
+                object_metadata["spawn_angle_roll"] = 0
+                object_metadata["spawn_height_z"] = 0.15
 
         rospy.loginfo('Trying to grasp object: %s' % object_metadata["name"])
 
@@ -61,7 +66,7 @@ class MetaDataHandler():
 
 if __name__ == '__main__':
     # Define variables for nested for loops
-    num_poses_per_object = 5  # how many sampled grasp poses to evaluate for object in same position
+    num_poses_per_object = 1  # how many sampled grasp poses to evaluate for object in same position
 
     # Some relevant variables
     data_recording_path = '/home/vm/'
