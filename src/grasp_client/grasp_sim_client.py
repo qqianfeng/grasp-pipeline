@@ -5,6 +5,8 @@ import time
 from geometry_msgs.msg import PoseStamped
 import tf
 import tf.transformations as tft
+import tf2_ros
+import tf2_geometry_msgs
 from grasp_pipeline.srv import *
 from std_msgs.msg import Header, Bool
 from sensor_msgs.msg import JointState
@@ -34,6 +36,8 @@ class GraspClient():
         self._setup_workspace_boundaries()
 
         self.tf_listener = tf.TransformListener()
+        self.tf_buffer = tf2_ros.Buffer()
+        listener = tf2_ros.TransformListener(self.tf_buffer)
 
         self.depth_img = None
         self.color_img = None
@@ -46,11 +50,6 @@ class GraspClient():
         self.object_pcd_save_path = '/home/vm/object.pcd'
         self.object_pcd_record_path = ''
 
-        self.segmented_object_pcd = None
-        self.segmented_object_width = None
-        self.segmented_object_height = None
-        self.segmented_object_depth = None
-
         self.heuristic_preshapes = None  # This variable stores all the information on multiple heuristically sampled grasping pre shapes
         # The chosen variables store one specific preshape (palm_pose, hithand_joint_state, is_top_grasp)
         self.chosen_palm_pose = None
@@ -59,7 +58,7 @@ class GraspClient():
 
         self.panda_planned_joint_trajectory = None
         self.smooth_trajectories = True
-        self.num_of_replanning_attempts = 5
+        self.num_of_replanning_attempts = 2
         self.num_poses = 50
 
         self.object_lift_height = 0.2  # Lift the object 15 cm
@@ -140,8 +139,8 @@ class GraspClient():
         """ Sets the boundaries in which an object can be spawned and placed.
         Gets called 
         """
-        self.spawn_object_x_min, self.spawn_object_x_max = 0.5, 0.8
-        self.spawn_object_y_min, self.spawn_object_y_max = -0.3, 0.3
+        self.spawn_object_x_min, self.spawn_object_x_max = 0.25, 0.65
+        self.spawn_object_y_min, self.spawn_object_y_max = -0.2, 0.2
         self.table_height = 0
 
     def generate_random_object_pose_for_experiment(self):
@@ -271,22 +270,23 @@ class GraspClient():
             rospy.loginfo('Service generate_hithand_preshape call failed: %s' % e)
         rospy.loginfo('Service generate_hithand_preshape is executed.')
 
-    def generate_voxel_from_pcd(self, show_voxel):
+    def generate_voxel_from_pcd_client(self, show_voxel=True):
         """ Generates centered sparse voxel grid from segmented object pcd.
         """
         wait_for_service("generate_voxel_from_pcd")
         try:
-            generate_voxel_from_pcd = rospy.ServiceProxy("generate_voxel_from_pcd", GenVoxelFromPcd)
+            generate_voxel_from_pcd = rospy.ServiceProxy("generate_voxel_from_pcd",
+                                                         GenVoxelFromPcd)
 
             # First compute the voxel size from the object dimensions
             object_max_dim = np.max([self.object_metadata["aligned_dim_whd"]])
-            voxel_dim = object_max_dim / self.voxel_grid_dim
+            voxel_size = object_max_dim / self.voxel_grid_dim
 
             # Generate request
             req = GenVoxelFromPcdRequest()
             req.object_pcd_path = self.object_pcd_save_path
             req.voxel_dim = self.voxel_grid_dim
-            req.voxel_translateion_dim = self.voxel_translation_dim
+            req.voxel_translation_dim = self.voxel_translation_dim
             req.voxel_size = voxel_size
 
             # Get result
@@ -296,9 +296,10 @@ class GraspClient():
             # Show the voxel grid
             if show_voxel:
                 voxel_grid = np.reshape(res.voxel_grid, [len(res.voxel_grid) / 3, 3])
-                plot_voxel(voxel_grid, voxel_res=self.voxel_grid_dim_full)              
-
-
+                plot_voxel(voxel_grid, voxel_res=self.voxel_grid_dim_full)
+        except rospy.ServiceException, e:
+            rospy.loginfo('Service generate_voxel_from_pcd call failed: %s' % e)
+        rospy.loginfo('Service generate_voxel_from_pcd is executed.')
 
     def get_hand_palm_pose_and_joint_state(self):
         """ Returns a list with
@@ -375,6 +376,8 @@ class GraspClient():
         wait_for_service('record_grasp_data')
         raise NotImplementedError  # NEED TO SAVE DESIRED PALM POSE IN OBJECT ALIGNED FRAME
         try:
+            # Currently all poses are in the world frame. Transfer the desired pose into object frame
+
             record_grasp_data = rospy.ServiceProxy('record_grasp_data', RecordGraspDataSim)
             res = record_grasp_data(RecordGraspDataSimRequest())
             res.object_name = self.object_metadata["name"]
@@ -383,11 +386,12 @@ class GraspClient():
             res.grasp_success_label = self.grasp_label
             res.object_size = self.object_metadata["aligned_dim_whd"]
             res.oibject_size_aligned = self.object_metadata["seg_dim_whd"]
-            res.sparse_voxel_grid = EOFError  # NOT IMPLEMENTED
+            res.sparse_voxel_grid = self.object_metadata["sparse_voxel_grid"]
             res.object_world_sim_pose = self.object_metadata["sim_pose"]
             res.object_world_seg_pose = self.object_metadata["seg_pose"]
             res.object_world_aligned_pose = self.object_metadata["aligned_pose"]
             res.desired_preshape_palm_world_pose = self.palm_poses["desired_pre"]
+            res.palm_in_object_aligned_frame_pose = self.palm_poses["palm_in_object_aligned_frame"]
             res.true_preshape_palm_world_pose = self.palm_poses["true_pre"]
             res.closed_preshape_palm_world_pose = self.palm_poses["closed"]
             res.lifted_preshape_palm_world_pose = self.palm_poses["lifted"]
@@ -400,7 +404,7 @@ class GraspClient():
         rospy.loginfo('Service record_grasp_data is executed.')
 
     def reset_hithand_from_topic(self):
-        pub = rospy.Publisher("/start_hithand_reset", Bool, latch=True)
+        pub = rospy.Publisher("/start_hithand_reset", Bool, latch=True, queue_size=1)
         self.trigger_cond = not self.trigger_cond
         pub.publish(Bool(data=self.trigger_cond))
 
@@ -525,11 +529,6 @@ class GraspClient():
         """ Reset panda and hithand to their home positions
         """
         self.plan_reset_trajectory_client()
-        # Parallel execute these:
-        # self.parallel_execute_functions([
-        #     self.reset_hithand_joints_client, self.execute_joint_trajectory_client
-        # ])
-        #self.reset_hithand_joints_client()
         self.reset_hithand_from_topic()
         self.execute_joint_trajectory_client()
         # Introduce a backup if reset from topic is failing
@@ -537,7 +536,6 @@ class GraspClient():
         if self.verify_hithand_needs_reset():
             self.reset_hithand_joints_client()
             self.trigger_cond = not self.trigger_cond
-        print("Took: " + str(time.time() - start))
 
     def spawn_object(self, generate_random_pose):
         # Generate a random valid object pose
@@ -576,7 +574,8 @@ class GraspClient():
 
     def save_visual_data_and_record_grasp(self):
         self.save_visual_data_client()
-        #self.record_grasp_data_client()
+        self.generate_voxel_from_pcd_client()
+        self.record_grasp_data_client()
 
     def save_only_depth_and_color(self, grasp_phase):
         """ Saves only depth and color by setting scene_pcd_save_path to None. Resets scene_pcd_save_path afterwards.
@@ -606,7 +605,7 @@ class GraspClient():
 
         # Generate a robot trajectory to move to desired pose
         moveit_plan_exists = self.plan_arm_trajectory_client()
-        for j in range(self.num_poses):
+        for j in xrange(self.num_poses):
             if moveit_plan_exists:
                 break
             self.remove_unreachable_pose()
@@ -617,7 +616,7 @@ class GraspClient():
                 return
             self.choose_specific_grasp_preshape(grasp_type='unspecified')
             if not moveit_plan_exists:
-                for i in range(self.num_of_replanning_attempts):
+                for i in xrange(self.num_of_replanning_attempts):
                     moveit_plan_exists = self.plan_arm_trajectory_client()
                     if moveit_plan_exists:
                         rospy.loginfo("Found valid moveit plan after " + str(i + 1) + " tries")
@@ -625,7 +624,20 @@ class GraspClient():
         # Possibly trajectory/pose needs an extra validity check or smth like that
         if not moveit_plan_exists:
             rospy.loginfo("No moveit plan could be found")
-            return
+            return False
+
+        # If the function did not already return, it means a valid plan has been found and will be executed
+        # The pose to which the found plan leads is the pose which gets evaluated with respect to grasp success. Transform this pose to object_centric_frame
+        assert self.palm_poses["desired_pre"].header.frame_id == 'world'
+        tf2_pose = tf2_geometry_msgs.PoseStamped()
+        tf2_pose.pose = self.palm_poses["desired_pre"].pose
+        tf2_pose.header.frame_id = 'world'
+        tf2_pose.header.stamp = rospy.Time.now()
+        self.palm_poses["palm_in_object_aligned_frame"] = self.tf_buffer.transform(
+            tf2_pose, 'object_pose_aligned', rospy.Duration(1))
+        assert self.palm_poses[
+            "palm_in_object_aligned_frame"].header.frame_id == 'object_pose_aligned'
+
         # Execute the generated joint trajectory
         self.execute_joint_trajectory_client(smoothen_trajectory=self.smooth_trajectories)
 
@@ -666,3 +678,5 @@ class GraspClient():
 
         # Evaluate success
         self.label_grasp()
+
+        return True
