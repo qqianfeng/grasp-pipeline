@@ -52,14 +52,14 @@ class GraspClient():
 
         self.heuristic_preshapes = None  # This variable stores all the information on multiple heuristically sampled grasping pre shapes
         # The chosen variables store one specific preshape (palm_pose, hithand_joint_state, is_top_grasp)
-        self.chosen_palm_pose = None
-        self.chosen_hithand_joint_state = None
         self.chosen_is_top_grasp = None
+        self.previous_is_top_grasp = None
 
         self.panda_planned_joint_trajectory = None
         self.smooth_trajectories = True
         self.num_of_replanning_attempts = 2
         self.num_poses = 50
+        self.plan_without_approach_pose = False
 
         self.object_lift_height = 0.2  # Lift the object 15 cm
         self.success_tolerance_lift_height = 0.05
@@ -140,7 +140,7 @@ class GraspClient():
         Gets called 
         """
         self.spawn_object_x_min, self.spawn_object_x_max = 0.25, 0.65
-        self.spawn_object_y_min, self.spawn_object_y_max = -0.2, 0.2
+        self.spawn_object_y_min, self.spawn_object_y_max = -0.2, -0.2
         self.table_height = 0
 
     def generate_random_object_pose_for_experiment(self):
@@ -167,16 +167,30 @@ class GraspClient():
             )
             raise Exception
 
+        if self.chosen_is_top_grasp is not None:
+            self.previous_is_top_grasp = self.chosen_is_top_grasp
+
         number_of_preshapes = len(self.heuristic_preshapes.hithand_joint_state)
 
         # determine the indices of the grasp_preshapes corresponding to top grasps
         top_grasp_idxs = []
         side_grasp_idxs = []
+        top_grasp_exists = False
+        side_grasp_exists = False
         for i in xrange(number_of_preshapes):
             if self.heuristic_preshapes.is_top_grasp[i]:
                 top_grasp_idxs.append(i)
+                top_grasp_exists = True
             else:
                 side_grasp_idxs.append(i)
+                side_grasp_exists = True
+
+        if not top_grasp_exists and grasp_type == 'top':
+            grasp_type = 'side'
+            print("Grasp type top was requested, but no top grasps exists, choose side instead")
+        if not side_grasp_exists and grasp_type == 'side':
+            grasp_type = 'top'
+            print("Grasp type side was requested, but no side grasps exists, choose top instead")
 
         if grasp_type == 'unspecified':
             grasp_idx = np.random.randint(0, number_of_preshapes)
@@ -185,18 +199,16 @@ class GraspClient():
             grasp_idx = side_grasp_idxs[rand_int]
         elif grasp_type == 'top':
             rand_int = np.random.randint(0, len(top_grasp_idxs))
-            grasp_idx = side_grasp_idxs[rand_int]
-        print('Chosen grasp_idx is: ' + str(grasp_idx))
-        print('Chosen palm pose is: ')
-        self.chosen_palm_pose = self.heuristic_preshapes.palm_goal_pose_world[grasp_idx]
-        self.chosen_grasp_idx = grasp_idx
-        print(self.chosen_palm_pose)
-        self.chosen_hithand_joint_state = self.heuristic_preshapes.hithand_joint_state[grasp_idx]
-        self.chosen_is_top_grasp = self.heuristic_preshapes.is_top_grasp[grasp_idx]
+            grasp_idx = top_grasp_idxs[rand_int]
 
-        # Add selected pose and joint state as desired palm pose and joint state to dict
-        self.palm_poses["desired_pre"] = self.chosen_palm_pose
-        self.hand_joint_states["desired_pre"] = self.chosen_hithand_joint_state
+        # Store the chosen grasp pose and appraoch pose as well as joint state in corresponding dicts
+        self.palm_poses["desired_pre"] = self.heuristic_preshapes.palm_goal_pose_world[grasp_idx]
+        self.palm_poses["approach"] = self.heuristic_preshapes.palm_approach_pose_world[grasp_idx]
+        self.hand_joint_states["desired_pre"] = self.heuristic_preshapes.hithand_joint_state[
+            grasp_idx]
+
+        self.chosen_is_top_grasp = self.heuristic_preshapes.is_top_grasp[grasp_idx]
+        self.chosen_grasp_idx = grasp_idx
 
     def verify_hithand_needs_reset(self):
         curr_pos = rospy.wait_for_message('/hithand/joint_states', JointState).position
@@ -218,7 +230,7 @@ class GraspClient():
             elif close_hand:
                 req.close_hand = True
             else:
-                req.hithand_target_joint_state = self.chosen_hithand_joint_state
+                req.hithand_target_joint_state = self.hand_joint_states["desired_pre"]
                 res = control_hithand_config(req)
             # Buht how is the logic here for data gathering? Execute all of the samples and record responses right?
         except rospy.ServiceException as e:
@@ -270,7 +282,7 @@ class GraspClient():
             rospy.loginfo('Service generate_hithand_preshape call failed: %s' % e)
         rospy.loginfo('Service generate_hithand_preshape is executed.')
 
-    def generate_voxel_from_pcd_client(self, show_voxel=True):
+    def generate_voxel_from_pcd_client(self, show_voxel=False):
         """ Generates centered sparse voxel grid from segmented object pcd.
         """
         wait_for_service("generate_voxel_from_pcd")
@@ -353,8 +365,24 @@ class GraspClient():
             if place_goal_pose is not None:
                 req.palm_goal_pose_world = place_goal_pose
             else:
-                req.palm_goal_pose_world = self.chosen_palm_pose
+                req.palm_goal_pose_world = self.palm_poses["desired_pre"]
             res = moveit_cartesian_pose_planner(req)
+        except rospy.ServiceException, e:
+            rospy.loginfo('Service plan_arm_trajectory call failed: %s' % e)
+        rospy.loginfo('Service plan_arm_trajectory is executed %s.' % str(res.success))
+        self.panda_planned_joint_trajectory = res.trajectory
+        return res.success
+
+    def plan_cartesian_path_trajectory_client(self):
+        wait_for_service('plan_cartesian_path_trajectory')
+        try:
+            plan_cartesian_path_trajectory = rospy.ServiceProxy('plan_cartesian_path_trajectory',
+                                                                PlanCartesianPathTrajectory)
+            req = PlanCartesianPathTrajectoryRequest()
+            # Change the reference frame of desired_pre and approach pose to be
+            req.palm_goal_pose_world = self.palm_poses["desired_pre"]
+            req.palm_approach_pose_world = self.palm_poses["approach"]
+            res = plan_cartesian_path_trajectory(req)
         except rospy.ServiceException, e:
             rospy.loginfo('Service plan_arm_trajectory call failed: %s' % e)
         rospy.loginfo('Service plan_arm_trajectory is executed %s.' % str(res.success))
@@ -522,6 +550,7 @@ class GraspClient():
 
     def remove_unreachable_pose(self):
         del self.heuristic_preshapes.palm_goal_pose_world[self.chosen_grasp_idx]
+        del self.heuristic_preshapes.palm_approach_pose_world[self.chosen_grasp_idx]
         del self.heuristic_preshapes.hithand_joint_state[self.chosen_grasp_idx]
         del self.heuristic_preshapes.is_top_grasp[self.chosen_grasp_idx]
 
@@ -532,7 +561,6 @@ class GraspClient():
         self.reset_hithand_from_topic()
         self.execute_joint_trajectory_client()
         # Introduce a backup if reset from topic is failing
-        start = time.time()
         if self.verify_hithand_needs_reset():
             self.reset_hithand_joints_client()
             self.trigger_cond = not self.trigger_cond
@@ -575,7 +603,7 @@ class GraspClient():
     def save_visual_data_and_record_grasp(self):
         self.save_visual_data_client()
         self.generate_voxel_from_pcd_client()
-        self.record_grasp_data_client()
+        #self.record_grasp_data_client()
 
     def save_only_depth_and_color(self, grasp_phase):
         """ Saves only depth and color by setting scene_pcd_save_path to None. Resets scene_pcd_save_path afterwards.
@@ -603,28 +631,52 @@ class GraspClient():
         # Control the hithand to it's preshape
         #self.control_hithand_config_client()
 
-        # Generate a robot trajectory to move to desired pose
-        moveit_plan_exists = self.plan_arm_trajectory_client()
-        for j in xrange(self.num_poses):
-            if moveit_plan_exists:
+        # From the sampled preshapes choose one specific for execution
+        grasp_type = 'unspecified'
+        # As long as there are viable poses
+        while len(self.heuristic_preshapes.palm_goal_pose_world):
+            # Step 1 choose a specific grasp
+            self.choose_specific_grasp_preshape(grasp_type=grasp_type)
+
+            # Step 2, if the previous grasp type is not same as current grasp type move to approach pose
+            if self.previous_is_top_grasp != self.chosen_is_top_grasp:
+                approach_plan_exists = self.plan_arm_trajectory_client(
+                    place_goal_pose=self.palm_poses["approach"])
+                i = 0
+                while not approach_plan_exists and i < 3:
+                    i += 1
+                    # add random 3D noise to approach pose
+                    self.palm_poses["approach"].pose.position.x = np.random.uniform(-0.04, 0.04)
+                    self.palm_poses["approach"].pose.position.y = np.random.uniform(-0.04, 0.04)
+                    self.palm_poses["approach"].pose.position.z = np.random.uniform(-0.04, 0.04)
+                    # try slightly shifted pose:
+                    approach_plan_exists = self.plan_arm_trajectory_client(
+                        place_goal_pose=self.palm_poses["approach"])
+                # If a plan could be found, execute
+                if approach_plan_exists:
+                    self.execute_joint_trajectory_client(
+                        smoothen_trajectory=self.smooth_trajectories)
+
+            # Step 3, try to move to the desired palm position
+            for i in range(3):
+                desired_plan_exists = self.plan_arm_trajectory_client()
+                if desired_plan_exists:
+                    break
+                else:
+                    self.palm_poses["desired_pre"].pose.position.x += np.random.uniform(
+                        -0.01, 0.01)
+                    self.palm_poses["desired_pre"].pose.position.y += np.random.uniform(
+                        -0.01, 0.01)
+                    self.palm_poses["desired_pre"].pose.position.z += np.random.uniform(
+                        -0.01, 0.01)
+
+            # Step 4 if a plan exists execute it, otherwise delete unsuccessful pose and start from top:
+            if desired_plan_exists:
+                self.execute_joint_trajectory_client(smoothen_trajectory=self.smooth_trajectories)
                 break
-            self.remove_unreachable_pose()
-            if len(self.heuristic_preshapes.palm_goal_pose_world) == 0:
-                rospy.loginfo(
-                    'All poses have been removed, because they were either executed or are not feasible'
-                )
-                return
-            self.choose_specific_grasp_preshape(grasp_type='unspecified')
-            if not moveit_plan_exists:
-                for i in xrange(self.num_of_replanning_attempts):
-                    moveit_plan_exists = self.plan_arm_trajectory_client()
-                    if moveit_plan_exists:
-                        rospy.loginfo("Found valid moveit plan after " + str(i + 1) + " tries")
-                        break
-        # Possibly trajectory/pose needs an extra validity check or smth like that
-        if not moveit_plan_exists:
-            rospy.loginfo("No moveit plan could be found")
-            return False
+            else:
+                self.remove_unreachable_pose()
+                grasp_type = 'top' if self.chosen_is_top_grasp else 'side'
 
         # If the function did not already return, it means a valid plan has been found and will be executed
         # The pose to which the found plan leads is the pose which gets evaluated with respect to grasp success. Transform this pose to object_centric_frame
@@ -637,9 +689,6 @@ class GraspClient():
             tf2_pose, 'object_pose_aligned', rospy.Duration(1))
         assert self.palm_poses[
             "palm_in_object_aligned_frame"].header.frame_id == 'object_pose_aligned'
-
-        # Execute the generated joint trajectory
-        self.execute_joint_trajectory_client(smoothen_trajectory=self.smooth_trajectories)
 
         # Get the current actual joint position and palm pose
         self.palm_poses["true_pre"], self.hand_joint_states[
@@ -658,7 +707,7 @@ class GraspClient():
         self.save_only_depth_and_color(grasp_phase='during')
 
         # Lift the object
-        lift_pose = self.chosen_palm_pose
+        lift_pose = self.palm_poses["desired_pre"]
         lift_pose.pose.position.z += self.object_lift_height
         execution_success = False
         start = time.time()
