@@ -90,6 +90,10 @@ class GenerateHithandPreshape():
         # This stores the 6D palm pose in the world
         self.palm_goal_pose_world = []
 
+        # Stores the approach pose
+        self.palm_approach_pose_world = []
+        self.approach_offset = 0.2
+
         self.palm_pose_lower_limit = None
         self.palm_pose_upper_limit = None
 
@@ -405,6 +409,11 @@ class GenerateHithandPreshape():
             )  # sample palm distance from normal distribution centered around mean_dist_top
             palm_position = bounding_box_face.center + palm_dist_top_in_normal_direction * top_face_normal
 
+            # Also compute an approach position which is 20cm further away from the palm position outward in object normal direction
+            # palm_approach_position = palm_position + self.approach_offset * top_face_normal
+            palm_approach_position = copy.deepcopy(palm_position)
+            palm_approach_position[2] += 0.2
+
             # Part II: Compute vector to determine orientation of palm pose
             # bounding_box_orientation_vector = bounding_box_face.orient_a[:] + bounding_box_face.orient_b[:]
             # For our setup and with the chosen palm frame a successful top grasp should roughly align the palm link y axis (green in RViz) with the long side of the bounding box orientation vector
@@ -440,6 +449,14 @@ class GenerateHithandPreshape():
                                                                self.palm_dist_normal_to_obj_var)
             palm_position = closest_point + palm_dist_side_normal_direction * closest_point_normal
 
+            # Also compute an approach position which is 20cm further away from the palm position outward in object normal direction
+            palm_approach_position = copy.deepcopy(palm_position)
+            palm_approach_position[0] -= 0.15
+            palm_approach_position[2] += 0.2
+            if palm_approach_position[1] < 0:
+                palm_approach_position[1] -= 0.15
+            else:
+                palm_approach_position[1] += 0.15
             # Part II: Compute vector to determine the palm orientation
             # Pick the vertical vector with larger z value to be the palm link y axis (thumb)
             # in order to remove the orientation that runs into the table
@@ -452,7 +469,9 @@ class GenerateHithandPreshape():
                 bounding_box_orientation_vector = (-1.) * bounding_box_orientation_vector
 
         # Add some extra 3D noise on the palm position
-        palm_position = palm_position + np.random.normal(0, self.palm_position_3D_sample_var, 3)
+        position_noise_3d = np.random.normal(0, self.palm_position_3D_sample_var, 3)
+        palm_position = palm_position + position_noise_3d
+        palm_approach_position = palm_approach_position + position_noise_3d
 
         # Add some noise to the palm orientation
         bounding_box_orientation_vector = bounding_box_orientation_vector + np.random.normal(
@@ -466,7 +485,7 @@ class GenerateHithandPreshape():
         # Put this into a Stamped Pose for publishing
         palm_pose = PoseStamped()
         palm_pose.header.frame_id = 'world'
-        palm_pose.header.stamp = rospy.Time.now() if not DEBUG else None
+        # palm_pose.header.stamp = rospy.Time.now()
         palm_pose.pose.position.x = palm_position[0]
         palm_pose.pose.position.y = palm_position[1]
         palm_pose.pose.position.z = palm_position[2]
@@ -475,7 +494,13 @@ class GenerateHithandPreshape():
         palm_pose.pose.orientation.z = palm_orientation_quat[2]
         palm_pose.pose.orientation.w = palm_orientation_quat[3]
         rospy.loginfo('Chosen palm position is ' + str(palm_pose.pose.position))
-        return palm_pose
+
+        # Construct the approach pose which is 20cm outward from palm goal pose in normal direction
+        approach_pose = copy.deepcopy(palm_pose)
+        approach_pose.pose.position.x = palm_approach_position[0]
+        approach_pose.pose.position.y = palm_approach_position[1]
+        approach_pose.pose.position.z = palm_approach_position[2]
+        return palm_pose, approach_pose
 
     def get_axis_aligned_bounding_box_faces(self):
         """ Get the center points of 3 axis aligned bounding box faces, 1 top and 2 closest to camera
@@ -695,10 +720,12 @@ class GenerateHithandPreshape():
         # Compute bounding box faces
         bounding_box_faces = self.get_oriented_bounding_box_faces(grasp_object)
 
+        # Save the goal poses for the palm and an approach pose
         self.palm_goal_pose_world = []
+        self.palm_approach_pose_world = []
         for i in xrange(len(bounding_box_faces)):
             # Get the desired palm pose given the point from the bounding box
-            palm_pose_world = self.find_palm_pose_from_bounding_box_face(
+            palm_pose_world, palm_approach_pose_world = self.find_palm_pose_from_bounding_box_face(
                 bounding_box_faces[i])  # Tested, seems to work fine, only visualized position
             if DEBUG:
                 point = np.zeros([3, 2])
@@ -707,7 +734,13 @@ class GenerateHithandPreshape():
                 point[2, 1] = palm_pose_world.pose.position.z
                 self.visualize(point.T)
             self.palm_goal_pose_world.append(palm_pose_world)
+            response.palm_goal_pose_world.append(palm_pose_world)
 
+            self.palm_approach_pose_world.append(palm_approach_pose_world)
+            response.palm_approach_pose_world.append(palm_approach_pose_world)
+
+            response.hithand_joint_state.append(self.sample_hithand_preshape_joint_state())
+            response.is_top_grasp.append(bounding_box_faces[i].is_top)
             # Set the rand pose limits for subsequent uniform sampling around the previously found palm_pose_world as initial pose.
             self.set_palm_rand_pose_limits(palm_pose_world)
             if DEBUG:
@@ -718,6 +751,8 @@ class GenerateHithandPreshape():
                     palm_pose_world.header.frame_id)
                 response.palm_goal_pose_world.append(sampled_palm_pose)
                 self.palm_goal_pose_world.append(sampled_palm_pose)
+                response.palm_approach_pose_world.append(palm_approach_pose_world)
+                self.palm_approach_pose_world.append(palm_approach_pose_world)
 
                 if DEBUG:
                     point[0, j] = sampled_palm_pose.pose.position.x
@@ -740,8 +775,8 @@ class GenerateHithandPreshape():
         """ Handler for the advertised service. Decides whether the hand preshape should be sampled or generated
         """
         rospy.loginfo('I received the service call to generate hithand preshapes.')
-        self.update_object_information(
-        )  # Get new information on segmented object from rostopics/disk and store in instance attributes
+        # Get new information on segmented object from rostopics/disk and store in instance attributes
+        self.update_object_information()
         if req.sample:
             return self.sample_grasp_preshape(req.object)
         else:
@@ -754,22 +789,10 @@ class GenerateHithandPreshape():
         rospy.loginfo('Ready to generate the grasp preshape.')
 
 
-DEBUG = True
+DEBUG = False
 
 if __name__ == '__main__':
     ghp = GenerateHithandPreshape()
-    # if DEBUG:
-    #     ghp.min_object_height = 0.03
-    #     ghp.palm_dist_to_top_face_mean = 0.1
-    #     ghp.palm_dist_to_side_face_mean = 0.07
-    #     ghp.palm_dist_normal_to_obj_var = 0.03
-    #     ghp.palm_position_3D_sample_var = 0.005
-    #     ghp.wrist_roll_orientation_var = 0.005
-    #     ghp.num_samples_per_preshape = 50
-    #     ghp.object_pcd_path = '/home/vm/object.pcd'
-    #     req = GraspPreshapeRequest()
-    #     req.sample = True
-    #     ghp.handle_generate_hithand_preshape(req)
 
     ghp.create_hithand_preshape_server()
     rate = rospy.Rate(10)
