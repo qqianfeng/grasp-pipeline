@@ -1,0 +1,5 @@
+geometry_msgs/PoseStamped palm_approach_pose_world
+geometry_msgs/PoseStamped palm_goal_pose_world
+---
+bool success
+trajectory_msgs/JointTrajectory trajectory
