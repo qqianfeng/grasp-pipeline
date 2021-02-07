@@ -76,8 +76,8 @@ BIGBIRD_OBJECTS = [
 
 KIT_OBJECTS = [
     'Amicelli', 'BakingSoda', 'BakingVanilla', 'BathDetergent', 'BlueSaltCube', 'BroccoliSoup',
-    'CatLying', 'CatSitting', 'CeylonTea', 'ChickenSoup', 'ChocSticks2', 'ChocSticks',
-    'ChocoIcing', 'ChocolateBars', 'ChoppedTomatoes', 'CleaningCloths', 'Clown', 'CoffeeCookies',
+    'CatLying', 'CatSitting', 'CeylonTea', 'ChickenSoup', 'ChocSticks', 'ChocoIcing',
+    'ChocolateBars', 'ChoppedTomatoes', 'CleaningCloths', 'Clown', 'CoffeeCookies',
     'CoffeeFilters2', 'CoffeeFilters', 'CokePlasticLarge', 'CokePlasticSmallGrasp',
     'CokePlasticSmall', 'CondensedMilk', 'CoughDropsBerries', 'CoughDropsHoney', 'CoughDropsLemon',
     'Curry', 'DanishHam', 'Deodorant', 'Dog', 'DropsCherry', 'DropsOrange', 'Dwarf', 'FennelTea',
