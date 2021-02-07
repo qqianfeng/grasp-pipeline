@@ -14,6 +14,7 @@ geometry_msgs/PoseStamped object_world_seg_pose
 geometry_msgs/PoseStamped object_world_algined_pose
 # Preshape and palm pose:
 geometry_msgs/PoseStamped desired_preshape_palm_world_pose
+geometry_msgs/PoseStamped palm_in_object_aligned_frame_pose
 geometry_msgs/PoseStamped true_preshape_palm_world_pose
 geometry_msgs/PoseStamped closed_palm_world_pose
 geometry_msgs/PoseStamped lifted_palm_world_pose
