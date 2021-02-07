@@ -22,7 +22,7 @@ class MetaDataHandler():
         """ Iterates through all objects in all datasets and returns object_metadata. Gives a new object each time it is called.
         """
         # When this is called a new object is requested
-        self.object_ix += 11
+        self.object_ix += 6
 
         # Check if we are past the last object of the dataset. If so take next dataset
         if self.object_ix == len(self.datasets[self.dataset_ix]):
@@ -98,12 +98,6 @@ if __name__ == '__main__':
             # Generate hithand preshape, this is crucial. Samples multiple heuristics-based hithand preshapes, stores it in an instance variable
             # Also one specific desired grasp preshape should be chosen. This preshape (characterized by the palm position, hithand joint states, and the is_top boolean gets stored in other instance variables)
             grasp_client.generate_hithand_preshape()
-
-            # Grasp types can be either unspecified, top, or side
-            grasp_type = 'unspecified'
-
-            # From the sampled preshapes choose one specific for execution
-            grasp_client.choose_specific_grasp_preshape(grasp_type=grasp_type)
 
             # Grasp and lift object
             grasp_arm_plan = grasp_client.grasp_and_lift_object()
