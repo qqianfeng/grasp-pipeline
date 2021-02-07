@@ -3,5 +3,6 @@ GraspObject object
 ---
 geometry_msgs/PoseStamped object_pose
 geometry_msgs/PoseStamped[] palm_goal_pose_world
+geometry_msgs/PoseStamped[] palm_approach_pose_world
 sensor_msgs/JointState[] hithand_joint_state
 bool[] is_top_grasp
