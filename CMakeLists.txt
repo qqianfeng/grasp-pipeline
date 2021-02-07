@@ -40,6 +40,7 @@ add_service_files(
     ManageMoveitScene.srv
     MoveArm.srv
     PlanArmTrajectory.srv
+    PlanCartesianPathTrajectory.srv
     PlanResetTrajectory.srv
     RecordGraspDataSim.srv
     SaveVisualData.srv
