@@ -511,7 +511,7 @@ class GenerateHithandPreshape():
         # Also the bounding box axis are aligned to the world frame
         x_axis, y_axis, z_axis = np.array([1, 0, 0]), np.array([0, 1, 0]), np.array([0, 0, 1])
         # size_x, size_y, size_z = self.object_size[0], self.object_size[1], self.object_size[2]
-        # faces_world_frame = [
+        # faces_world = [
         #     BoundingBoxFace(color="black",
         #                     center=0.5 * (self.bbp1 + self.bbp6),
         #                     orient_a=y_axis,
@@ -550,40 +550,40 @@ class GenerateHithandPreshape():
         #                     size_b=size_z)
         # ]
         # # find the top face
-        # faces_world_frame = sorted(faces_world_frame, key=lambda x: x.center[2])
-        # faces_world_frame[-1].is_top = True
+        # faces_world = sorted(faces_world, key=lambda x: x.center[2])
+        # faces_world[-1].is_top = True
         # # Delete the bottom face
-        # del faces_world_frame[0]
+        # del faces_world[0]
         # # Sort along the x axis and delete the face furthes away (robot can't comfortably reach it)
-        # faces_world_frame = sorted(faces_world_frame, key=lambda x: x.center[0])
-        # del faces_world_frame[-1]
+        # faces_world = sorted(faces_world, key=lambda x: x.center[0])
+        # del faces_world[-1]
         # # Sort along y axis and delete the face furthest away (no normals in this area)
-        # faces_world_frame = sorted(faces_world_frame, key=lambda x: x.center[1])
-        # del faces_world_frame[-1]
+        # faces_world = sorted(faces_world, key=lambda x: x.center[1])
+        # del faces_world[-1]
 
         # # Publish the bounding box face center points for visualization in RVIZ
-        # face_centers_world_frame = []
+        # face_centers_world = []
         # center_stamped_world = PointStamped()
         # center_stamped_world.header.frame_id = 'world'
-        # for i, face in enumerate(faces_world_frame):
+        # for i, face in enumerate(faces_world):
         #     center_stamped_world.point.x = face.center[0]
         #     center_stamped_world.point.y = face.center[1]
         #     center_stamped_world.point.z = face.center[2]
-        #     face_centers_world_frame.append(copy.deepcopy(center_stamped_world))
+        #     face_centers_world.append(copy.deepcopy(center_stamped_world))
         # if not DEBUG:
-        #     self.publish_points(face_centers_world_frame)
+        #     self.publish_points(face_centers_world)
 
         # # If the object is too short, only select top grasps.
         # rospy.loginfo('##########################')
         # rospy.loginfo('Obj_height: %s' % size_z)
         # if DEBUG:
-        #     points_array = np.array([bb.center for bb in faces_world_frame])
+        #     points_array = np.array([bb.center for bb in faces_world])
         #     #self.visualize(points_array)
         # if size_z < self.min_object_height:
         #     rospy.loginfo('Object is short, only use top grasps!')
-        #     return [faces_world_frame[0]]
+        #     return [faces_world[0]]
 
-        # return faces_world_frame
+        # return faces_world
 
     def get_oriented_bounding_box_faces(self, grasp_object):
         """ Get the center points of 3 oriented bounding box faces, 1 top and 2 closest to camera.
@@ -593,93 +593,102 @@ class GenerateHithandPreshape():
         object_T_world = self.listener.fromTranslationRotation(
             (.0, .0, .0), (grasp_object.pose.orientation.x, grasp_object.pose.orientation.y,
                            grasp_object.pose.orientation.z, grasp_object.pose.orientation.w))
-        x_axis_world_frame = object_T_world[:3, 0]
-        y_axis_world_frame = object_T_world[:3, 1]
-        z_axis_world_frame = object_T_world[:3, 2]
+        x_axis_world = object_T_world[:3, 0]
+        y_axis_world = object_T_world[:3, 1]
+        z_axis_world = object_T_world[:3, 2]
 
-        faces_world_frame = [
+        # Get the center from the oriented bounding box which is published as object_pose
+        (trans, _) = self.listener.lookupTransform('world', 'object_pose', rospy.Time())
+        bb_center_world = np.array([trans[0], trans[1], trans[2]])
+
+        half_width = 0.5 * grasp_object.width
+        half_height = 0.5 * grasp_object.height
+        half_depth = 0.5 * grasp_object.depth
+
+        faces_world = [
             BoundingBoxFace(color="black",
-                            center=0.5 * (self.bbp1 + self.bbp6),
-                            orient_a=y_axis_world_frame,
-                            orient_b=z_axis_world_frame,
+                            center=bb_center_world + half_width * x_axis_world,
+                            orient_a=y_axis_world,
+                            orient_b=z_axis_world,
                             size_a=grasp_object.height,
                             size_b=grasp_object.depth),
             BoundingBoxFace(color="red",
-                            center=0.5 * (self.bbp1 + self.bbp7),
-                            orient_a=x_axis_world_frame,
-                            orient_b=z_axis_world_frame,
-                            size_a=grasp_object.width,
-                            size_b=grasp_object.depth),
-            BoundingBoxFace(color="green",
-                            center=0.5 * (self.bbp1 + self.bbp8),
-                            orient_a=x_axis_world_frame,
-                            orient_b=y_axis_world_frame,
-                            size_a=grasp_object.width,
-                            size_b=grasp_object.height),
-            BoundingBoxFace(color="blue",
-                            center=0.5 * (self.bbp5 + self.bbp2),
-                            orient_a=y_axis_world_frame,
-                            orient_b=z_axis_world_frame,
+                            center=bb_center_world - half_width * x_axis_world,
+                            orient_a=y_axis_world,
+                            orient_b=z_axis_world,
                             size_a=grasp_object.height,
                             size_b=grasp_object.depth),
-            BoundingBoxFace(color="grey",
-                            center=0.5 * (self.bbp5 + self.bbp3),
-                            orient_a=x_axis_world_frame,
-                            orient_b=z_axis_world_frame,
+            BoundingBoxFace(color="green",
+                            center=bb_center_world + half_height * y_axis_world,
+                            orient_a=x_axis_world,
+                            orient_b=z_axis_world,
                             size_a=grasp_object.width,
                             size_b=grasp_object.depth),
-            BoundingBoxFace(color="light_blue",
-                            center=0.5 * (self.bbp5 + self.bbp4),
-                            orient_a=x_axis_world_frame,
-                            orient_b=y_axis_world_frame,
+            BoundingBoxFace(color="blue",
+                            center=bb_center_world - half_height * y_axis_world,
+                            orient_a=x_axis_world,
+                            orient_b=z_axis_world,
                             size_a=grasp_object.width,
-                            size_b=grasp_object.height)
+                            size_b=grasp_object.depth),
+            BoundingBoxFace(color="grey",
+                            center=bb_center_world + half_depth * z_axis_world,
+                            orient_a=x_axis_world,
+                            orient_b=y_axis_world,
+                            size_a=grasp_object.width,
+                            size_b=grasp_object.height),
+            BoundingBoxFace(
+                color="light_blue",
+                center=bb_center_world - half_depth * z_axis_world,
+                orient_a=x_axis_world,
+                orient_b=y_axis_world,  # z
+                size_a=grasp_object.width,
+                size_b=grasp_object.height)
         ]
         # Publish the bounding box face center points for visualization in RVIZ
-        face_centers_world_frame = []
+        face_centers_world = []
         center_stamped_world = PointStamped()
         center_stamped_world.header.frame_id = 'world'
-        for i, face in enumerate(faces_world_frame):
+        for i, face in enumerate(faces_world):
             center_stamped_world.point.x = face.center[0]
             center_stamped_world.point.y = face.center[1]
             center_stamped_world.point.z = face.center[2]
-            face_centers_world_frame.append(copy.deepcopy(center_stamped_world))
-        self.publish_face_centers(face_centers_world_frame)
+            face_centers_world.append(copy.deepcopy(center_stamped_world))
+        self.publish_face_centers(face_centers_world)
         # find the top face
-        faces_world_frame = sorted(faces_world_frame, key=lambda x: x.center[2])
-        faces_world_frame[-1].is_top = True
+        faces_world = sorted(faces_world, key=lambda x: x.center[2])
+        faces_world[-1].is_top = True
         # Delete the bottom face
-        del faces_world_frame[0]
+        del faces_world[0]
         # Sort along the x axis and delete the face furthes away (robot can't comfortably reach it)
-        faces_world_frame = sorted(faces_world_frame, key=lambda x: x.center[0])
-        del faces_world_frame[-1]
+        faces_world = sorted(faces_world, key=lambda x: x.center[0])
+        del faces_world[-1]
         # Sort along y axis and delete the face furthest away (no normals in this area)
-        faces_world_frame = sorted(faces_world_frame, key=lambda x: x.center[1])
-        del faces_world_frame[-1]
+        faces_world = sorted(faces_world, key=lambda x: x.center[1])
+        del faces_world[-1]
 
         # Publish the bounding box face center points for visualization in RVIZ
-        face_centers_world_frame = []
+        face_centers_world = []
         center_stamped_world = PointStamped()
         center_stamped_world.header.frame_id = 'world'
-        for i, face in enumerate(faces_world_frame):
+        for i, face in enumerate(faces_world):
             center_stamped_world.point.x = face.center[0]
             center_stamped_world.point.y = face.center[1]
             center_stamped_world.point.z = face.center[2]
-            face_centers_world_frame.append(copy.deepcopy(center_stamped_world))
+            face_centers_world.append(copy.deepcopy(center_stamped_world))
 
-        self.publish_points(face_centers_world_frame)
+        self.publish_points(face_centers_world)
 
         # If the object is too short, only select top grasps.
         rospy.loginfo('##########################')
         rospy.loginfo('Obj_height: %s' % grasp_object.height)
         if DEBUG:
-            points_array = np.array([bb.center for bb in faces_world_frame])
+            points_array = np.array([bb.center for bb in faces_world])
             self.visualize(points_array)
         if grasp_object.height < self.min_object_height:
             rospy.loginfo('Object is short, only use top grasps!')
-            return [faces_world_frame[0]]
+            return [faces_world[0]]
 
-        return faces_world_frame
+        return faces_world
 
     # ++++++++++++++++++ PART IV: Main service logic +++++++++++++++++++++++
     def update_object_information(self):
@@ -789,7 +798,7 @@ class GenerateHithandPreshape():
         rospy.loginfo('Ready to generate the grasp preshape.')
 
 
-DEBUG = False
+DEBUG = True
 
 if __name__ == '__main__':
     ghp = GenerateHithandPreshape()
