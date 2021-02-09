@@ -128,8 +128,10 @@ class RecordGraspData():
             grasp_group.create_dataset('is_top_grasp', data=req.is_top_grasp)
             # grasp_success_label
             grasp_group.create_dataset('grasp_success_label', data=req.grasp_success_label)
-            # object_size
-            grasp_group.create_dataset('object_size', data=req.object_size)
+            # object_size (after alignment)
+            grasp_group.create_dataset('object_size_aligned', data=req.object_size_aligned)
+            # object size unaligned
+            grasp_group.create_dataset('object_size_unaligned', data=req.object_size_unaligned)
             # sparse_voxel_grid
             voxel_grid = np.reshape(req.sparse_voxel_grid, [len(req.sparse_voxel_grid) / 3, 3])
             grasp_group.create_dataset('sparse_voxel_grid', data=voxel_grid)
@@ -140,13 +142,22 @@ class RecordGraspData():
             # object_world_sim_pose
             grasp_group.create_dataset('object_world_sim_pose',
                                        data=self.convert_pose_to_list(req.object_world_sim_pose))
-            # object_world_seg_pose
-            grasp_group.create_dataset('object_world_seg_pose',
-                                       data=self.convert_pose_to_list(req.object_world_seg_pose))
+            #  object_world_seg_unaligned_pose
+            grasp_group.create_dataset('object_world_seg_unaligned_pose',
+                                       data=self.convert_pose_to_list(
+                                           req.object_world_seg_unaligned_pose))
+            # object_world_aligned_pose
+            grasp_group.create_dataset('object_world_aligned_pose',
+                                       data=self.convert_pose_to_list(
+                                           req.object_world_aligned_pose))
             # desired_preshape_palm_world_pose
             grasp_group.create_dataset('desired_preshape_palm_world_pose',
                                        data=self.convert_pose_to_list(
                                            req.desired_preshape_palm_world_pose))
+            # desired_preshape_palm_world_pose
+            grasp_group.create_dataset('palm_in_object_aligned_frame_pose',
+                                       data=self.convert_pose_to_list(
+                                           req.palm_in_object_aligned_frame_pose))
             # true_preshape_palm_world_pose
             grasp_group.create_dataset('true_preshape_palm_world_pose',
                                        data=self.convert_pose_to_list(
