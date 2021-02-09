@@ -109,7 +109,7 @@ class VisualDataSaver():
             colors = np.array([colors])
             pcd_o3d.colors = o3d.utility.Vector3dVector(np.tile(colors.T, (1, 3)))
             print("Ros numpy took: " + str(time.time() - start))
-            self.draw_pcd(pcd_o3d)
+            #self.draw_pcd(pcd_o3d)
             self.save_pcd(pcd_o3d, req.scene_pcd_save_path)
 
         ####### Handle depth and color ##########

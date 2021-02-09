@@ -231,7 +231,7 @@ class ObjectSegmenter():
 
         # get the 8 corner points, from these you can compute the bounding box face center points from which you can get the nearest neighbour from the point cloud
         self.bounding_box_corner_points = np.asarray(object_bounding_box.get_box_points())
-        print(self.bounding_box_corner_points)
+        #print(self.bounding_box_corner_points)
 
         # Publish the bounding box corner points for visualization in Rviz
         box_corners_world_frame = []
@@ -249,7 +249,7 @@ class ObjectSegmenter():
         object_pcd.estimate_normals(
             search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.2, max_nn=50))
 
-        self.custom_draw_object(object_pcd, object_bounding_box, True)
+        #self.custom_draw_object(object_pcd, object_bounding_box, True)
 
         # orient normals towards camera
         rospy.loginfo('Orienting normals towards this location:')
