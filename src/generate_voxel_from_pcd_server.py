@@ -7,7 +7,7 @@ from grasp_planner.srv import *
 import tf.transformations as tft
 import tf
 
-SHOW_PCD = True
+SHOW_PCD = False
 
 
 class VoxelGenerator():
@@ -64,7 +64,7 @@ class VoxelGenerator():
         # Transform point cloud to object centric frame by translating the object point cloud by it's center, which is also the origin of the object centric frame. The object centric frame is aligned with the world frame which is why no rotation is applied
         self.update_transform_object_world()
         object_pcd.transform(self.object_T_world)
-        self.show_pcd(object_pcd)
+        #self.show_pcd(object_pcd)
 
         # Generate voxel grid representation from pcd
         voxel_grid = self.generate_voxel_grid_from_pcd(object_pcd, req.voxel_size, req.voxel_dim)
