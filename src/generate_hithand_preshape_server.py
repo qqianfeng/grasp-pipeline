@@ -100,8 +100,11 @@ class GenerateHithandPreshape():
         # Set up the joint angle limits for sampling
         self.setup_joint_angle_limits()
 
-        self.palm_rand_pose_parameter_pos = 0.05
-        self.palm_rand_pose_parameter_orient = 0.05  # percentage of pi. 1 means sample +-180 degrees around initial palm pose
+        self.palm_rand_pose_parameter_pos = rospy.get_param(
+            "generate_hithand_preshape_server_node/palm_rand_pose_sample_pos")
+        self.palm_rand_pose_parameter_orient = rospy.get_param(
+            "generate_hithand_preshape_server_node/palm_rand_pose_sample_orient"
+        )  # percentage of pi. 1 means sample +-180 degrees around initial palm pose
 
     # ++++++++++++++++++++++ PART I: Helper/initialization functions +++++++++++++++++++++++
     def setup_joint_angle_limits(self):
@@ -282,7 +285,7 @@ class GenerateHithandPreshape():
         self.bounding_box_face_centers_pub.publish(markerArray)
 
     def visualize(self, points):
-        return
+        #return
         pcd_vis = o3d.geometry.PointCloud()
         pcd_vis.points = o3d.utility.Vector3dVector(points)
         pcd_vis.paint_uniform_color([1, 0, 0])
@@ -398,109 +401,140 @@ class GenerateHithandPreshape():
         """ Finds the object point cloud's point closest to the center of a given bounding box face
         and generates a Hithand palm pose given the closest point's surface normal. For top faces the normal is not taken from the object pointcloud but computed as the distance between bounding box center and top face center
         """
-        if bounding_box_face.is_top:
-            rospy.loginfo('***Top.')
-            # Part I: Sample position of palm pose
-            top_face_normal = bounding_box_face.center - self.bounding_box_center  # compute the normal for top faces as the vector pointing from the pointing box center to the top face center
-            top_face_normal /= np.linalg.norm(top_face_normal)
-            closest_point_normal = top_face_normal  # This variable is needed later, after if/else
-            palm_dist_top_in_normal_direction = np.random.normal(
-                self.palm_dist_to_top_face_mean, self.palm_dist_normal_to_obj_var
-            )  # sample palm distance from normal distribution centered around mean_dist_top
-            palm_position = bounding_box_face.center + palm_dist_top_in_normal_direction * top_face_normal
+        palm_poses = []
+        palm_approach_poses = []
+        for i in range(3):
+            if bounding_box_face.is_top:
+                rospy.loginfo('***Top.')
+                # Part I: Sample position of palm pose
+                top_face_normal = bounding_box_face.center - self.bounding_box_center  # compute the normal for top faces as the vector pointing from the pointing box center to the top face center
+                top_face_normal /= np.linalg.norm(top_face_normal)
+                closest_point_normal = top_face_normal  # This variable is needed later, after if/else
+                if i == 0:
+                    palm_dist_top_in_normal_direction = np.random.normal(
+                        self.palm_dist_to_top_face_mean, self.palm_dist_normal_to_obj_var
+                    )  # sample palm distance from normal distribution centered around mean_dist_top
+                else:
+                    palm_dist_side_normal_direction = np.random.uniform(
+                        self.palm_dist_to_side_face_mean - self.palm_dist_normal_to_obj_var,
+                        self.palm_dist_to_side_face_mean + self.palm_dist_normal_to_obj_var)
+                palm_position = bounding_box_face.center + palm_dist_top_in_normal_direction * top_face_normal
 
-            # Also compute an approach position which is 20cm further away from the palm position outward in object normal direction
-            # palm_approach_position = palm_position + self.approach_offset * top_face_normal
-            palm_approach_position = copy.deepcopy(palm_position)
-            palm_approach_position[2] += 0.2
+                # Also compute an approach position which is 20cm further away from the palm position outward in object normal direction
+                # palm_approach_position = palm_position + self.approach_offset * top_face_normal
+                palm_approach_position = copy.deepcopy(palm_position)
+                palm_approach_position[2] += 0.2
 
-            # Part II: Compute vector to determine orientation of palm pose
-            # bounding_box_orientation_vector = bounding_box_face.orient_a[:] + bounding_box_face.orient_b[:]
-            # For our setup and with the chosen palm frame a successful top grasp should roughly align the palm link y axis (green in RViz) with the long side of the bounding box orientation vector
-            if bounding_box_face.size_a >= bounding_box_face.size_b:
-                bounding_box_orientation_vector = bounding_box_face.orient_a
+                # Part II: Compute vector to determine orientation of palm pose
+                # bounding_box_orientation_vector = bounding_box_face.orient_a[:] + bounding_box_face.orient_b[:]
+                # For our setup and with the chosen palm frame a successful top grasp should roughly align the palm link y axis (green in RViz) with the long side of the bounding box orientation vector
+                if bounding_box_face.size_a > bounding_box_face.size_b:
+                    bounding_box_orientation_vector = bounding_box_face.orient_a
+                elif bounding_box_face.size_a < bounding_box_face.size_b:
+                    bounding_box_orientation_vector = bounding_box_face.orient_b
+                else:  # Account for fact that size_a and size_b could be same
+                    bb_extent = np.ones(4)
+                    bb_extent[:3] = np.array(
+                        self.segmented_object_pcd.get_oriented_bounding_box().extent)
+                    (_, quat) = self.listener.lookupTransform('object_pose', 'object_pose_aligned',
+                                                              rospy.Time())
+                    aligned_T_pose = tft.quaternion_matrix([quat[0], quat[1], quat[2], quat[3]])
+                    bb_extent_aligned = np.abs(aligned_T_pose.dot(bb_extent))
+                    if bb_extent_aligned[0] > bb_extent_aligned[1]:
+                        bounding_box_orientation_vector = bounding_box_face.orient_a
+                    else:
+                        bounding_box_orientation_vector = bounding_box_face.orient_b
+
+                # the x component of palm frame orientation should be positive
+                # if bounding_box_orientation_vector[0] < 0:
+                #     bounding_box_orientation_vector = (-1) * bounding_box_orientation_vector
             else:
-                bounding_box_orientation_vector = bounding_box_face.orient_b
+                # Part I: Sample the position of the palm pose
+                #find the closest point in the point cloud
+                m = self.segmented_object_points.shape[0]
+                center_aug = np.tile(bounding_box_face.center, (m, 1))
+                squared_dist = np.sum(np.square(self.segmented_object_points - center_aug), axis=1)
+                min_idx = np.argmin(squared_dist)
+                closest_point = self.segmented_object_points[min_idx, :]
+                rospy.loginfo('Found closest point ' + str(closest_point) + ' to obj_pt = ' +
+                              str(bounding_box_face.center) + ' at dist = ' +
+                              str(squared_dist[min_idx]))
 
-            # the x component of palm frame orientation should be positive
-            # if bounding_box_orientation_vector[0] < 0:
-            #     bounding_box_orientation_vector = (-1) * bounding_box_orientation_vector
-        else:
-            # Part I: Sample the position of the palm pose
-            #find the closest point in the point cloud
-            m = self.segmented_object_points.shape[0]
-            center_aug = np.tile(bounding_box_face.center, (m, 1))
-            squared_dist = np.sum(np.square(self.segmented_object_points - center_aug), axis=1)
-            min_idx = np.argmin(squared_dist)
-            closest_point = self.segmented_object_points[min_idx, :]
-            rospy.loginfo('Found closest point ' + str(closest_point) + ' to obj_pt = ' +
-                          str(bounding_box_face.center) + ' at dist = ' +
-                          str(squared_dist[min_idx]))
+                # Get normal of closest point
+                closest_point_normal = self.segmented_object_normals[min_idx, :]
+                rospy.loginfo('Associated normal n = ' + str(closest_point_normal))
+                # make sure the normal actually points outwards
+                center_to_face = bounding_box_face.center - self.bounding_box_center
+                if np.dot(closest_point_normal, center_to_face) < 0.:
+                    closest_point_normal = (-1.) * closest_point_normal
+                # Sample hand position
+                if i == 0:
+                    palm_dist_side_normal_direction = np.random.normal(
+                        self.palm_dist_to_side_face_mean, self.palm_dist_normal_to_obj_var)
+                else:
+                    palm_dist_side_normal_direction = np.random.uniform(
+                        self.palm_dist_to_side_face_mean - self.palm_dist_normal_to_obj_var,
+                        self.palm_dist_to_side_face_mean + self.palm_dist_normal_to_obj_var)
+                palm_position = closest_point + palm_dist_side_normal_direction * closest_point_normal
 
-            # Get normal of closest point
-            closest_point_normal = self.segmented_object_normals[min_idx, :]
-            rospy.loginfo('Associated normal n = ' + str(closest_point_normal))
-            # make sure the normal actually points outwards
-            center_to_face = bounding_box_face.center - self.bounding_box_center
-            if np.dot(closest_point_normal, center_to_face) < 0.:
-                closest_point_normal = (-1.) * closest_point_normal
-            # Sample hand position
-            palm_dist_side_normal_direction = np.random.normal(self.palm_dist_to_side_face_mean,
-                                                               self.palm_dist_normal_to_obj_var)
-            palm_position = closest_point + palm_dist_side_normal_direction * closest_point_normal
+                # Also compute an approach position which is 20cm further away from the palm position outward in object normal direction
+                palm_approach_position = closest_point + (palm_dist_side_normal_direction +
+                                                          0.15) * closest_point_normal
+                palm_approach_position[2] += 0.2
+                #palm_approach_position[0] -= 0.15
+                # if palm_approach_position[1] < 0:
+                #     palm_approach_position[1] -= 0.15
+                # else:
+                #     palm_approach_position[1] += 0.15
+                # Part II: Compute vector to determine the palm orientation
+                # Pick the vertical vector with larger z value to be the palm link y axis (thumb)
+                # in order to remove the orientation that runs into the table
+                if abs(bounding_box_face.orient_a[2]) > abs(bounding_box_face.orient_b[2]):
+                    bounding_box_orientation_vector = bounding_box_face.orient_a[:]
+                else:
+                    bounding_box_orientation_vector = bounding_box_face.orient_b[:]
 
-            # Also compute an approach position which is 20cm further away from the palm position outward in object normal direction
-            palm_approach_position = copy.deepcopy(palm_position)
-            palm_approach_position[0] -= 0.15
-            palm_approach_position[2] += 0.2
-            if palm_approach_position[1] < 0:
-                palm_approach_position[1] -= 0.15
-            else:
-                palm_approach_position[1] += 0.15
-            # Part II: Compute vector to determine the palm orientation
-            # Pick the vertical vector with larger z value to be the palm link y axis (thumb)
-            # in order to remove the orientation that runs into the table
-            if abs(bounding_box_face.orient_a[2]) > abs(bounding_box_face.orient_b[2]):
-                bounding_box_orientation_vector = bounding_box_face.orient_a[:]
-            else:
-                bounding_box_orientation_vector = bounding_box_face.orient_b[:]
+                if bounding_box_orientation_vector[2] < 0:
+                    bounding_box_orientation_vector = (-1.) * bounding_box_orientation_vector
 
-            if bounding_box_orientation_vector[2] < 0:
-                bounding_box_orientation_vector = (-1.) * bounding_box_orientation_vector
+            # Add some extra 3D noise on the palm position
+            if i == 0:
+                position_noise_3d = np.random.normal(0, self.palm_position_3D_sample_var, 3)
+                palm_position = palm_position + position_noise_3d
+                palm_approach_position = palm_approach_position + position_noise_3d
 
-        # Add some extra 3D noise on the palm position
-        position_noise_3d = np.random.normal(0, self.palm_position_3D_sample_var, 3)
-        palm_position = palm_position + position_noise_3d
-        palm_approach_position = palm_approach_position + position_noise_3d
+            # Add some noise to the palm orientation
+            bounding_box_orientation_vector = bounding_box_orientation_vector + np.random.normal(
+                0., self.wrist_roll_orientation_var, 3)
+            bounding_box_orientation_vector /= np.linalg.norm(bounding_box_orientation_vector)
 
-        # Add some noise to the palm orientation
-        bounding_box_orientation_vector = bounding_box_orientation_vector + np.random.normal(
-            0., self.wrist_roll_orientation_var, 3)
-        bounding_box_orientation_vector /= np.linalg.norm(bounding_box_orientation_vector)
+            # Find the full palm orientation from the bounding box orientation vector (which is the desired vector for the palm link y-direction) and object point normal
+            palm_orientation_quat = self.find_full_palm_orientation(
+                closest_point_normal, bounding_box_orientation_vector)
 
-        # Find the full palm orientation from the bounding box orientation vector (which is the desired vector for the palm link y-direction) and object point normal
-        palm_orientation_quat = self.find_full_palm_orientation(closest_point_normal,
-                                                                bounding_box_orientation_vector)
+            # Put this into a Stamped Pose for publishing
+            palm_pose = PoseStamped()
+            palm_pose.header.frame_id = 'world'
+            # palm_pose.header.stamp = rospy.Time.now()
+            palm_pose.pose.position.x = palm_position[0]
+            palm_pose.pose.position.y = palm_position[1]
+            palm_pose.pose.position.z = palm_position[2]
+            palm_pose.pose.orientation.x = palm_orientation_quat[0]
+            palm_pose.pose.orientation.y = palm_orientation_quat[1]
+            palm_pose.pose.orientation.z = palm_orientation_quat[2]
+            palm_pose.pose.orientation.w = palm_orientation_quat[3]
+            rospy.loginfo('Chosen palm position is ' + str(palm_pose.pose.position))
 
-        # Put this into a Stamped Pose for publishing
-        palm_pose = PoseStamped()
-        palm_pose.header.frame_id = 'world'
-        # palm_pose.header.stamp = rospy.Time.now()
-        palm_pose.pose.position.x = palm_position[0]
-        palm_pose.pose.position.y = palm_position[1]
-        palm_pose.pose.position.z = palm_position[2]
-        palm_pose.pose.orientation.x = palm_orientation_quat[0]
-        palm_pose.pose.orientation.y = palm_orientation_quat[1]
-        palm_pose.pose.orientation.z = palm_orientation_quat[2]
-        palm_pose.pose.orientation.w = palm_orientation_quat[3]
-        rospy.loginfo('Chosen palm position is ' + str(palm_pose.pose.position))
+            # Construct the approach pose which is 20cm outward from palm goal pose in normal direction
+            approach_pose = copy.deepcopy(palm_pose)
+            approach_pose.pose.position.x = palm_approach_position[0]
+            approach_pose.pose.position.y = palm_approach_position[1]
+            approach_pose.pose.position.z = palm_approach_position[2]
 
-        # Construct the approach pose which is 20cm outward from palm goal pose in normal direction
-        approach_pose = copy.deepcopy(palm_pose)
-        approach_pose.pose.position.x = palm_approach_position[0]
-        approach_pose.pose.position.y = palm_approach_position[1]
-        approach_pose.pose.position.z = palm_approach_position[2]
-        return palm_pose, approach_pose
+            palm_poses.append(palm_pose)
+            palm_approach_poses.append(approach_pose)
+
+        return palm_poses, palm_approach_poses
 
     def get_axis_aligned_bounding_box_faces(self):
         """ Get the center points of 3 axis aligned bounding box faces, 1 top and 2 closest to camera
@@ -597,9 +631,13 @@ class GenerateHithandPreshape():
         y_axis_world = object_T_world[:3, 1]
         z_axis_world = object_T_world[:3, 2]
 
-        # Get the center from the oriented bounding box which is published as object_pose
-        (trans, _) = self.listener.lookupTransform('world', 'object_pose', rospy.Time())
-        bb_center_world = np.array([trans[0], trans[1], trans[2]])
+        # Get the center from the oriented bounding box
+        # bb_center_world = np.array([
+        #     grasp_object.pose.position.x, grasp_object.pose.position.y,
+        #     grasp_object.pose.position.z
+        # ])
+
+        bb_center_world = self.bounding_box_center
 
         half_width = 0.5 * grasp_object.width
         half_height = 0.5 * grasp_object.height
@@ -734,45 +772,48 @@ class GenerateHithandPreshape():
         self.palm_approach_pose_world = []
         for i in xrange(len(bounding_box_faces)):
             # Get the desired palm pose given the point from the bounding box
-            palm_pose_world, palm_approach_pose_world = self.find_palm_pose_from_bounding_box_face(
+            palm_poses_world, palm_approach_poses_world = self.find_palm_pose_from_bounding_box_face(
                 bounding_box_faces[i])  # Tested, seems to work fine, only visualized position
-            if DEBUG:
-                point = np.zeros([3, 2])
-                point[0, 1] = palm_pose_world.pose.position.x
-                point[1, 1] = palm_pose_world.pose.position.y
-                point[2, 1] = palm_pose_world.pose.position.z
-                self.visualize(point.T)
-            self.palm_goal_pose_world.append(palm_pose_world)
-            response.palm_goal_pose_world.append(palm_pose_world)
-
-            self.palm_approach_pose_world.append(palm_approach_pose_world)
-            response.palm_approach_pose_world.append(palm_approach_pose_world)
-
-            response.hithand_joint_state.append(self.sample_hithand_preshape_joint_state())
-            response.is_top_grasp.append(bounding_box_faces[i].is_top)
-            # Set the rand pose limits for subsequent uniform sampling around the previously found palm_pose_world as initial pose.
-            self.set_palm_rand_pose_limits(palm_pose_world)
-            if DEBUG:
-                point = np.zeros([3, self.num_samples_per_preshape])
-
-            for j in xrange(self.num_samples_per_preshape):
-                sampled_palm_pose = self.sample_uniformly_around_preshape_palm_pose(
-                    palm_pose_world.header.frame_id)
-                response.palm_goal_pose_world.append(sampled_palm_pose)
-                self.palm_goal_pose_world.append(sampled_palm_pose)
-                response.palm_approach_pose_world.append(palm_approach_pose_world)
-                self.palm_approach_pose_world.append(palm_approach_pose_world)
-
+            for k in xrange(len(palm_poses_world)):
+                palm_pose_world = palm_poses_world[k]
+                palm_approach_pose_world = palm_approach_poses_world[k]
                 if DEBUG:
-                    point[0, j] = sampled_palm_pose.pose.position.x
-                    point[1, j] = sampled_palm_pose.pose.position.y
-                    point[2, j] = sampled_palm_pose.pose.position.z
-                # Sample remaining joint values
-                hithand_joint_state = self.sample_hithand_preshape_joint_state()
-                response.hithand_joint_state.append(hithand_joint_state)
+                    point = np.zeros([3, 2])
+                    point[0, 1] = palm_pose_world.pose.position.x
+                    point[1, 1] = palm_pose_world.pose.position.y
+                    point[2, 1] = palm_pose_world.pose.position.z
+                    self.visualize(point.T)
+                self.palm_goal_pose_world.append(palm_pose_world)
+                response.palm_goal_pose_world.append(palm_pose_world)
+
+                self.palm_approach_pose_world.append(palm_approach_pose_world)
+                response.palm_approach_pose_world.append(palm_approach_pose_world)
+
+                response.hithand_joint_state.append(self.sample_hithand_preshape_joint_state())
                 response.is_top_grasp.append(bounding_box_faces[i].is_top)
-            if DEBUG:
-                self.visualize(point.T)
+                # Set the rand pose limits for subsequent uniform sampling around the previously found palm_pose_world as initial pose.
+                self.set_palm_rand_pose_limits(palm_pose_world)
+                if DEBUG:
+                    point = np.zeros([3, self.num_samples_per_preshape])
+
+                for j in xrange(self.num_samples_per_preshape):
+                    sampled_palm_pose = self.sample_uniformly_around_preshape_palm_pose(
+                        palm_pose_world.header.frame_id)
+                    response.palm_goal_pose_world.append(sampled_palm_pose)
+                    self.palm_goal_pose_world.append(sampled_palm_pose)
+                    response.palm_approach_pose_world.append(palm_approach_pose_world)
+                    self.palm_approach_pose_world.append(palm_approach_pose_world)
+
+                    if DEBUG:
+                        point[0, j] = sampled_palm_pose.pose.position.x
+                        point[1, j] = sampled_palm_pose.pose.position.y
+                        point[2, j] = sampled_palm_pose.pose.position.z
+                    # Sample remaining joint values
+                    hithand_joint_state = self.sample_hithand_preshape_joint_state()
+                    response.hithand_joint_state.append(hithand_joint_state)
+                    response.is_top_grasp.append(bounding_box_faces[i].is_top)
+                if DEBUG:
+                    self.visualize(point.T)
         self.service_is_called = True
 
         return response
@@ -798,7 +839,7 @@ class GenerateHithandPreshape():
         rospy.loginfo('Ready to generate the grasp preshape.')
 
 
-DEBUG = True
+DEBUG = False
 
 if __name__ == '__main__':
     ghp = GenerateHithandPreshape()

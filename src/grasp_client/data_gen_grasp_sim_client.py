@@ -2,6 +2,7 @@
 import rospy
 from grasp_sim_client import GraspClient
 import os
+import time
 import shutil
 from object_names_in_datasets import YCB_OBJECTS, KIT_OBJECTS, BIGBIRD_OBJECTS
 
@@ -12,8 +13,8 @@ class MetaDataHandler():
     """ Simple class to help iterate through objects and 
     """
     def __init__(self, gazebo_objects_path='/home/vm/object_datasets/objects_gazebo'):
-        self.datasets = [KIT_OBJECTS, YCB_OBJECTS, BIGBIRD_OBJECTS]
-        self.datasets_name = ['kit', 'bigbird', 'ycb']
+        self.datasets = [BIGBIRD_OBJECTS, KIT_OBJECTS, YCB_OBJECTS]
+        self.datasets_name = ['bigbird', 'kit', 'ycb']
         self.object_ix = -1
         self.dataset_ix = 0
         self.gazebo_objects_path = gazebo_objects_path
@@ -77,6 +78,7 @@ if __name__ == '__main__':
     grasp_client = GraspClient(grasp_data_recording_path=data_recording_path)
     metadata_handler = MetaDataHandler(gazebo_objects_path=gazebo_objects_path)
 
+    start = time.time()
     while True:
         grasp_client.create_dirs_new_grasp_trial()
 
@@ -104,3 +106,6 @@ if __name__ == '__main__':
 
             # Save all grasp data including post grasp images
             grasp_client.save_visual_data_and_record_grasp()
+
+            # measure time
+            print("One cycle took: " + str(time.time() - start))
