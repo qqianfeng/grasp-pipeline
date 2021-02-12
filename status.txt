@@ -89,7 +89,7 @@
 
 11.1.21 
 - grasp voxel inference
-- wordings:
+- wordings
 	suc -- success
 	config -- hand_config
 	grad -- gradient
@@ -114,14 +114,14 @@
 - ability to spawn hand without crashing
 
 15.1.21
-- WORK:
+- WORK
 	- spawn hand+panda together
 	- test grasp controller
 		- actually grasp object
 	- simulation runs slower, real time rate only 0.9
 		- deactivate unneccessary collision meshes
 		- there seems to exist a link to spawning ycb objects
-			- FIX: Try different object database from github	
+			- FIX Try different object database from github	
 
 - [IDEAS]: using grasp type/eigengrasp/grasp primitive to give more structure to the problem and limit search space
 	- mark grasp type of all grasps in simulation
@@ -191,7 +191,7 @@ Interesting for grasp impedance adaptation
 #https://www.researchgate.net/publication/326774657_A_Self-Tuning_Impedance_Controller_for_Autonomous_Robotic_Manipulation:
 #Also promising https://www.cambridge.org/core/journals/robotica/article/abs/development-and-experimental-evaluation-of-multifingered-robot-hand-with-adaptive-impedance-control-for-unknown-environment-grasping/6D2C90B5824543CDCD64A194C5A8A06D:
 	2. Grasp representation: use joint angles? Use synergistic control?:
-	3. Data collection What should all be recorded? This is the main task, important for whole thesis:
+	3. Data collection What should all be recorded? This is the main task, important for whole thesis [CHECK]
 		- Collect the data on this machine? Then no development possible in parallel
 			- Get other machine or start working on real robot+hand 
 - [Task 3] Optimize camera model [CHECK]
@@ -236,10 +236,10 @@ Interesting for grasp impedance adaptation
 	- [Resource]: Gives all the masses for YCB objects https://ri.cmu.edu/pub_files/2015/7/ICAR-FINAL.pdf
 - [Task 1]: Test entire grasping pipeline
 	- [Finding 1] Somehow moveit considers self-collision of the hand/robot and won't generate a plan
-	- [Finding 2] Palm should be towards shorter of two sides:
-	- [Finding 3] Need to find good values for hithand-preshape sampling:
-	- [Finding 4] Still need to think about the fact that they say object-centric coordinate system is aligned to world frame:
-		- Potentially should use the bounding box center and not centroid of object cloud :
+	- [Finding 2] Palm should be towards shorter of two sides                   [CHECK]
+	- [Finding 3] Need to find good values for hithand-preshape sampling        [CHECK]
+	- [Finding 4] Still need to think about the fact that they say object-centric coordinate system is aligned to world frame  [CHECK]
+		- Potentially should use the bounding box center and not centroid of object cloud [CHECK]
 - [Task 2]: Optimize performance of grasp pipeline
 	- make moveit scene updateer MUCH faster        [CHECK] 
 	- reset hithand only if needed                  [CHECK]
@@ -252,14 +252,14 @@ on performance, UTAH people have this turned off        [CHECK]
 - [Task 2] Suggestion Karan change the motion planning: 
 - [Task 3] Integrate everything in the grasp pipeline script
 	- [Consid. 1] How many grasps in same position? Top vs. side? Balanced dataset? How many grasps?:
-	- [Consid. 2] Does it make sense to spawn object in same position but not save data again/ segment? --> Verify that that's no problem:
+	- [Consid. 2] Does it make sense to spawn object in same position but not save data again/ segment? --> Verify that that's no problem                         [CHECK}
 
 27.1.21
 - [Task 1] Integrate everything in the grasp pipeline script
-	- generate new depth/ color/ pcd img save paths each time:
+	- generate new depth/ color/ pcd img save paths each time  [CHECK}
 	- add reset hithand and panda                              [CHECK]
-	- execute panda and hithand reset in parallel:
-	- give grasp_type to grasp_type chooser?:
+	- execute panda and hithand reset in parallel              [CHECK]
+	- give grasp_type to grasp_type chooser?                   [CHECK]
 - [Task 2] Save all grasping data                                  [CHECK]
 	- What characterises a grasp
 		0.) Metadata
@@ -284,7 +284,7 @@ on performance, UTAH people have this turned off        [CHECK]
 		- create dataset for each value that is important
 29.1.21
 - [Task 1] Test the data save mechanism                            [CHECK]
-- [Task 2] Make entire data acquistion pipeline work:
+- [Task 2] Make entire data acquistion pipeline work
 		- what makes up a grasp
 
 31.1.21
@@ -298,32 +298,32 @@ on performance, UTAH people have this turned off        [CHECK]
 			- 2. visual mesh
 			- 3. collision mesh
 	- [Finding 1] Apply extra transformation to inertia tensor. Hithand model inertia tensor might be incorrect:
-		- trimesh cant work with dae. Maybe convert hithand models to stl/obj and then try inertia transformation (priority is medium to low):
+		- trimesh cant work with dae. Maybe convert hithand models to stl/obj and then try inertia transformation (priority is medium to low)
 
 01.2.21-07.02.21
-- [Task 1] Finish mesh preparation , prepare_objects_gazebo kit dataset    [CHECK]
+- [Task 1] Finish mesh preparation , prepare_objects_gazebo kit dataset            [CHECK]
 	- [Finding 1] KIT need roll of 1.57 to be upright
 	- [Finding 2] Material does not look correct for Chips Can
-- [Task 2] Finish data acquisition pipeline to be able to do everything:
-           from spawning an object to recording data:
-	- After a grasp pose was attempted this pose should be deleted 			from the list, to ensure it is not being used twice:
+- [Task 2] Finish data acquisition pipeline to be able to do everything            [CHECK]
+           from spawning an object to recording data
 	- Problem with the grasp and lift API as it needs to choose 
 		different poses unitl it finds a valid one
-	- Reset panda not working                                          [CHECK]
+	- Reset panda not working                                                  [CHECK]
 - [Task 3] Find good camera real pose:
-	- D415 works much better than D455:
-	- x-y-z should be 0.4 - 0.65 - 0.35:
+	- D415 works much better than D455
+	- x-y-z should be 0.4 - 0.65 - 0.35
 - [Task 4] Setup second machine in the office:
-- [Task 5] Integrate D415 model into Gazebo, replace D435:
-- [Task 6] Sample joint angles yes no?	:
-	- If yes randomly or more intelligent?:
-- [Task 7] Make grasp sampling work:
-	- find good settings for sample parameters:
-	- make sure thumb is always pointing up:
-	- come up with a good way to prune grasps which are not executed / not feaible:
-- [Task 8] Create list with only feasible objects from all datasets:
-- [Task 9] Save images as object name:
-- [Task 10] Fix discrepancies of object centric reference frame and storage of dim_w_h_d
+- [Task 5] Integrate D415 model into Gazebo, replace D435
+- [Task 6] Sample joint angles yes no?
+	- If yes randomly or more intelligent?
+- [Task 7] Make grasp sampling work                                                [CHECK]
+	- find good settings for sample parameters                                 [CHECK]
+	- make sure thumb is always pointing up                                    [CHECK]
+	- come up with a good way to prune grasps which are not executed           [CHECK]
+- [Task 8] Create list with only feasible objects from all datasets                [CHECK]
+- [Task 9] Save images as object name                                              [CHECK]
+- [Task 10] Fix discrepancies of object centric reference frame 
+	    and storage of dim_w_h_d
 	- For utah people 
 		(middle-big) width=x, 
 		(smallest)   height=y,
@@ -336,12 +336,67 @@ on performance, UTAH people have this turned off        [CHECK]
 			- transform point cloud from world frame to object centric frame 
 			- find x,y,z bounds of new transformed point cloud
 - [Task 11] Process the collision meshes from text file:
-- [Task 12] Integrate the full mesh voxelization:
+- [Task 12] Integrate the full mesh voxelization                                    [CHECK]
 - [Task 13] Find realistic workspace bounds:
+	- Possible ranges x - [0.25, 0.65], y - [-0.2, 0.2], :
 - [Task 14] Decide which center to use as object cloud center bounding box or cloud
 	- decided for point cloud mean
-- [Task 15] Treat KIT objects special, spawn high and roll pi/2:
-- [Task 16] Save palm pose in object frame
-- [Task 17] Parallel execute panda and hithand reset motion:
-- [Task 18] Prune out poses for which no IK solution can be obtained:
+- [Task 15] Treat KIT objects special, spawn high and roll pi/2                     [CHECK]
+- [Task 16] Save palm pose in object frame                                          [CHECK]
+- [Task 17] Parallel execute panda and hithand reset motion                         [CHECK]
+- [Task 18] Prune out poses for which no IK solution can be obtained                [CHECK]
+- [Task 19] Top grasp might generate wrong palm orientation                         [CHECK]
+- [Task 20] What if no IK solution found for lift position?                         [CHECK]
+- [Task 21] Too often no IK solution can be obtained                                [CHECK]
+- [Task 22] Test record data save server                                            [CHECK]     
+- [Task 23] Set Realsense realistic values ALSO FOR IMAGE SIZE                      [CHECK]                                            
+- [Task 24] Idea For top grasps --> first move above object then go down
+	- Top grasp wrong alignment of thumb
+	- Also for side grasps move to a position away from the obejct first, then  [CHECK]
+		approach it
+		- if the first pose is not reachable, then do it and go straight     
+- [Task 25] Set moveit workspace boundaries:
+- [Task 26] Distinguish between side one and side two grasps                        [CHECK]
 
+DEPENCIES CHANGES: sudo apt-get install ros-melodic-trac-ik-kinematics-plugin
+
+- PAPER https://arxiv.org/pdf/2012.09696.pdf Multi Fin Gan Coarse to Fine
+
+8.2.21
+Current big tasks
+- [Task 1] Make grasp sampling cover more of the object surface:
+- [Task 2] Sample joint angles for hand:
+- [Task 3] Distinguish between side one and side two grasps                         [CHECK]
+	- Maybe just move further away in normal direction and just increase z
+- [Task 4] If no motion plan can be obtained, skip the recording                    [CHECK]
+- [Task 5] Generate multiple poses along the object normal
+- [Task 6] Sample uniformly instead of Gaussian
+- [Task 7] Check why grasps are not stored properly
+- [Task 8] Use IK from filter server:
+- [Task 9] Stop the pinky if all other fingers stopped
+- Problems:
+	- Not sampling hithand joint state:
+	- Not covering everything of the object surface:
+	- Not evaluating stability:
+	- Not setting realistic friction parameters:
+- IDEA:
+	- 1. also store at least some of the poses which do not result in a feasible plan by moveit
+	- 2. Use Point-Net++ or similar to output coarse distribution of good grasp, possibly with label 			for grasp type?
+		- Refine the initial guess 
+	- 3. Use pre-trained Point-Net in simulation for data acquisition
+		- Input is a partial object point cloud, from this PointNet predicts a set of 			potentially interesting grasp points
+		- Around the predicted grasp points sample hypothesis, test these hypothesis in 		simulation and thereby generate ground truth labels (?)
+	- 4. Prune out grasps which are already in collision, but not via moveit but by spawning the 			hand in desired position and checking collisions
+	- 5. Could give all sampled poses to server to evaluate IK solutions. If no solution found 			already prune out the grasp
+	- 6. How to incorporate grasp type?
+	- 7. Use surface features like curvature and normal more explicitly?
+
+12.2.21
+- Trained Autoencoder works reasonably well:
+	- Idea 1 Incorporate object size explicitly into training, to sample more informed
+	- Idea 2 Use way more GraspIt data for sampling
+- PCA also worked but not as well:
+- How to evaluate them?:
+- Try human designed features for grasp sampling
+- Create a package from grasp-dof-reduction code with a server to sample a full dof joint pos
+- Integrate human sample mechanism in generate hithand preshape          
