@@ -149,6 +149,15 @@ def plot_voxel(voxel, img_path=None, voxel_res=None, centroid=None, pca_axes=Non
         pyplot.savefig(img_path)
 
 
+def convert_to_full_voxel_grid(sparse_grid):
+    full_grid = np.zeros([32, 32, 32])
+    for i in xrange(len(sparse_grid)):
+        ix1, ix2, ix3 = sparse_grid[i]
+        full_grid[ix1, ix2, ix3] = 1
+
+    return full_grid
+
+
 def convert_to_sparse_voxel_grid(voxel_grid, threshold=0.5):
     sparse_voxel_grid = []
     voxel_dim = voxel_grid.shape

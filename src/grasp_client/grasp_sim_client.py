@@ -162,6 +162,17 @@ class GraspClient():
         object_pose_stamped = get_pose_stamped_from_array(object_pose)
         self.object_metadata["sim_pose"] = object_pose_stamped
 
+    def choose_random_grasp_preshape(self):
+        grasp_idx = np.random.randint(0, len(self.heuristic_preshapes.palm_goal_pose_world))
+        # Store the chosen grasp pose and appraoch pose as well as joint state in corresponding dicts
+        self.palm_poses["desired_pre"] = self.heuristic_preshapes.palm_goal_pose_world[grasp_idx]
+        self.palm_poses["approach"] = self.heuristic_preshapes.palm_approach_pose_world[grasp_idx]
+        self.hand_joint_states["desired_pre"] = self.heuristic_preshapes.hithand_joint_state[
+            grasp_idx]
+
+        self.chosen_is_top_grasp = self.heuristic_preshapes.is_top_grasp[grasp_idx]
+        self.chosen_grasp_idx = grasp_idx
+
     def choose_specific_grasp_preshape(self, grasp_type):
         """ This chooses one specific grasp preshape from the preshapes in self.heuristic_preshapes.
         Grasp type can be side1, side2, or top.
@@ -274,6 +285,19 @@ class GraspClient():
             rospy.loginfo('Service execute_joint_trajectory call failed: %s' % e)
         rospy.loginfo('Service execute_joint_trajectory is executed.')
 
+    def filter_palm_goal_poses_client(self):
+        wait_for_service('filter_palm_goal_poses')
+        try:
+            filter_palm_goal_poses = rospy.ServiceProxy('filter_palm_goal_poses', FilterPalmPoses)
+            req = FilterPalmPosesRequest()
+            req.palm_goal_poses_world = self.heuristic_preshapes.palm_goal_pose_world
+
+            res = filter_palm_goal_poses(req)
+        except rospy.ServiceException, e:
+            rospy.loginfo('Service filter_palm_goal_poses call failed: %s' % e)
+        rospy.loginfo('Service filter_palm_goal_poses is executed.')
+        return res.prune_idxs
+
     def generate_hithand_preshape_client(self):
         """ Generates 
         """
@@ -292,6 +316,7 @@ class GraspClient():
             req.sample = True
             self.heuristic_preshapes = generate_hithand_preshape(req)
             self.num_preshapes = len(self.heuristic_preshapes.palm_goal_pose_world)
+            # Generate list with indexes for different grasp types
             self.side1_idxs = range(0, self.num_preshapes / 3)
             if self.heuristic_preshapes.is_top_grasp[self.num_preshapes / 3] == True:
                 self.top_idxs = range(self.num_preshapes / 3, 2 * self.num_preshapes / 3)
@@ -531,7 +556,7 @@ class GraspClient():
                                                              rospy.Time())
                 aligned_T_pose = tft.quaternion_matrix([quat[0], quat[1], quat[2], quat[3]])
                 bb_extent_aligned = np.abs(aligned_T_pose.dot(bb_extent))
-                self.object_metadata["aligned_dim_whd"] = bb_extent_aligned
+                self.object_metadata["aligned_dim_whd"] = bb_extent_aligned[:3]
                 self.object_segment_response.object.width = bb_extent_aligned[0]
                 self.object_segment_response.object.height = bb_extent_aligned[1]
                 self.object_segment_response.object.depth = bb_extent_aligned[2]
@@ -686,28 +711,50 @@ class GraspClient():
     def store_poses_and_joint_states_in_instance_variable(self, grasp_phase):
         raise NotImplementedError
 
+    def filter_preshapes(self):
+        prune_idxs = self.filter_palm_goal_poses_client()
+        print(prune_idxs)
+        self.top_idxs = [x for x in self.top_idxs if x not in prune_idxs]
+        self.side1_idxs = [x for x in self.side1_idxs if x not in prune_idxs]
+        self.side2_idxs = [x for x in self.side2_idxs if x not in prune_idxs]
+        if len(self.top_idxs) + len(self.side1_idxs) + len(self.side2_idxs) == 0:
+            self.grasps_available = False
+
     def generate_hithand_preshape(self):
         """ Generate multiple grasp preshapes, which get stored in instance variable.
         """
         self.generate_hithand_preshape_client()
+
+    def generate_valid_hithand_preshapes(self):
+        """ First generates preshpes from the hithand preshape server and then prunes out all preshapes which are either in collision or have no IK solution.
+        """
+        self.generate_hithand_preshape_client()
+        self.filter_preshapes()
 
     def grasp_and_lift_object(self):
         # Control the hithand to it's preshape
         #self.control_hithand_config_client()
         i = 0
         # As long as there are viable poses
+        if not self.grasps_available:
+            rospy.loginfo("No grasps are available")
+            rospy.loginfo("Choose random invalid pose for logging")
+            self.choose_random_grasp_preshape()
+
+        desired_plan_exists = False
         while self.grasps_available:
+            i += 1
             # Step 1 choose a specific grasp. In first iteration self.chosen_grasp_type is unspecific, e.g. function will randomly choose grasp type
             self.choose_specific_grasp_preshape(grasp_type=self.chosen_grasp_type)
             if not self.grasps_available:
                 break
             # Step 2, if the previous grasp type is not same as current grasp type move to approach pose
-            if self.previous_grasp_type != self.chosen_grasp_type or i == 0:
+            if self.previous_grasp_type != self.chosen_grasp_type or i == 1:
                 approach_plan_exists = self.plan_arm_trajectory_client(
                     place_goal_pose=self.palm_poses["approach"])
-                i = 0
-                while not approach_plan_exists and i < 3:
-                    i += 1
+                j = 0
+                while not approach_plan_exists and j < 2:
+                    j += 1
                     # add random 3D noise to approach pose
                     self.palm_poses["approach"].pose.position.x = np.random.uniform(-0.04, 0.04)
                     self.palm_poses["approach"].pose.position.y = np.random.uniform(-0.04, 0.04)
@@ -722,18 +769,8 @@ class GraspClient():
                     self.execute_joint_trajectory_client()
 
             # Step 3, try to move to the desired palm position
-            for i in range(2):
-                desired_plan_exists = self.plan_arm_trajectory_client()
-                if desired_plan_exists:
-                    break
-                else:
-                    self.palm_poses["desired_pre"].pose.position.x += np.random.uniform(
-                        -0.02, 0.02)
-                    self.palm_poses["desired_pre"].pose.position.y += np.random.uniform(
-                        -0.02, 0.02)
-                    self.palm_poses["desired_pre"].pose.position.z += np.random.uniform(
-                        -0.02, 0.02)
-            i += 1
+            desired_plan_exists = self.plan_arm_trajectory_client()
+
             # Step 4 if a plan exists execute it, otherwise delete unsuccessful pose and start from top:
             if desired_plan_exists:
                 self.execute_joint_trajectory_client()
@@ -757,10 +794,12 @@ class GraspClient():
         self.palm_poses["true_pre"], self.hand_joint_states[
             "true_pre"] = self.get_hand_palm_pose_and_joint_state()
 
-        letter = raw_input("Grasp object? Y/n: ")
+        #letter = raw_input("Grasp object? Y/n: ")
+        letter = 'y'
         if letter == 'y' or letter == 'Y':
             # Close the hand
-            self.grasp_control_hithand_client()
+            if desired_plan_exists:
+                self.grasp_control_hithand_client()
 
         # Get the current actual joint position and palm pose
         self.palm_poses["closed"], self.hand_joint_states[
