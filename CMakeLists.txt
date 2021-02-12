@@ -34,6 +34,7 @@ add_service_files(
     FILES
     ControlHithand.srv
     ExecuteJointTrajectory.srv
+    FilterPalmPoses.srv
     GenVoxelFromPcd.srv
     GraspPreshape.srv
     GraspControl.srv

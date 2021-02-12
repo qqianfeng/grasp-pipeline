@@ -1,0 +1,3 @@
+geometry_msgs/PoseStamped[] palm_goal_poses_world
+---
+int32[] prune_idxs
