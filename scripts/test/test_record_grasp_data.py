@@ -2,34 +2,54 @@ import numpy as np
 import h5py
 from datetime import datetime
 from geometry_msgs.msg import PoseStamped
+import sys
+import roslib.packages as rp
+pkg_path = rp.get_pkg_dir('grasp_pipeline')
+sys.path.append(pkg_path + '/src')
+import numpy as np
+from utils import plot_voxel, convert_to_full_voxel_grid
 
-with h5py.File("/home/vm/Downloads/merged_grasp_data_10_sets.h5", "r") as hdf:
-    keys = hdf.keys()
-    whd = [x for x in keys if "dim_w_h_d" in x]
-    source = [x for x in keys if "source" in x]
+utah_grasp_data = "/home/vm/Downloads/merged_grasp_data_10_sets.h5"
+vincent_grasp_data = "/home/vm/grasp_data.h5"
 
-    for i, name in enumerate(whd):
-        print(hdf[source[i]][()])
-        print(hdf[whd[i]][()])
-        if i == 50:
-            break
-    # print(hdf["grasp_0_source_info"][()])
-    # print(hdf["grasp_0_config_obj"][()])
-    # print(hdf["grasp_0_dim_w_h_d"][()])
-    # print(hdf["grasp_0_top_grasp"][()])
-    # print(hdf["grasp_0_label"][()])
+voxel_res = np.array([32, 32, 32])
 
+with h5py.File(vincent_grasp_data, "r") as hdf:
+    last_sess_name = hdf['recording_sessions'].keys()[-2]
+    grasp_trials = hdf['recording_sessions'][last_sess_name]['grasp_trials']
+    for key in grasp_trials.keys():
+        print("The grasp trial is: " + key)
+        grasp = grasp_trials[key]
+        for grasp_key in grasp.keys():
+            print("The grasp key is: " + grasp_key)
+            print(grasp[grasp_key][()])
+            if grasp_key == 'sparse_voxel_grid':
+                plot_voxel(grasp[grasp_key][()], voxel_res=voxel_res)
 
-def print_attrs(name, obj):
-    print name
-    for key, val in obj.attrs.iteritems():
-        print "    %s: %s" % (key, val)
+# with h5py.File(vincent_grasp_data, "r") as hdf:
+#     keys = hdf.keys()
+#     whd = [x for x in keys if "dim_w_h_d" in x]
+#     source = [x for x in keys if "source" in x]
 
+#     for i, name in enumerate(whd):
+#         print(hdf[source[i]][()])
+#         print(hdf[whd[i]][()])
+#         if i == 50:
+#             break
+#     # print(hdf["grasp_0_source_info"][()])
+#     # print(hdf["grasp_0_config_obj"][()])
+#     # print(hdf["grasp_0_dim_w_h_d"][()])
+#     # print(hdf["grasp_0_top_grasp"][()])
+#     # print(hdf["grasp_0_label"][()])
 
-def foo(name, obj):
-    print(name, obj)
-    return None
+# def print_attrs(name, obj):
+#     print name
+#     for key, val in obj.attrs.iteritems():
+#         print "    %s: %s" % (key, val)
 
+# def foo(name, obj):
+#     print(name, obj)
+#     return None
 
 # with h5py.File("/home/vm/Downloads/merged_grasp_data_10_sets.h5", "r") as hdf:
 #     #base_items = list(hdf.items())
@@ -43,17 +63,15 @@ def foo(name, obj):
 #     pass
 #     "datetime_recordings"
 
+# def convert_pose_to_list(pose):
+#     return [
+#         pose.pose.position.x, pose.pose.position.y, pose.pose.position.z, pose.pose.orientation.x,
+#         pose.pose.orientation.y, pose.pose.orientation.z, pose.pose.orientation.w
+#     ]
 
-def convert_pose_to_list(pose):
-    return [
-        pose.pose.position.x, pose.pose.position.y, pose.pose.position.z, pose.pose.orientation.x,
-        pose.pose.orientation.y, pose.pose.orientation.z, pose.pose.orientation.w
-    ]
+# p = PoseStamped()
 
-
-p = PoseStamped()
-
-print(convert_pose_to_list(p))
+# print(convert_pose_to_list(p))
 
 # Add grasp 0001
 # with h5py.File("test.h5", "r+") as file:
