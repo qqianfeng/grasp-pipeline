@@ -14,6 +14,8 @@ import numpy as np
 import copy
 import open3d as o3d
 
+from eigengrasps_hithand import *
+
 
 class BoundingBoxFace():
     """Simple class to store properties of a bounding box face.
@@ -97,9 +99,6 @@ class GenerateHithandPreshape():
         self.palm_pose_lower_limit = None
         self.palm_pose_upper_limit = None
 
-        # Set up the joint angle limits for sampling
-        self.setup_joint_angle_limits()
-
         self.palm_rand_pose_parameter_pos = rospy.get_param(
             "generate_hithand_preshape_server_node/palm_rand_pose_sample_pos")
         self.palm_rand_pose_parameter_orient = rospy.get_param(
@@ -107,98 +106,6 @@ class GenerateHithandPreshape():
         )  # percentage of pi. 1 means sample +-180 degrees around initial palm pose
 
     # ++++++++++++++++++++++ PART I: Helper/initialization functions +++++++++++++++++++++++
-    def setup_joint_angle_limits(self):
-        ''' Initializes a number of constants determing the joint limits for the Hithand
-        '''
-        # Set smart joint limits for joints 0 and 1
-        self.thumb_joint_0_lower = -0.261799  # -15 degrees
-        self.thumb_joint_0_upper = 0.261799  #
-        self.thumb_joint_1_lower = 0.0872665  # 5  degrees
-        self.thumb_joint_1_upper = 1.48353  # 85 degrees
-
-        self.index_joint_0_lower = -0.2617999
-        self.index_joint_0_upper = 0.261799
-        self.index_joint_1_lower = 0.0872665
-        self.index_joint_1_upper = 0.8  # 45 degrees
-
-        self.middle_joint_0_lower = -0.261799
-        self.middle_joint_0_upper = 0.261799
-        self.middle_joint_1_lower = 0.0872665
-        self.middle_joint_1_upper = 0.8
-
-        self.ring_joint_0_lower = -0.261799
-        self.ring_joint_0_upper = 0.261799
-        self.ring_joint_1_lower = 0.0872665
-        self.ring_joint_1_upper = 0.8
-
-        self.little_joint_0_lower = -0.261799
-        self.little_joint_0_upper = 0.261799
-        self.little_joint_1_lower = 0.0872665
-        self.little_joint_1_upper = 0.8
-
-        # Compute the center points of the joint limits
-        self.thumb_joint_0_middle = (self.thumb_joint_0_lower + self.thumb_joint_0_upper) * 0.5
-        self.thumb_joint_1_middle = (self.thumb_joint_1_lower + self.thumb_joint_1_upper) * 0.5
-        self.index_joint_0_middle = (self.index_joint_0_lower + self.index_joint_0_upper) * 0.5
-        self.index_joint_1_middle = (self.index_joint_1_lower + self.index_joint_1_upper) * 0.5
-        self.middle_joint_0_middle = (self.middle_joint_0_lower + self.middle_joint_0_upper) * 0.5
-        self.middle_joint_1_middle = (self.middle_joint_1_lower + self.middle_joint_1_upper) * 0.5
-        self.ring_joint_0_middle = (self.ring_joint_0_lower + self.ring_joint_0_upper) * 0.5
-        self.ring_joint_1_middle = (self.ring_joint_1_lower + self.ring_joint_1_upper) * 0.5
-        self.little_joint_0_middle = (self.little_joint_0_lower + self.little_joint_0_upper) * 0.5
-        self.little_joint_1_middle = (self.little_joint_1_lower + self.little_joint_1_upper) * 0.5
-
-        # Compute the ranges of the joints
-        self.thumb_joint_0_range = self.thumb_joint_0_upper - self.thumb_joint_0_lower
-        self.thumb_joint_1_range = self.thumb_joint_1_upper - self.thumb_joint_1_lower
-        self.index_joint_0_range = self.index_joint_0_upper - self.index_joint_0_lower
-        self.index_joint_1_range = self.index_joint_1_upper - self.index_joint_1_lower
-        self.middle_joint_0_range = self.middle_joint_0_upper - self.middle_joint_0_lower
-        self.middle_joint_1_range = self.middle_joint_1_upper - self.middle_joint_1_lower
-        self.ring_joint_0_range = self.ring_joint_0_upper - self.ring_joint_0_lower
-        self.ring_joint_1_range = self.ring_joint_1_upper - self.ring_joint_1_lower
-        self.little_joint_0_range = self.little_joint_0_upper - self.little_joint_0_lower
-        self.little_joint_1_range = self.little_joint_1_upper - self.little_joint_1_lower
-
-        # If these are set to 0.5 they don't affect the end-result. If they are smaller than 0.5 they decreae the joint sample range
-        # The uncommented values are the ones from the original UTAH code
-        self.thumb_1st_joint_lower_limit = 0.5  #-0.5
-        self.thumb_1st_joint_upper_limit = 0.5  #0.5
-        self.thumb_2nd_joint_lower_limit = 0.5  #0.25
-        self.thumb_2nd_joint_upper_limit = 0.5  #0.25
-
-        #
-        self.first_joint_lower_limit = 0.5  #0.25
-        self.first_joint_upper_limit = 0.5  #0.25
-        self.second_joint_lower_limit = 0.5  #0.5
-        self.second_joint_upper_limit = 0.5  #0.  #-0.1
-
-        # Sample ranges
-        self.thumb_joint_0_sample_lower = self.thumb_joint_0_middle - self.thumb_1st_joint_lower_limit * self.thumb_joint_0_range
-        self.thumb_joint_0_sample_upper = self.thumb_joint_0_middle + self.thumb_1st_joint_upper_limit * self.thumb_joint_0_range
-        self.thumb_joint_1_sample_lower = self.thumb_joint_1_middle - self.thumb_2nd_joint_lower_limit * self.thumb_joint_1_range
-        self.thumb_joint_1_sample_upper = self.thumb_joint_1_middle + self.thumb_2nd_joint_upper_limit * self.thumb_joint_1_range
-
-        self.index_joint_0_sample_lower = self.index_joint_0_middle - self.first_joint_lower_limit * self.index_joint_0_range
-        self.index_joint_0_sample_upper = self.index_joint_0_middle + self.first_joint_upper_limit * self.index_joint_0_range
-        self.index_joint_1_sample_lower = self.index_joint_1_middle - self.second_joint_lower_limit * self.index_joint_1_range
-        self.index_joint_1_sample_upper = self.index_joint_1_middle + self.second_joint_upper_limit * self.index_joint_1_range
-
-        self.middle_joint_0_sample_lower = self.middle_joint_0_middle - self.first_joint_lower_limit * self.middle_joint_0_range
-        self.middle_joint_0_sample_upper = self.middle_joint_0_middle + self.first_joint_upper_limit * self.middle_joint_0_range
-        self.middle_joint_1_sample_lower = self.middle_joint_1_middle - self.second_joint_lower_limit * self.middle_joint_1_range
-        self.middle_joint_1_sample_upper = self.middle_joint_1_middle + self.second_joint_upper_limit * self.middle_joint_1_range
-
-        self.ring_joint_0_sample_lower = self.ring_joint_0_middle - self.first_joint_lower_limit * self.ring_joint_0_range
-        self.ring_joint_0_sample_upper = self.ring_joint_0_middle + self.first_joint_upper_limit * self.ring_joint_0_range
-        self.ring_joint_1_sample_lower = self.ring_joint_1_middle - self.second_joint_lower_limit * self.ring_joint_1_range
-        self.ring_joint_1_sample_upper = self.ring_joint_1_middle + self.second_joint_upper_limit * self.ring_joint_1_range
-
-        self.little_joint_0_sample_lower = self.little_joint_0_middle - self.first_joint_lower_limit * self.little_joint_0_range
-        self.little_joint_0_sample_upper = self.little_joint_0_middle + self.first_joint_upper_limit * self.little_joint_0_range
-        self.little_joint_1_sample_lower = self.little_joint_1_middle - self.second_joint_lower_limit * self.little_joint_1_range
-        self.little_joint_1_sample_upper = self.little_joint_1_middle + self.second_joint_upper_limit * self.little_joint_1_range
-
     def set_palm_rand_pose_limits(self, palm_preshape_pose):
         """ Set the palm pose sample range for sampling grasp detection.
         """
@@ -225,6 +132,36 @@ class GenerateHithandPreshape():
         self.palm_pose_upper_limit = preshape_palm_pose_config + upper_limit_range
 
     # ++++++++++++++++++++++++++++ PART II: Publishers ++++++++++++++++++++++++++++++++++++
+    def update_object_information(self):
+        """ Update instance variables related to the object of interest
+
+        This is intended to 1.) receive a single message from the segmented_object topics and store them in instance attributes and 
+        2.) read the segmented object point cloud from disk
+        """
+        # Bounding box corner points and center
+        # The 1. and 5. point of bounding_box_corner points are cross-diagonal
+        obbcp = np.array(
+            rospy.wait_for_message('/segmented_object_bounding_box_corner_points',
+                                   Float64MultiArray,
+                                   timeout=5).data)
+        self.object_bounding_box_corner_points = np.reshape(obbcp, (8, 3))
+
+        self.bbp1 = self.object_bounding_box_corner_points[0, :]
+        self.bbp2 = self.object_bounding_box_corner_points[1, :]
+        self.bbp3 = self.object_bounding_box_corner_points[2, :]
+        self.bbp4 = self.object_bounding_box_corner_points[3, :]
+        self.bbp5 = self.object_bounding_box_corner_points[4, :]
+        self.bbp6 = self.object_bounding_box_corner_points[5, :]
+        self.bbp7 = self.object_bounding_box_corner_points[6, :]
+        self.bbp8 = self.object_bounding_box_corner_points[7, :]
+        self.bounding_box_center = np.array(0.5 * (self.bbp1 + self.bbp5))
+
+        # Object pcd, store points and normals
+        self.segmented_object_pcd = o3d.io.read_point_cloud(self.object_pcd_path)
+        self.segmented_object_pcd.normalize_normals()  # normalize the normals
+        self.segmented_object_points = np.asarray(self.segmented_object_pcd.points)  # Nx3 shape
+        self.segmented_object_normals = np.asarray(self.segmented_object_pcd.normals)
+
     def broadcast_palm_poses(self):
         if self.service_is_called:
             # Publish the palm goal tf
@@ -309,41 +246,27 @@ class GenerateHithandPreshape():
 
     # +++++++++++++++++++++ PART III: Sampling and Bounding Box +++++++++++++++++++++++++++
     def sample_hithand_preshape_joint_state(self):
-        """ Sample a random preshape for the hand joints within the desired joint limits (setup by self.setup_joint_angle_limits)
+        """ Sample a joint state for the hithand
         """
+        # Generate the mixing weights
+        weights = np.random.uniform(0, 1., 4)
+        # Eigengrasp comp thumb abduction
+        thumb_abd = THUMB_ABD_MIN + weights[0] * (THUMB_ABD_MAX - THUMB_ABD_MIN)
+
+        # Eigengrasp comp finger spread
+        finger_spread = SPREAD_MIN + weights[1] * (SPREAD_MAX - SPREAD_MIN)
+
+        # Eigengrasp comp MCP flex
+        mcp_flex = MCP_MIN + weights[2] * (MCP_MAX - MCP_MIN)
+
+        # Eigengrasp comp PIP flex
+        pip_flex = PIP_MIN + weights[3] * (PIP_MAX - PIP_MIN)
+
+        # Sum up individual contributions
+        joint_pos_np = thumb_abd + finger_spread + mcp_flex + pip_flex
+
         hithand_joint_state = JointState()
-        # hithand_joint_state.name = [
-        #     'Right_Index_0', 'Right_Index_1', 'Right_Index_2', 'Right_Index_3',
-        #     'Right_Little_0', 'Right_Little_1', 'Right_Little_2',
-        #     'Right_Little_3', 'Right_Middle_0', 'Right_Middle_1',
-        #     'Right_Middle_2', 'Right_Middle_3', 'Right_Ring_0', 'Right_Ring_1',
-        #     'Right_Ring_2', 'Right_Ring_3', 'Right_Thumb_0', 'Right_Thumb_1',
-        #     'Right_Thumb_2', 'Right_Thumb_3'
-        # ]
-        js_position = np.zeros(20)
-        js_position[0] = np.random.uniform(self.index_joint_0_sample_lower,
-                                           self.index_joint_0_sample_upper)
-        js_position[1] = np.random.uniform(self.index_joint_1_sample_lower,
-                                           self.index_joint_1_sample_upper)
-        js_position[4] = np.random.uniform(self.little_joint_0_sample_lower,
-                                           self.little_joint_0_sample_upper)
-        js_position[5] = np.random.uniform(self.little_joint_1_sample_lower,
-                                           self.little_joint_1_sample_upper)
-        js_position[8] = np.random.uniform(self.middle_joint_0_sample_lower,
-                                           self.middle_joint_0_sample_upper)
-        js_position[9] = np.random.uniform(self.middle_joint_1_sample_lower,
-                                           self.middle_joint_1_sample_upper)
-        js_position[12] = np.random.uniform(self.ring_joint_0_sample_lower,
-                                            self.ring_joint_0_sample_upper)
-        js_position[13] = np.random.uniform(self.ring_joint_1_sample_lower,
-                                            self.ring_joint_1_sample_upper)
-        js_position[16] = np.random.uniform(self.thumb_joint_0_sample_lower,
-                                            self.thumb_joint_0_sample_upper)
-        js_position[17] = np.random.uniform(self.thumb_joint_1_sample_lower,
-                                            self.thumb_joint_1_sample_upper)
-        hithand_joint_state.position = js_position.tolist()
-        # rospy.loginfo('Random joint states of the hithand preshape: %s' %
-        #               str(hithand_joint_state.position))
+        hithand_joint_state.position = list(joint_pos_np)
         return hithand_joint_state
 
     def sample_uniformly_around_preshape_palm_pose(self, frame_id):
@@ -426,7 +349,6 @@ class GenerateHithandPreshape():
                 palm_approach_position[2] += 0.2
 
                 # Part II: Compute vector to determine orientation of palm pose
-                # bounding_box_orientation_vector = bounding_box_face.orient_a[:] + bounding_box_face.orient_b[:]
                 # For our setup and with the chosen palm frame a successful top grasp should roughly align the palm link y axis (green in RViz) with the long side of the bounding box orientation vector
                 if bounding_box_face.size_a > bounding_box_face.size_b:
                     bounding_box_orientation_vector = bounding_box_face.orient_a
@@ -481,11 +403,7 @@ class GenerateHithandPreshape():
                 palm_approach_position = closest_point + (palm_dist_side_normal_direction +
                                                           0.15) * closest_point_normal
                 palm_approach_position[2] += 0.2
-                #palm_approach_position[0] -= 0.15
-                # if palm_approach_position[1] < 0:
-                #     palm_approach_position[1] -= 0.15
-                # else:
-                #     palm_approach_position[1] += 0.15
+
                 # Part II: Compute vector to determine the palm orientation
                 # Pick the vertical vector with larger z value to be the palm link y axis (thumb)
                 # in order to remove the orientation that runs into the table
@@ -536,89 +454,6 @@ class GenerateHithandPreshape():
 
         return palm_poses, palm_approach_poses
 
-    def get_axis_aligned_bounding_box_faces(self):
-        """ Get the center points of 3 axis aligned bounding box faces, 1 top and 2 closest to camera
-
-        Black, R, G, B --> Bounding Box Corner Points 1,2,3,4. Note: Assumes axis-aligned bounding box, needs to be adapted for oriented bounding boxes. 
-        """
-        # The 1. and 5. point of bounding_box_corner points are cross-diagonal
-        # Also the bounding box axis are aligned to the world frame
-        x_axis, y_axis, z_axis = np.array([1, 0, 0]), np.array([0, 1, 0]), np.array([0, 0, 1])
-        # size_x, size_y, size_z = self.object_size[0], self.object_size[1], self.object_size[2]
-        # faces_world = [
-        #     BoundingBoxFace(color="black",
-        #                     center=0.5 * (self.bbp1 + self.bbp6),
-        #                     orient_a=y_axis,
-        #                     orient_b=z_axis,
-        #                     size_a=size_y,
-        #                     size_b=size_z),
-        #     BoundingBoxFace(color="red",
-        #                     center=0.5 * (self.bbp1 + self.bbp7),
-        #                     orient_a=x_axis,
-        #                     orient_b=z_axis,
-        #                     size_a=size_x,
-        #                     size_b=size_z),
-        #     BoundingBoxFace(color="green",
-        #                     center=0.5 * (self.bbp1 + self.bbp8),
-        #                     orient_a=x_axis,
-        #                     orient_b=y_axis,
-        #                     size_a=size_x,
-        #                     size_b=size_y),
-        #     BoundingBoxFace(color="blue",
-        #                     center=0.5 * (self.bbp5 + self.bbp2),
-        #                     orient_a=y_axis,
-        #                     orient_b=z_axis,
-        #                     size_a=size_y,
-        #                     size_b=size_z),
-        #     BoundingBoxFace(color="grey",
-        #                     center=0.5 * (self.bbp5 + self.bbp3),
-        #                     orient_a=x_axis,
-        #                     orient_b=y_axis,
-        #                     size_a=size_x,
-        #                     size_b=size_y),
-        #     BoundingBoxFace(color="light_blue",
-        #                     center=0.5 * (self.bbp5 + self.bbp4),
-        #                     orient_a=x_axis,
-        #                     orient_b=z_axis,
-        #                     size_a=size_x,
-        #                     size_b=size_z)
-        # ]
-        # # find the top face
-        # faces_world = sorted(faces_world, key=lambda x: x.center[2])
-        # faces_world[-1].is_top = True
-        # # Delete the bottom face
-        # del faces_world[0]
-        # # Sort along the x axis and delete the face furthes away (robot can't comfortably reach it)
-        # faces_world = sorted(faces_world, key=lambda x: x.center[0])
-        # del faces_world[-1]
-        # # Sort along y axis and delete the face furthest away (no normals in this area)
-        # faces_world = sorted(faces_world, key=lambda x: x.center[1])
-        # del faces_world[-1]
-
-        # # Publish the bounding box face center points for visualization in RVIZ
-        # face_centers_world = []
-        # center_stamped_world = PointStamped()
-        # center_stamped_world.header.frame_id = 'world'
-        # for i, face in enumerate(faces_world):
-        #     center_stamped_world.point.x = face.center[0]
-        #     center_stamped_world.point.y = face.center[1]
-        #     center_stamped_world.point.z = face.center[2]
-        #     face_centers_world.append(copy.deepcopy(center_stamped_world))
-        # if not DEBUG:
-        #     self.publish_points(face_centers_world)
-
-        # # If the object is too short, only select top grasps.
-        # rospy.loginfo('##########################')
-        # rospy.loginfo('Obj_height: %s' % size_z)
-        # if DEBUG:
-        #     points_array = np.array([bb.center for bb in faces_world])
-        #     #self.visualize(points_array)
-        # if size_z < self.min_object_height:
-        #     rospy.loginfo('Object is short, only use top grasps!')
-        #     return [faces_world[0]]
-
-        # return faces_world
-
     def get_oriented_bounding_box_faces(self, grasp_object):
         """ Get the center points of 3 oriented bounding box faces, 1 top and 2 closest to camera.
         """
@@ -632,10 +467,6 @@ class GenerateHithandPreshape():
         z_axis_world = object_T_world[:3, 2]
 
         # Get the center from the oriented bounding box
-        # bb_center_world = np.array([
-        #     grasp_object.pose.position.x, grasp_object.pose.position.y,
-        #     grasp_object.pose.position.z
-        # ])
 
         bb_center_world = self.bounding_box_center
 
@@ -729,36 +560,6 @@ class GenerateHithandPreshape():
         return faces_world
 
     # ++++++++++++++++++ PART IV: Main service logic +++++++++++++++++++++++
-    def update_object_information(self):
-        """ Update instance variables related to the object of interest
-
-        This is intended to 1.) receive a single message from the segmented_object topics and store them in instance attributes and 
-        2.) read the segmented object point cloud from disk
-        """
-        # Bounding box corner points and center
-        # The 1. and 5. point of bounding_box_corner points are cross-diagonal
-        obbcp = np.array(
-            rospy.wait_for_message('/segmented_object_bounding_box_corner_points',
-                                   Float64MultiArray,
-                                   timeout=5).data)
-        self.object_bounding_box_corner_points = np.reshape(obbcp, (8, 3))
-
-        self.bbp1 = self.object_bounding_box_corner_points[0, :]
-        self.bbp2 = self.object_bounding_box_corner_points[1, :]
-        self.bbp3 = self.object_bounding_box_corner_points[2, :]
-        self.bbp4 = self.object_bounding_box_corner_points[3, :]
-        self.bbp5 = self.object_bounding_box_corner_points[4, :]
-        self.bbp6 = self.object_bounding_box_corner_points[5, :]
-        self.bbp7 = self.object_bounding_box_corner_points[6, :]
-        self.bbp8 = self.object_bounding_box_corner_points[7, :]
-        self.bounding_box_center = np.array(0.5 * (self.bbp1 + self.bbp5))
-
-        # Object pcd, store points and normals
-        self.segmented_object_pcd = o3d.io.read_point_cloud(self.object_pcd_path)
-        self.segmented_object_pcd.normalize_normals()  # normalize the normals
-        self.segmented_object_points = np.asarray(self.segmented_object_pcd.points)  # Nx3 shape
-        self.segmented_object_normals = np.asarray(self.segmented_object_pcd.normals)
-
     def sample_grasp_preshape(self, grasp_object):
         """ Grasp preshape service callback for sampling Hithand grasp preshapes.
         """
@@ -818,9 +619,6 @@ class GenerateHithandPreshape():
 
         return response
 
-    def generate_grasp_preshape(self):
-        raise NotImplementedError
-
     def handle_generate_hithand_preshape(self, req):
         """ Handler for the advertised service. Decides whether the hand preshape should be sampled or generated
         """
@@ -830,7 +628,7 @@ class GenerateHithandPreshape():
         if req.sample:
             return self.sample_grasp_preshape(req.object)
         else:
-            return self.generate_grasp_preshape()
+            raise NotImplementedError
 
     def create_hithand_preshape_server(self):
         rospy.Service('generate_hithand_preshape', GraspPreshape,
