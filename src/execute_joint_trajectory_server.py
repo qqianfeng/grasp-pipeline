@@ -5,6 +5,7 @@ from grasp_pipeline.srv import *
 from trajectory_smoothing.srv import *
 import numpy as np
 import time
+from utils import wait_for_service
 
 
 class RobotTrajectoryManager():
@@ -19,9 +20,7 @@ class RobotTrajectoryManager():
         self.max_vel = 2 * np.ones(7)
 
     def get_smooth_trajectory_client(self):
-        rospy.loginfo('Waiting for service get_smooth_trajectory.')
-        rospy.wait_for_service('/get_smooth_trajectory')
-        rospy.loginfo('Calling service get_smooth_trajectory.')
+        wait_for_service('get_smooth_trajectory')
         try:
             smoothen_trajectory = rospy.ServiceProxy('/get_smooth_trajectory', GetSmoothTraj)
             res = smoothen_trajectory(self.joint_trajectory, self.max_acc, self.max_vel, 0.1, 0.01)
@@ -57,8 +56,7 @@ class RobotTrajectoryManager():
                 break
             arm_joint_state = rospy.wait_for_message('/panda/joint_states', JointState)
             err = np.linalg.norm(
-                np.array(desired_joint_state) -
-                np.array(arm_joint_state.position))  # ARM JOINT STATE FEHLT HIER!!!
+                np.array(desired_joint_state) - np.array(arm_joint_state.position))
             if (err < 0.01):
                 reached = True
             self.loop_rate.sleep()

@@ -162,5 +162,5 @@ if __name__ == '__main__':
     planner = CartesianPoseMoveitPlanner()
     planner.create_plan_arm_trajectory_server()
     planner.create_plan_arm_reset_trajectory()
-    planner.create_plan_cartesian_path_trajectory()
+    #planner.create_plan_cartesian_path_trajectory()
     rospy.spin()

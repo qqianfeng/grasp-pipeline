@@ -178,7 +178,7 @@ class ObjectSegmenter():
 
         if self.world_t_cam is None:
             self.world_t_cam = [0.8275, -0.996, 0.36]
-        if DEBUG:
+        if VISUALIZE:
             self.custom_draw_scene(pcd)
         #start = time.time()
 
@@ -191,20 +191,20 @@ class ObjectSegmenter():
         pcd.points = o3d.utility.Vector3dVector(points[mask])
         pcd.colors = o3d.utility.Vector3dVector(colors[mask])
 
-        if DEBUG:
+        if VISUALIZE:
             self.custom_draw_scene(pcd)
 
         # downsample point cloud
         down_pcd = pcd.voxel_down_sample(voxel_size=0.005)  # downsample
         del pcd, points, colors
-        if DEBUG:
+        if VISUALIZE:
             self.custom_draw_scene(down_pcd)
 
         # segment plane
         _, inliers = down_pcd.segment_plane(distance_threshold=0.01, ransac_n=3, num_iterations=30)
         object_pcd = down_pcd.select_down_sample(inliers, invert=True)
         #print(time.time() - start)
-        if DEBUG:
+        if VISUALIZE:
             self.custom_draw_object(object_pcd)
 
         # compute bounding box and object_pose
@@ -260,7 +260,7 @@ class ObjectSegmenter():
         #self.visualize_normals(object_pcd)
 
         # Draw object, bounding box and colored corners
-        if DEBUG:
+        if VISUALIZE:
             self.custom_draw_object(object_pcd, object_bounding_box, False, True)
 
         # Store segmented object to disk
@@ -272,14 +272,11 @@ class ObjectSegmenter():
         print("Object.pcd saved successfully with normals oriented towards camera")
 
         # Publish and latch newly computed dimensions and bounding box points
-        if not DEBUG:
-            print("I will publish the corner points now:")
-            print(self.bounding_box_corner_points)
-            corner_msg = Float64MultiArray()
-            corner_msg.data = np.ndarray.tolist(np.ndarray.flatten(
-                self.bounding_box_corner_points))
-            self.bounding_box_corner_pub.publish(corner_msg)
-            print("I published them")
+        print("I will publish the corner points now:")
+        #print(self.bounding_box_corner_points)
+        corner_msg = Float64MultiArray()
+        corner_msg.data = np.ndarray.tolist(np.ndarray.flatten(self.bounding_box_corner_points))
+        self.bounding_box_corner_pub.publish(corner_msg)
 
         res = SegmentGraspObjectResponse()
         res.object.header.frame_id = 'world'
@@ -300,17 +297,11 @@ class ObjectSegmenter():
         rospy.loginfo('Ready to segment the table from the object point cloud.')
 
 
-DEBUG = False
+VISUALIZE = False
 
 if __name__ == "__main__":
     oseg = ObjectSegmenter()
     oseg.create_segment_object_server()
-    if DEBUG:
-        oseg = ObjectSegmenter()
-        req = SegmentGraspObjectRequest()
-        req.object_pcd_path = "/home/vm/object.pcd"
-        req.scene_pcd_path = "/home/vm/scene.pcd"
-        oseg.handle_segment_object(req)
 
     rate = rospy.Rate(10)
     while not rospy.is_shutdown():

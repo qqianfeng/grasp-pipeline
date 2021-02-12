@@ -641,7 +641,7 @@ class GraspClient():
         """ Reset panda and hithand to their home positions
         """
         self.plan_reset_trajectory_client()
-        self.reset_hithand_from_topic()
+        #self.reset_hithand_from_topic()
         self.execute_joint_trajectory_client()
         # Introduce a backup if reset from topic is failing
         if self.verify_hithand_needs_reset():

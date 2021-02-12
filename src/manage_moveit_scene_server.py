@@ -96,7 +96,5 @@ class ManageSceneInMoveit():
 
 if __name__ == '__main__':
     ms = ManageSceneInMoveit()
-    #ms.create_create_moveit_scene_server()
-    #ms.create_clean_moveit_scene_server()
     ms.create_update_moveit_scene_server()
     rospy.spin()

@@ -146,15 +146,8 @@ class VisualDataSaver():
         rospy.loginfo('Ready to save your awesome visual data.')
 
 
-DEBUG = False
-
 if __name__ == "__main__":
     Saver = VisualDataSaver()
-    if DEBUG:
-        req = SaveVisualDataRequest()
-        req.color_img_save_path = '/home/vm/scene.ppm'
-        req.depth_img_save_path = '/home/vm/depth.pgm'
-        req.scene_pcd_save_path = '/home/vm/object.pcd'
-        Saver.handle_visual_data_saver(req)
+
     Saver.create_save_visual_data_service()
     rospy.spin()

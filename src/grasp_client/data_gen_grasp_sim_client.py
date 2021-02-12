@@ -70,7 +70,7 @@ class MetaDataHandler():
                 rospy.loginfo('Trying to grasp object: %s' % object_metadata["name"])
                 choose_success = True
             except:
-                self.grasp_ix += 1
+                self.object_ix += 1
 
         return object_metadata
 

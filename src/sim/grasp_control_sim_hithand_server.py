@@ -157,14 +157,8 @@ class HithandGraspController():
         rospy.loginfo('Ready to reset the hithand joint states.')
 
 
-DEBUG = False
-
 if __name__ == "__main__":
     hgc = HithandGraspController()
-    if DEBUG:
-        hgc.handle_reset_hithand_joints(SetBoolRequest())
-        hgc.handle_grasp_control_hithand(GraspControlRequest())
-        pass
     hgc.create_grasp_control_hithand_server()
     hgc.create_reset_hithand_server()
     rospy.spin()
