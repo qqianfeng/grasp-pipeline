@@ -26,9 +26,9 @@ class CartesianPoseMoveitPlanner():
 
         self.home_joint_states = np.array([0, 0, 0, -1, 0, 1.9884, -1.57])
 
-        self.ik_solver = IK("world",
+        self.ik_solver = IK("panda_link0",
                             "palm_link_hithand",
-                            timeout=0.5,
+                            timeout=0.01,
                             epsilon=1e-4,
                             solve_type="Manipulation1")  #panda_link0 was world before
         self.seed_state = [0.0] * self.ik_solver.number_of_joints
