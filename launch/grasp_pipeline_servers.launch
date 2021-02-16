@@ -37,7 +37,7 @@
     <!-- palm_position_3D_sample_var: Add some extra zero mean 3D position noise-->
 
    <!-- Grasp preshape -->
-    <node name="generate_hithand_preshape_server_node" pkg="grasp_pipeline" 
+    <!-- <node name="generate_hithand_preshape_server_node" pkg="grasp_pipeline" 
         type="generate_hithand_preshape_server.py" output="screen">
       <param name="num_samples_per_preshape"     value="1"        type="int"/> 
       <param name="palm_dist_to_top_face_mean"   value="0.05"     type="double"/> 
@@ -49,7 +49,9 @@
       <param name="palm_rand_pose_sample_orient" value="0.2"      type="double"/>
 
       <param name="min_object_height"            value="0.01"     type="double"/>
-    </node> 
+    </node>  -->
+
+    <node name="get_preshape_for_all_points_node" pkg="grasp_pipeline" type="get_preshape_for_all_points_server.py" output="screen"/>
 
     <!-- Filter palm poses based on collision with object or ground plane -->
     <node name="filter_palm_goal_poses_node" pkg="grasp_pipeline" type="filter_palm_goal_poses_server.py" output="screen"/>
