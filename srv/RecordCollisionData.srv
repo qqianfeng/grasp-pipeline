@@ -1,0 +1,8 @@
+string object_name
+string time_stamp
+
+geometry_msgs/PoseStamped[] object_world_poses
+geometry_msgs/PoseStamped[] preshapes_palm_mesh_frame_poses
+sensor_msgs/JointState[] preshape_hithand_joint_states
+---
+bool success

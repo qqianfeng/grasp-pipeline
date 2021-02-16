@@ -1,0 +1,17 @@
+string object_name
+string time_stamp
+bool is_top_grasp
+int32 grasp_success_label
+
+# The true spawn pose in world frame
+geometry_msgs/PoseStamped object_world_sim_pose
+# Preshape and palm pose:
+geometry_msgs/PoseStamped desired_preshape_palm_world_pose
+geometry_msgs/PoseStamped true_preshape_palm_world_pose
+# Hithand jointstates
+sensor_msgs/JointState desired_preshape_hithand_joint_state
+sensor_msgs/JointState true_preshape_hithand_joint_state
+sensor_msgs/JointState closed_hithand_joint_state
+sensor_msgs/JointState lifted_hithand_joint_state
+---
+bool success

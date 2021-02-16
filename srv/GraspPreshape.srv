@@ -2,7 +2,9 @@ bool sample
 GraspObject object
 ---
 geometry_msgs/PoseStamped object_pose
-geometry_msgs/PoseStamped[] palm_goal_pose_world
-geometry_msgs/PoseStamped[] palm_approach_pose_world
-sensor_msgs/JointState[] hithand_joint_state
+geometry_msgs/PoseStamped[] palm_goal_poses_world
+geometry_msgs/PoseStamped[] palm_approach_poses_world
+sensor_msgs/JointState[] hithand_joint_states
+float64[] eigengrasp_weights
 bool[] is_top_grasp
+string[] face_ids
