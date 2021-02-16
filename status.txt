@@ -399,4 +399,30 @@ Current big tasks
 - How to evaluate them?:
 - Try human designed features for grasp sampling
 - Create a package from grasp-dof-reduction code with a server to sample a full dof joint pos
-- Integrate human sample mechanism in generate hithand preshape          
+- Integrate human sample mechanism in generate hithand preshape
+
+- [Task 1]: Implement human eigengrasps            [CHECK]
+	- Choose DoF, DoFs that make sense
+		1. thumb abduction
+		2. Metacarpophalangeal (MCP) joints (where the fingers meet the palm)  (also of thumb)    
+		3. Proximalinterphalangeal (PIP) joints (joint between upper/lower part of the finger) (also of thumb)
+		4. Finger spread, only four fingers
+	- Find suitable min max for all degrees of freedom
+
+13.2.21
+- Rethink grasp sampling
+- [Task 1] Eliminate some more objects which do not have good meshes   [CHECK]
+- IDEA:
+	- Have one network to predict grasp regions/ grasp points / confidence/ success
+
+14.2.21 
+- [Task 1] Find max and min for sampling in normal distance 
+	- max about 12cm (ca. difference from ring phadist to palm link hithand
+	- min about 4 cm (ca diff between basecover and palm link hithand
+	- 10cm between thumb phadist and middle phadist. Object can not be bigger than 12cm
+	- sample max should be 0.2 if object is 12cm should be 1 if object is 2cm
+curr_object_size 
+15.2.21
+- [Task 1]
+	- Redesign grasp sampling pipeline
+	- Redesign grasp data saver

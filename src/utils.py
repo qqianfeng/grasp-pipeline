@@ -110,6 +110,21 @@ def get_pose_stamped_from_array(pose_array, frame_id='/world'):
     return pose_stamped
 
 
+def get_pose_stamped_from_trans_and_quat(trans, quat, frame_id='world'):
+    pose_stamped = PoseStamped()
+    pose_stamped.header.frame_id = 'world'
+    pose_stamped.pose.position.x = trans[0]
+    pose_stamped.pose.position.y = trans[1]
+    pose_stamped.pose.position.z = trans[2]
+
+    pose_stamped.pose.orientation.x = quat[0]
+    pose_stamped.pose.orientation.y = quat[1]
+    pose_stamped.pose.orientation.z = quat[2]
+    pose_stamped.pose.orientation.w = quat[3]
+
+    return pose_stamped
+
+
 def get_pose_array_from_stamped(pose_stamped):
     """Transforms a stamped pose into a 6D pose array.
         """
