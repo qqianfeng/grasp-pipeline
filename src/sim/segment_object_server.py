@@ -194,18 +194,31 @@ class ObjectSegmenter():
         if VISUALIZE:
             self.custom_draw_scene(pcd)
 
-        # downsample point cloud
-        down_pcd = pcd.voxel_down_sample(voxel_size=0.005)  # downsample
-        del pcd, points, colors
-        if VISUALIZE:
-            self.custom_draw_scene(down_pcd)
-
         # segment plane
-        _, inliers = down_pcd.segment_plane(distance_threshold=0.01, ransac_n=3, num_iterations=30)
-        object_pcd = down_pcd.select_down_sample(inliers, invert=True)
+        _, inliers = pcd.segment_plane(distance_threshold=0.01, ransac_n=3, num_iterations=30)
+        object_pcd = pcd.select_down_sample(inliers, invert=True)
         #print(time.time() - start)
         if VISUALIZE:
             self.custom_draw_object(object_pcd)
+
+        # compute normals of object
+        object_pcd.estimate_normals(
+            search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.5, max_nn=100))
+
+        if VISUALIZE:
+            self.custom_draw_scene(object_pcd)
+
+        # downsample point cloud
+        object_pcd = object_pcd.voxel_down_sample(voxel_size=0.03)  # downsample, 0.15
+        del pcd, points, colors
+        # compute normals of object
+        # object_pcd.estimate_normals(
+        #     search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.25, max_nn=50))
+
+        if VISUALIZE:
+            self.custom_draw_scene(object_pcd)
+
+        #object_pcd = object_pcd.voxel_down_sample(voxel_size=0.015)  # downsample
 
         # compute bounding box and object_pose
         object_bounding_box = object_pcd.get_oriented_bounding_box()
@@ -244,10 +257,6 @@ class ObjectSegmenter():
             box_corners_world_frame.append(copy.deepcopy(corner_stamped_world))
         self.publish_box_corner_points(box_corners_world_frame)
         #self.custom_draw_object(object_pcd, object_bounding_box)
-
-        # compute normals of object
-        object_pcd.estimate_normals(
-            search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.2, max_nn=50))
 
         #self.custom_draw_object(object_pcd, object_bounding_box, True)
 
