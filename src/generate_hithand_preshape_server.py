@@ -76,6 +76,7 @@ class GenerateHithandPreshape():
         self.num_samples_per_preshape = rospy.get_param(
             'generate_hithand_preshape_server_node/num_samples_per_preshape', 50)
         self.object_pcd_path = rospy.get_param('object_pcd_path', '/home/vm/object.pcd')
+        self.VISUALIZE = rospy.get_param('visualize', False)
         print(self.num_samples_per_preshape)
         self.use_bb_orient_to_determine_wrist_roll = True
         self.listener = tf.TransformListener()
@@ -173,10 +174,19 @@ class GenerateHithandPreshape():
                      palm_pose_world.pose.orientation.z, palm_pose_world.pose.orientation.w),
                     rospy.Time.now(), 'heu_' + str(i), palm_pose_world.header.frame_id)
 
-    def publish_points(self, points_stamped, color=(1., 0., 0.)):
+    def publish_points(self, faces_world, color=(1., 0., 0.)):
         rospy.loginfo('Publishing the box center points now!')
+        face_centers_world = []
+        center_stamped_world = PointStamped()
+        center_stamped_world.header.frame_id = 'world'
+        for i, face in enumerate(faces_world):
+            center_stamped_world.point.x = face.center[0]
+            center_stamped_world.point.y = face.center[1]
+            center_stamped_world.point.z = face.center[2]
+            face_centers_world.append(copy.deepcopy(center_stamped_world))
         markerArray = MarkerArray()
-        for i, pnt in enumerate(points_stamped):
+
+        for i, pnt in enumerate(face_centers_world):
             marker = Marker()
             marker.header.frame_id = pnt.header.frame_id
             marker.type = marker.SPHERE
@@ -197,9 +207,18 @@ class GenerateHithandPreshape():
             markerArray.markers.append(marker)
         self.bounding_box_center_pub.publish(markerArray)
 
-    def publish_face_centers(self, points_stamped):
+    def publish_face_centers(self, faces_world):
+        center_stamped_world = PointStamped()
+        center_stamped_world.header.frame_id = 'world'
+        face_centers_world = []
+        for i, face in enumerate(faces_world):
+            center_stamped_world.point.x = face.center[0]
+            center_stamped_world.point.y = face.center[1]
+            center_stamped_world.point.z = face.center[2]
+            face_centers_world.append(copy.deepcopy(center_stamped_world))
+
         markerArray = MarkerArray()
-        for i, pnt in enumerate(points_stamped):
+        for i, pnt in enumerate(face_centers_world):
             marker = Marker()
             color = self.colors[i, :]
             marker.header.frame_id = pnt.header.frame_id
@@ -390,8 +409,7 @@ class GenerateHithandPreshape():
                 if np.dot(closest_point_normal, center_to_face) < 0.:
                     closest_point_normal = (-1.) * closest_point_normal
                 # Sample hand position
-                if i == 0:
-                    palm_dist_side_normal_direction = np.random.normal(
+                palm_dist_side_normal_direction = np.random.normal(
                         self.palm_dist_to_side_face_mean, self.palm_dist_normal_to_obj_var)
                 else:
                     palm_dist_side_normal_direction = np.random.uniform(
@@ -505,24 +523,16 @@ class GenerateHithandPreshape():
                             orient_b=y_axis_world,
                             size_a=grasp_object.width,
                             size_b=grasp_object.height),
-            BoundingBoxFace(
-                color="light_blue",
-                center=bb_center_world - half_depth * z_axis_world,
-                orient_a=x_axis_world,
-                orient_b=y_axis_world,  # z
-                size_a=grasp_object.width,
-                size_b=grasp_object.height)
+            BoundingBoxFace(color="light_blue",
+                            center=bb_center_world - half_depth * z_axis_world,
+                            orient_a=x_axis_world,
+                            orient_b=y_axis_world,
+                            size_a=grasp_object.width,
+                            size_b=grasp_object.height)
         ]
         # Publish the bounding box face center points for visualization in RVIZ
-        face_centers_world = []
-        center_stamped_world = PointStamped()
-        center_stamped_world.header.frame_id = 'world'
-        for i, face in enumerate(faces_world):
-            center_stamped_world.point.x = face.center[0]
-            center_stamped_world.point.y = face.center[1]
-            center_stamped_world.point.z = face.center[2]
-            face_centers_world.append(copy.deepcopy(center_stamped_world))
-        self.publish_face_centers(face_centers_world)
+        self.publish_face_centers(faces_world)
+
         # find the top face
         faces_world = sorted(faces_world, key=lambda x: x.center[2])
         faces_world[-1].is_top = True
@@ -536,21 +546,12 @@ class GenerateHithandPreshape():
         del faces_world[-1]
 
         # Publish the bounding box face center points for visualization in RVIZ
-        face_centers_world = []
-        center_stamped_world = PointStamped()
-        center_stamped_world.header.frame_id = 'world'
-        for i, face in enumerate(faces_world):
-            center_stamped_world.point.x = face.center[0]
-            center_stamped_world.point.y = face.center[1]
-            center_stamped_world.point.z = face.center[2]
-            face_centers_world.append(copy.deepcopy(center_stamped_world))
-
-        self.publish_points(face_centers_world)
+        self.publish_points(faces_world)
 
         # If the object is too short, only select top grasps.
         rospy.loginfo('##########################')
         rospy.loginfo('Obj_height: %s' % grasp_object.height)
-        if DEBUG:
+        if self.VISUALIZE:
             points_array = np.array([bb.center for bb in faces_world])
             self.visualize(points_array)
         if grasp_object.height < self.min_object_height:
@@ -578,7 +579,7 @@ class GenerateHithandPreshape():
             for k in xrange(len(palm_poses_world)):
                 palm_pose_world = palm_poses_world[k]
                 palm_approach_pose_world = palm_approach_poses_world[k]
-                if DEBUG:
+                if self.VISUALIZE:
                     point = np.zeros([3, 2])
                     point[0, 1] = palm_pose_world.pose.position.x
                     point[1, 1] = palm_pose_world.pose.position.y
@@ -594,7 +595,7 @@ class GenerateHithandPreshape():
                 response.is_top_grasp.append(bounding_box_faces[i].is_top)
                 # Set the rand pose limits for subsequent uniform sampling around the previously found palm_pose_world as initial pose.
                 self.set_palm_rand_pose_limits(palm_pose_world)
-                if DEBUG:
+                if self.VISUALIZE:
                     point = np.zeros([3, self.num_samples_per_preshape])
 
                 for j in xrange(self.num_samples_per_preshape):
@@ -605,7 +606,7 @@ class GenerateHithandPreshape():
                     response.palm_approach_pose_world.append(palm_approach_pose_world)
                     self.palm_approach_pose_world.append(palm_approach_pose_world)
 
-                    if DEBUG:
+                    if self.VISUALIZE:
                         point[0, j] = sampled_palm_pose.pose.position.x
                         point[1, j] = sampled_palm_pose.pose.position.y
                         point[2, j] = sampled_palm_pose.pose.position.z
@@ -613,7 +614,7 @@ class GenerateHithandPreshape():
                     hithand_joint_state = self.sample_hithand_preshape_joint_state()
                     response.hithand_joint_state.append(hithand_joint_state)
                     response.is_top_grasp.append(bounding_box_faces[i].is_top)
-                if DEBUG:
+                if self.VISUALIZE:
                     self.visualize(point.T)
         self.service_is_called = True
 
@@ -636,8 +637,6 @@ class GenerateHithandPreshape():
         rospy.loginfo('Service generate_hithand_preshape:')
         rospy.loginfo('Ready to generate the grasp preshape.')
 
-
-DEBUG = False
 
 if __name__ == '__main__':
     ghp = GenerateHithandPreshape()
