@@ -43,7 +43,9 @@ add_service_files(
     PlanArmTrajectory.srv
     PlanCartesianPathTrajectory.srv
     PlanResetTrajectory.srv
+    RecordCollisionData.srv
     RecordGraspDataSim.srv
+    RecordGraspTrialData.srv
     SaveVisualData.srv
     SegmentGraspObject.srv
     UpdateObjectGazebo.srv

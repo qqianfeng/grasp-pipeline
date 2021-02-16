@@ -60,6 +60,7 @@ class GraspClient():
         self.num_poses = 50
         self.plan_without_approach_pose = False
 
+        self.num_eigengrasp_weights = 4
         self.grasps_available = True
         self.grasp_types = ["side1", "side2", "top"]
         self.previous_grasp_type = None
@@ -317,6 +318,7 @@ class GraspClient():
             self.heuristic_preshapes = generate_hithand_preshape(req)
             self.num_preshapes = len(self.heuristic_preshapes.palm_goal_pose_world)
             # Generate list with indexes for different grasp types
+            raise NotImplementedError
             self.side1_idxs = range(0, self.num_preshapes / 3)
             if self.heuristic_preshapes.is_top_grasp[self.num_preshapes / 3] == True:
                 self.top_idxs = range(self.num_preshapes / 3, 2 * self.num_preshapes / 3)
@@ -394,6 +396,35 @@ class GraspClient():
             rospy.loginfo('Service grasp_control_hithand call failed: %s' % e)
         rospy.loginfo('Service grasp_control_hithand is executed.')
         return res.pose
+
+    def get_preshape_for_all_points_client(self):
+        """ Generates 
+        """
+        wait_for_service('get_preshape_for_all_points')
+        try:
+            get_preshape_for_all_points = rospy.ServiceProxy('get_preshape_for_all_points',
+                                                             GraspPreshape)
+            req = GraspPreshapeRequest()
+            if self.object_segment_response is None:
+                raise Exception("self.object_segment_response.object attribute is None.")
+            req.object = self.object_segment_response.object
+
+            res = get_preshape_for_all_points(req)
+
+            self.heuristic_preshapes = res
+            self.num_preshapes = len(res.palm_goal_pose_world)
+            self.top_idxs = [i for i, x in enumerate(res.face_id) if x == 'top']
+            self.side1_idxs = [i for i, x in enumerate(res.face_id) if x == 'side1']
+            self.side2_idxs = [i for i, x in enumerate(res.face_id) if x == 'side2']
+            self.grasps_available = True
+            self.eigengrasp_weights = np.reshape(
+                np.array(res.eigengrasp_weights),
+                (len(res.eigengrasp_weights) / self.num_eigengrasp_weights,
+                 self.num_eigengrasp_weights))
+
+        except rospy.ServiceException, e:
+            rospy.loginfo('Service get_preshape_for_all_points call failed: %s' % e)
+        rospy.loginfo('Service get_preshape_for_all_points is executed.')
 
     def grasp_control_hithand_client(self):
         """ Call server to close hithand fingers and stop when joint velocities are close to zero.
@@ -729,6 +760,12 @@ class GraspClient():
         """ First generates preshpes from the hithand preshape server and then prunes out all preshapes which are either in collision or have no IK solution.
         """
         self.generate_hithand_preshape_client()
+        self.filter_preshapes()
+
+    def get_valid_preshape_for_all_points(self):
+        """ First generates preshpes from the hithand preshape server and then prunes out all preshapes which are either in collision or have no IK solution.
+        """
+        self.get_preshape_for_all_points_client()
         self.filter_preshapes()
 
     def grasp_and_lift_object(self):
