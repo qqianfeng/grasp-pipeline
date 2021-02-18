@@ -16,6 +16,7 @@ class BroadcastTf:
         # Grasp pose in blensor camera frame.
         self.palm_pose = None
         self.object_pose_world = None
+        self.object_mesh_frame_pose = None
         self.tf_br = tf.TransformBroadcaster()
 
     def broadcast_tf(self):
@@ -40,12 +41,38 @@ class BroadcastTf:
                  self.object_pose_world.pose.orientation.w), rospy.Time.now(),
                 'object_pose_aligned', self.object_pose_world.header.frame_id)
 
+        if self.object_mesh_frame_pose is not None:
+            self.tf_br.sendTransform((self.object_mesh_frame_pose.pose.position.x,
+                                      self.object_mesh_frame_pose.pose.position.y,
+                                      self.object_mesh_frame_pose.pose.position.z),
+                                     (self.object_mesh_frame_pose.pose.orientation.x,
+                                      self.object_mesh_frame_pose.pose.orientation.y,
+                                      self.object_mesh_frame_pose.pose.orientation.z,
+                                      self.object_mesh_frame_pose.pose.orientation.w),
+                                     rospy.Time.now(), 'object_mesh_frame',
+                                     self.object_mesh_frame_pose.header.frame_id)
+
     def handle_update_palm_pose(self, req):
         '''
         Handler to update the palm pose tf.
         '''
         self.palm_pose = req.palm_pose
         response = UpdatePalmPoseResponse()
+        response.success = True
+        return response
+
+    def handle_update_object_pose(self, req):
+        '''
+        Handler to update the object pose tf.
+        '''
+        self.object_pose_world = req.object_pose_world
+        response = UpdateObjectPoseResponse()
+        response.success = True
+        return response
+
+    def handle_update_object_mesh_frame_pose(self, req):
+        self.object_mesh_frame_pose = req.object_pose_world
+        response = UpdateObjectPoseResponse()
         response.success = True
         return response
 
@@ -57,15 +84,6 @@ class BroadcastTf:
         rospy.loginfo('Service update_grasp_palm_pose:')
         rospy.loginfo('Ready to update grasp palm pose:')
 
-    def handle_update_object_pose(self, req):
-        '''
-        Handler to update the object pose tf.
-        '''
-        self.object_pose_world = req.object_pose_world
-        response = UpdateObjectPoseResponse()
-        response.success = True
-        return response
-
     def update_object_pose_server(self):
         '''
         Create the ROS server to update the object tf.
@@ -74,11 +92,21 @@ class BroadcastTf:
         rospy.loginfo('Service update_grasp_object_pose:')
         rospy.loginfo('Ready to update grasp object pose:')
 
+    def update_object_mesh_frame_pose_server(self):
+        '''
+        Create the ROS server to update the object mesh tf.
+        '''
+        rospy.Service('update_object_mesh_frame_pose', UpdateObjectPose,
+                      self.handle_update_object_mesh_frame_pose)
+        rospy.loginfo('Service update_grasp_object_pose:')
+        rospy.loginfo('Ready to update grasp object pose:')
+
 
 if __name__ == '__main__':
     broadcast_tf = BroadcastTf()
     broadcast_tf.update_palm_pose_server()
     broadcast_tf.update_object_pose_server()
+    broadcast_tf.update_object_mesh_frame_pose_server()
     rate = rospy.Rate(10)
     while not rospy.is_shutdown():
         broadcast_tf.broadcast_tf()
