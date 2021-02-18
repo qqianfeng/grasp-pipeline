@@ -13,13 +13,6 @@ class RecordGraspData():
         self.num_grasps_per_object = rospy.get_param('num_grasps_per_object', 5)
         self.data_recording_path = rospy.get_param('data_recording_path', '/home/vm/')
         self.grasp_data_file_name = self.data_recording_path + 'grasp_data.h5'
-        self.hand_joint_state_name = [
-            'Right_Index_0', 'Right_Index_1', 'Right_Index_2', 'Right_Index_3',     \
-            'Right_Little_0', 'Right_Little_1', 'Right_Little_2', 'Right_Little_3', \
-            'Right_Middle_0', 'Right_Middle_1', 'Right_Middle_2', 'Right_Middle_3', \
-            'Right_Ring_0', 'Right_Ring_1', 'Right_Ring_2', 'Right_Ring_3',         \
-            'Right_Thumb_0', 'Right_Thumb_1', 'Right_Thumb_2', 'Right_Thumb_3'
-        ]
         self.recording_session_id = None
         self.initialize_data_file()
 

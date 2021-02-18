@@ -16,11 +16,14 @@ class RecordGraspData():
             self.data_recording_path = rospy.get_param('data_recording_path', '/home/vm')
         else:
             self.data_recording_path = '/home/vm/'
+
+        if os.path.exists('/home/vm/grasp_data.h5'):
+            os.remove('/home/vm/grasp_data.h5')
         self.grasp_data_file_name = os.path.join(self.data_recording_path, 'grasp_data.h5')
         self.recording_session_id = None
         self.initialize_data_file()
         self.collision_id = 0
-        self.non_collision_id = 0
+        self.no_collision_id = 0
 
     ###################################
     ######  PART I : Helper  ##########
@@ -42,7 +45,7 @@ class RecordGraspData():
         metadata_gp.create_dataset("object_num_failures", data=0, dtype='u4')
         metadata_gp.create_dataset("object_num_collisions", data=0, dtype='u4')
         self.collision_id = 0
-        self.non_collision_id = 0
+        self.no_collision_id = 0
 
     def initialize_sess_metadata(self, sess_metadata_gp):
         sess_metadata_gp.create_dataset("sess_start", data=datetime.now().isoformat())
@@ -124,7 +127,7 @@ class RecordGraspData():
             curr_sess_metadata_group['sess_num_tops'][()] += 1
         if collision:
             metadata_group['total_num_collisions'][()] += 1
-            curr_sess_metadata_group['total_num_collisions'][()] += 1
+            curr_sess_metadata_group['sess_num_collisions'][()] += 1
 
         if grasp_success_label:
             metadata_group['total_num_successes'][()] += 1
@@ -171,25 +174,32 @@ class RecordGraspData():
         # Get the descriptor for the grasp group
         grasp_group = grasp_trials[object_name]['grasps'][grasp_class]
 
-        # return either collision group or non-collision
+        # return either collision group or no-collision
         return grasp_group
 
     ###################################
     ######  PART IV : Services ########
     ###################################
     def handle_record_grasp_trial_data(self, req):
+        self.curr_object_name = req.object_name
+
         # r+ : Read/write, file must exist
         with h5py.File(self.grasp_data_file_name, 'r+') as grasp_file:
-            # workflow: Create new group under grasp trials. Create dataset for each piece of data stored for this trial
-            # 1. Update grasp meta information and update sess metadata
+            # Update grasp meta information and update sess metadata
             self.update_all_metadata(grasp_file, req.is_top_grasp, req.grasp_success_label)
-            grasp_trial_id_str = str(grasp_file['metadata']['total_num_grasps'][()]).zfill(5)
 
-            # 2. Create new group under curr sess grasp_trials with the name e.g. grasp_000005 if 5th grasp
-            grasp_group = grasp_file['recording_sessions'][
-                self.curr_sess_name]['grasp_trials'].create_group('grasp_' + grasp_trial_id_str)
+            # Get a descriptor for grasp trials
+            grasp_trials = grasp_file['recording_sessions'][self.curr_sess_name]['grasp_trials']
 
-            # 3. Add all the grasp-specific data and store in datasets under new group
+            # Create new grasp for this group
+            no_collision_gp = self.get_grasp_group(grasp_trials, 'no_collision')
+
+            # Create dataset for new grasp
+            self.no_collision_id += 1
+            nc_id_str = str(self.no_collision_id).zfill(4)
+            grasp_group = no_collision_gp.create_group('grasp_' + nc_id_str)
+
+            #Add all the grasp-specific data and store in datasets under new group
             # object_name
             grasp_group.create_dataset('object_name', data=req.object_name)
             # time stamp
@@ -199,37 +209,32 @@ class RecordGraspData():
             # grasp_success_label
             grasp_group.create_dataset('grasp_success_label', data=req.grasp_success_label)
 
-            # 4. Record...
             # object_world_sim_pose
             grasp_group.create_dataset('object_world_sim_pose',
-                                       data=self.convert_pose_to_list(req.object_world_sim_pose))
+                                       data=self.convert_pose_to_list(req.object_mesh_frame_world))
             # desired_preshape_palm_world_pose
             grasp_group.create_dataset('desired_preshape_palm_world_pose',
                                        data=self.convert_pose_to_list(
-                                           req.desired_preshape_palm_world_pose))
+                                           req.desired_preshape_palm_mesh_frame))
             # true_preshape_palm_world_pose
             grasp_group.create_dataset('true_preshape_palm_world_pose',
                                        data=self.convert_pose_to_list(
-                                           req.true_preshape_palm_world_pose))
+                                           req.true_preshape_palm_mesh_frame))
 
-            #6. Record all joint states
             #desired_preshape_hithand_joint_state
-            grasp_group.create_dataset('desired_preshape_hithand_joint_state',
-                                       data=req.desired_preshape_hithand_joint_state.position)
+            grasp_group.create_dataset('desired_preshape_joint_state',
+                                       data=req.desired_joint_state.position)
             #true_preshape_hithand_joint_state
-            grasp_group.create_dataset('true_preshape_hithand_joint_state',
-                                       data=req.true_preshape_hithand_joint_state.position)
+            grasp_group.create_dataset('true_preshape_joint_state',
+                                       data=req.true_joint_state.position)
             #closed_hithand_joint_state
-            grasp_group.create_dataset('closed_hithand_joint_state',
-                                       data=req.closed_hithand_joint_state.position)
+            grasp_group.create_dataset('closed_joint_state', data=req.closed_joint_state.position)
             #lifted_hithand_joint_state
-            grasp_group.create_dataset('lifted_hithand_joint_state',
-                                       data=req.lifted_hithand_joint_state.position)
+            grasp_group.create_dataset('lifted_joint_state', data=req.lifted_joint_state.position)
 
-            #8. Return response, context manager closes file
-            res = RecordGraspDataSimResponse()
-            res.success = True
-            return res
+        #Return response, context manager closes file
+        res = RecordGraspTrialDataResponse(success=True)
+        return res
 
     def handle_record_collision_data(self, req):
         """ This records all the collision grasp data.
@@ -258,7 +263,7 @@ class RecordGraspData():
 
                 # Increase collision id counter
                 self.collision_id += 1
-                collision_id_str = 'grasp_' + str(self.collision_id).zfill(4)
+                collision_id_str = 'collision_' + str(self.collision_id).zfill(4)
 
                 # Create new group under collision group for each grasp attempt
                 grasp_gp = collision_gp.create_group(collision_id_str)
@@ -266,24 +271,28 @@ class RecordGraspData():
                 # Object in world
                 grasp_gp.create_dataset('object_mesh_frame_world', data=obj_l)
                 # Palm pose w.r.t to object mesh frame
-                grasp_gp.create_dataset('palm_pose_mesh_frame', data=palm_l)
+                grasp_gp.create_dataset('desired_palm_pose_mesh_frame', data=palm_l)
                 # Desired joint state
-                grasp_gp.create_dataset('joint_state', data=joints.position)
+                grasp_gp.create_dataset('desired_joint_state', data=joints.position)
+
+        # Return response
+        res = RecordCollisionDataResponse(success=True)
+        return res
 
     def create_record_grasp_trial_data_server(self):
-        rospy.Service('record_grasp_trial_data', RecordGraspDataSim,
+        rospy.Service('record_grasp_trial_data', RecordGraspTrialData,
                       self.handle_record_grasp_trial_data)
         rospy.loginfo('Service record_grasp_trial_data:')
         rospy.loginfo('Ready to record your awesome grasp data.')
 
     def create_record_collision_data_server(self):
-        rospy.Service('record_collision_data', RecordGraspDataSim,
+        rospy.Service('record_collision_data', RecordCollisionData,
                       self.handle_record_collision_data)
         rospy.loginfo('Service record_collision_data:')
         rospy.loginfo('Ready to record your awesome collision data.')
 
 
-DEBUG = True
+DEBUG = False
 
 if __name__ == '__main__':
     rgd = RecordGraspData()
