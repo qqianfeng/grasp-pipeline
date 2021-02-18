@@ -65,7 +65,7 @@ class GetPreshapeForAllPoints():
             latch=True)  # publishes the bounding box center points
 
         # Ros params / hyperparameters
-        self.VISUALIZE = rospy.get_param('visualize', True)
+        self.VISUALIZE = rospy.get_param('visualize', False)
         self.palm_obj_min = 0.045  # min dist to object point
         self.palm_obj_max = 0.115  # max dist to object point
         self.approach_dist = 0.1
@@ -396,7 +396,7 @@ class GetPreshapeForAllPoints():
 
         hithand_joint_state = JointState()
         hithand_joint_state.position = list(joint_pos_np)
-        return hithand_joint_state, weights
+        return hithand_joint_state
 
     ################################################
     ############ Part III The service ##############
@@ -460,7 +460,6 @@ class GetPreshapeForAllPoints():
         is_tops = []
         joint_states = []
         face_ids = []
-        eigengrasp_weights = []
 
         # Sample 6D pose for each point
         for i, (point, normal) in enumerate(zip(self.object_points, self.object_normals)):
@@ -482,22 +481,26 @@ class GetPreshapeForAllPoints():
 
             # Finally also sample a hithand joint state
             max_weight = -0.08 * face.get_shorter_side_size() + 1.16
-            joint_state, weights = self.sample_hithand_joint_state(max_weight=max_weight)
+            joint_state = self.sample_hithand_joint_state(max_weight=max_weight)
 
             # Append
             self.palm_goal_poses.append(palm_pose)
             self.palm_approach_poses.append(approach_pose)
             joint_states.append(joint_state)
             face_ids.append(face.face_id)
-            eigengrasp_weights += weights
 
         # Finally return the poses
         res = GraspPreshapeResponse()
         res.palm_approach_poses_world = self.palm_approach_poses
         res.palm_goal_poses_world = self.palm_goal_poses
+        res.hithand_joint_states = joint_states
         res.is_top_grasp = is_tops
         res.face_ids = face_ids
-        res.eigengrasp_weights = eigengrasp_weights
+
+        # Set true to enable publishing
+        self.service_is_called = True
+
+        return res
 
     def create_get_preshape_for_all_points_server(self):
         rospy.Service('get_preshape_for_all_points', GraspPreshape,
@@ -505,8 +508,6 @@ class GetPreshapeForAllPoints():
         rospy.loginfo('Service get_preshape_for_all_points:')
         rospy.loginfo('Ready to generate the grasp preshape.')
 
-
-VISUALIZE = True
 
 if __name__ == '__main__':
     ghp = GetPreshapeForAllPoints()
