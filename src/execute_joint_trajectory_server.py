@@ -16,8 +16,8 @@ class RobotTrajectoryManager():
         self.rate_hz = 100
         self.dt = 1 / self.rate_hz
         self.loop_rate = rospy.Rate(self.rate_hz)
-        self.max_acc = 1 * np.ones(7)
-        self.max_vel = 2 * np.ones(7)
+        self.max_acc = 4 * np.ones(7)
+        self.max_vel = 8 * np.ones(7)
 
     def get_smooth_trajectory_client(self):
         wait_for_service('get_smooth_trajectory')
