@@ -73,12 +73,10 @@
     <group if="$(arg sim)">
         <!-- Gazebo scene manager -->
         <node name="manage_gazebo_scene_node" pkg="grasp_pipeline" type="manage_gazebo_scene_server.py" output="screen"/>
-        <!-- Hithand control manager -->
-        <node name="control_hithand_config_node" pkg="grasp_pipeline" type="control_sim_hithand_server.py" output="screen"/>
-        <!-- Hand closing controller -->
+        <!-- Hand controller -->
         <node name="grasp_control_hithand_node" pkg="grasp_pipeline" type="grasp_control_sim_hithand_server.py" output="screen"/>
         <!-- Record grasp data in sim -->
-        <node name="record_grasp_data_sim_node" pkg="grasp_pipeline" type="record_grasp_data_sim_server.py" output="screen"/>
+        <node name="record_grasp_data_sim_node" pkg="grasp_pipeline" type="record_grasp_and_collision_data_server.py" output="screen"/>
     </group>
 
 
