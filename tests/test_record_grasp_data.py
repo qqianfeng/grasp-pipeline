@@ -12,19 +12,56 @@ from utils import plot_voxel, convert_to_full_voxel_grid
 utah_grasp_data = "/home/vm/Downloads/merged_grasp_data_10_sets.h5"
 vincent_grasp_data = "/home/vm/grasp_data.h5"
 
-voxel_res = np.array([32, 32, 32])
+# with h5py.File(vincent_grasp_data, "r") as hdf:
+#     last_sess_name = hdf['recording_sessions'].keys()[-1]
+#     grasp_trials = hdf['recording_sessions'][last_sess_name]['grasp_trials']
+#     for key in grasp_trials.keys():
+#         print("The grasp trial is: " + key)
+#         grasp = grasp_trials[key]
+#         for grasp_key in grasp.keys():
+#             print("The grasp key is: " + grasp_key)
+#             print(grasp[grasp_key][()])
 
+# Print the whole file tree
 with h5py.File(vincent_grasp_data, "r") as hdf:
-    last_sess_name = hdf['recording_sessions'].keys()[-2]
-    grasp_trials = hdf['recording_sessions'][last_sess_name]['grasp_trials']
-    for key in grasp_trials.keys():
-        print("The grasp trial is: " + key)
-        grasp = grasp_trials[key]
-        for grasp_key in grasp.keys():
-            print("The grasp key is: " + grasp_key)
-            print(grasp[grasp_key][()])
-            if grasp_key == 'sparse_voxel_grid':
-                plot_voxel(grasp[grasp_key][()], voxel_res=voxel_res)
+    for l1 in hdf.keys():
+        print("Level 1: " + l1)
+        try:
+            for l2 in hdf[l1].keys():
+                print("Level 2: " + l2)
+                try:
+                    for l3 in hdf[l1][l2].keys():
+                        print("Level 3: " + l3)
+                        try:
+                            for l4 in hdf[l1][l2][l3].keys():
+                                print("Level 4: " + l4)
+                                try:
+                                    for l5 in hdf[l1][l2][l3][l4].keys():
+                                        print("Level 5: " + l5)
+                                        try:
+                                            for l6 in hdf[l1][l2][l3][l4][l5].keys():
+                                                print("Level 6: " + l6)
+                                                try:
+                                                    for l7 in hdf[l1][l2][l3][l4][l5][l6].keys():
+                                                        print("Level 7: " + l7)
+                                                        try:
+                                                            for l8 in hdf[l1][l2][l3][l4][l5][l6][
+                                                                    l7].keys():
+                                                                print("Level 8:" + l8)
+                                                        except:
+                                                            continue
+                                                except:
+                                                    continue
+                                        except:
+                                            continue
+                                except:
+                                    continue
+                        except:
+                            continue
+                except:
+                    continue
+        except:
+            continue
 
 # with h5py.File(vincent_grasp_data, "r") as hdf:
 #     keys = hdf.keys()
