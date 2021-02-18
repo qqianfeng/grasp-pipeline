@@ -27,7 +27,7 @@ class MetaDataHandler():
         while (not choose_success):
             try:
                 # When this is called a new object is requested
-                self.object_ix += 1
+                self.object_ix += 2
 
                 # Check if we are past the last object of the dataset. If so take next dataset
                 if self.object_ix == len(self.datasets[self.dataset_ix]):
@@ -53,7 +53,8 @@ class MetaDataHandler():
                 object_metadata["collision_mesh_path"] = os.path.join(
                     curr_object_path, collision_mesh)
                 object_metadata["dataset"] = curr_dataset_name
-                object_metadata["sim_pose"] = None
+                object_metadata["name_rec_path"] = curr_dataset_name + '_' + object_name
+                object_metadata["mesh_frame_pose"] = None
                 object_metadata["seg_pose"] = None
                 object_metadata["aligned_pose"] = None
                 object_metadata["seg_dim_whd"] = None
@@ -75,33 +76,41 @@ class MetaDataHandler():
         return object_metadata
 
 
-if __name__ == '__main__':
-    # Define variables for nested for loops
-    num_poses_per_object = 1  # how many sampled grasp poses to evaluate for object in same position
+num_objects = len(YCB_OBJECTS + BIGBIRD_OBJECTS + KIT_OBJECTS)
 
+poses = [[0.5, 0.0, 0.2, 0, 0, 0], [0.5, 0.0, 0.2, 0, 0, 1.571], [0.5, 0.0, 0.2, 0, 0, 3.14],
+         [0.5, 0.0, 0.2, 0, 0, -1.571]]
+
+if __name__ == '__main__':
     # Some relevant variables
     data_recording_path = '/home/vm/'
     gazebo_objects_path = '/home/vm/object_datasets/objects_gazebo'
-    shutil.rmtree('/home/vm/grasp_data')
+
+    # Remove these while testing
+    shutil.rmtree('/home/vm/grasp_data', ignore_errors=True)
 
     # Create grasp client and metadata handler
     grasp_client = GraspClient(grasp_data_recording_path=data_recording_path)
     metadata_handler = MetaDataHandler(gazebo_objects_path=gazebo_objects_path)
 
-    while True:
-        start = time.time()
-        grasp_client.create_dirs_new_grasp_trial()
+    # This loop runs for all objects, 4 poses, and evaluates N grasps per pose
+    for i in range(num_objects):
 
         # Specify the object to be grasped, its pose, dataset, type, name etc.
         object_metadata = metadata_handler.choose_next_grasp_object()
         grasp_client.update_object_metadata(object_metadata)
 
-        for _ in xrange(num_poses_per_object):
+        for pose in poses:
+            start = time.time()
+
+            # Create dirs
+            grasp_client.create_dirs_new_grasp_trial()
+
             # Reset panda and hithand
             grasp_client.reset_hithand_and_panda()
 
             # Spawn a new object in Gazebo and moveit in a random valid pose and delete the old object
-            grasp_client.spawn_object(generate_random_pose=True)
+            grasp_client.spawn_object(pose_type="init", pose_arr=pose)
 
             # First take a shot of the scene and store RGB, depth and point cloud to disk
             # Then segment the object point cloud from the rest of the scene
@@ -111,11 +120,28 @@ if __name__ == '__main__':
             # Also one specific desired grasp preshape should be chosen. This preshape (characterized by the palm position, hithand joint states, and the is_top boolean gets stored in other instance variables)
             grasp_client.get_valid_preshape_for_all_points()
 
-            # Grasp and lift object
-            grasp_arm_plan = grasp_client.grasp_and_lift_object()
+            j = 0
+            while grasp_client.grasps_available:
+                # Save pre grasp visual data
+                if j != 0:
+                    # Measure time
+                    start = time.time()
 
-            # Save all grasp data including post grasp images
-            grasp_client.save_visual_data_and_record_grasp()
+                    # Create dirs
+                    grasp_client.create_dirs_new_grasp_trial()
 
-            # measure time
-            print("One cycle took: " + str(time.time() - start))
+                    # Spawn object in same position
+                    grasp_client.spawn_object(pose_type="same")
+
+                    # Reset panda and hithand
+                    grasp_client.reset_hithand_and_panda()
+
+                # Grasp and lift object
+                grasp_arm_plan = grasp_client.grasp_and_lift_object()
+
+                # Save all grasp data including post grasp images
+                grasp_client.save_visual_data_and_record_grasp()
+
+                # measure time
+                print("One cycle took: " + str(time.time() - start))
+                j += 1
