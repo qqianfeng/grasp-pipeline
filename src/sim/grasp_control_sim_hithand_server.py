@@ -18,10 +18,10 @@ class HithandGraspController():
         self.rate = rospy.Rate(self.pub_freq)
         self.joint_command_pub = rospy.Publisher('/hithand/joint_cmd', JointState, queue_size=1)
         self.start_reset_cond = True
-        self.start_reset_sub = rospy.Subscriber("/start_hithand_reset",
-                                                Bool,
-                                                callback=self.cb_start_reset_pub,
-                                                queue_size=1)
+        # self.start_reset_sub = rospy.Subscriber("/start_hithand_reset",
+        #                                         Bool,
+        #                                         callback=self.cb_start_reset_pub,
+        #                                         queue_size=1)
 
         self.curr_pos = None
         self.received_curr_pos = False
@@ -33,23 +33,28 @@ class HithandGraspController():
             0, self.delta_pos_joint_1, self.delta_pos_joint_2, self.delta_pos_joint_3
         ])
 
-        self.check_vel_interval = 20
-        self.vel_thresh = 1e-1  # In % of expected movement. If a joint moved less than this, it is considered to have zero velocity
+        self.check_vel_interval = 10
+        self.vel_thresh = 1e-2  # In % of expected movement. If a joint moved less than this, it is considered to have zero velocity
         self.avg_vel = None
         self.moving_avg_vel = np.zeros([
             20, self.check_vel_interval
         ])  # Rows is vel of each joint for one measurement, cols are successive measurements
-        self.hithand_reset_position = [
+        self.reset_position = [
             0, 0.0872665, 0.0872665, 0.0872665, 0, 0.0872665, 0.0872665, 0.0872665, 0, 0.0872665,
             0.0872665, 0.0872665, 0, 0.0872665, 0.0872665, 0.0872665, -0.26, 0.0872665, 0.0872665,
             0.0872665
         ]
 
-    def verify_hithand_needs_reset(self):
+        # For controlling hithand config
+        self.run_rate = rospy.Rate(20)
+        self.control_steps = 50
+        self.reach_gap_thresh = 0.1
+
+    def verify_needs_reset(self):
         while True:
             if self.received_curr_pos:
                 break
-        pos_diff = np.abs(np.array(self.hithand_reset_position) - self.curr_pos)
+        pos_diff = np.abs(np.array(self.reset_position) - self.curr_pos)
         # If at least one joint is more than 1e-3 away from where it's supposed to be, say hithand needs reset
         if pos_diff[pos_diff > 8e-3].size == 0:
             return False
@@ -69,13 +74,13 @@ class HithandGraspController():
             joint_states_sub = rospy.Subscriber(
                 '/hithand/joint_states', JointState, self.cb_update_curr_pos, tcp_nodelay=True
             )  # Setting tcp_nodelay true is crucial otherwise the callback won't be executed at 100Hz
-            needs_reset = self.verify_hithand_needs_reset()
+            needs_reset = self.verify_needs_reset()
             # Only command reset position if not in reset position already
             if needs_reset:
                 reset_state = JointState()
-                reset_state.position = self.hithand_reset_position
+                reset_state.position = self.reset_position
                 start = time.time()
-                while self.verify_hithand_needs_reset() and (time.time() - start) < 5:
+                while self.verify_needs_reset() and (time.time() - start) < 5:
                     self.joint_command_pub.publish(reset_state)
                     rospy.sleep(0.1)
 
@@ -127,16 +132,17 @@ class HithandGraspController():
         return res
 
     def handle_reset_hithand_joints(self, req):
-        joint_states_sub = rospy.Subscriber(
-            '/hithand/joint_states', JointState, self.cb_update_curr_pos, tcp_nodelay=True
-        )  # Setting tcp_nodelay true is crucial otherwise the callback won't be executed at 100Hz
-        needs_reset = self.verify_hithand_needs_reset()
+        joint_states_sub = rospy.Subscriber('/hithand/joint_states',
+                                            JointState,
+                                            self.cb_update_curr_pos,
+                                            tcp_nodelay=True)
+        needs_reset = self.verify_needs_reset()
         # Only command reset position if not in reset position already
         if needs_reset:
             reset_state = JointState()
-            reset_state.position = self.hithand_reset_position
+            reset_state.position = self.reset_position
             start = time.time()
-            while self.verify_hithand_needs_reset() and (time.time() - start) < 5:
+            while self.verify_needs_reset() and (time.time() - start) < 5:
                 self.joint_command_pub.publish(reset_state)
                 rospy.sleep(0.1)
 
@@ -144,6 +150,45 @@ class HithandGraspController():
 
         res = SetBoolResponse()
         res.success = True
+        return res
+
+    def control_hithand(self):
+        jc = JointState()
+        target_joint_pos = np.array(self.target_joint_state.position)
+        init_joint_pos = self.curr_pos
+        delta = (target_joint_pos - init_joint_pos) / self.control_steps
+        jc_pos = init_joint_pos
+        for i in xrange(self.control_steps):
+            print("Index_joint_vel AVG: " + str(self.avg_vel[:4]))
+            if i > 3:
+                delta[self.avg_vel < self.vel_thresh] = 0
+                if sum(delta) < 1e-3:
+                    break
+            jc_pos += delta
+            jc.position = jc_pos.tolist()
+            self.joint_command_pub.publish(jc)
+            self.run_rate.sleep()
+
+    def reach_goal(self):
+        reach_gap = np.array(self.target_joint_state.position) - self.curr_pos
+        rospy.loginfo('Service control_hithand_config:')
+        rospy.loginfo('reach_gap: ')
+        rospy.loginfo(str(reach_gap))
+        return np.min(np.abs(reach_gap)) < self.reach_gap_thresh
+
+    def handle_control_hithand(self, req):
+        joint_states_sub = rospy.Subscriber('/hithand/joint_states',
+                                            JointState,
+                                            self.cb_update_curr_pos,
+                                            tcp_nodelay=True)
+        res = ControlHithandResponse()
+        self.target_joint_state = req.hithand_target_joint_state
+        self.control_hithand()
+        res.success = self.reach_goal()
+        self.init_joint_state = None
+
+        joint_states_sub.unregister()
+
         return res
 
     def create_grasp_control_hithand_server(self):
@@ -156,9 +201,15 @@ class HithandGraspController():
         rospy.loginfo('Service reset_hithand_joints')
         rospy.loginfo('Ready to reset the hithand joint states.')
 
+    def create_control_hithand_config_server(self):
+        rospy.Service('control_hithand_config', ControlHithand, self.handle_control_hithand)
+        rospy.loginfo('Service control_hithand_config:')
+        rospy.loginfo('Ready to control hithand to speficied configurations.')
+
 
 if __name__ == "__main__":
     hgc = HithandGraspController()
     hgc.create_grasp_control_hithand_server()
     hgc.create_reset_hithand_server()
+    hgc.create_control_hithand_config_server()
     rospy.spin()
