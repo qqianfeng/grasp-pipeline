@@ -262,7 +262,7 @@ class GraspClient():
             rospy.loginfo('Service control_hithand_config call failed: %s' % e)
         rospy.loginfo('Service control_allegro_config is executed %s.' % str(res))
 
-    def execute_joint_trajectory_client(self, smoothen_trajectory=True):
+    def execute_joint_trajectory_client(self, smoothen_trajectory=True, speed='fast'):
         """ Service call to smoothen and execute a joint trajectory.
         """
         wait_for_service('execute_joint_trajectory')
@@ -277,6 +277,10 @@ class GraspClient():
                 req = ExecuteJointTrajectoryRequest()
                 req.smoothen_trajectory = smoothen_trajectory
                 req.joint_trajectory = self.panda_planned_joint_trajectory
+                if speed == 'slow':
+                    req.fast_trajectory = False
+                else:
+                    req.fast_trajectory = True
                 res = execute_joint_trajectory(req)
                 return True
             else:
@@ -372,7 +376,7 @@ class GraspClient():
         trans = self.tf_buffer.lookup_transform('world',
                                                 'palm_link_hithand',
                                                 rospy.Time(0),
-                                                timeout=rospy.Duration(5))
+                                                timeout=rospy.Duration(10))
 
         palm_pose = PoseStamped()
         palm_pose.header.frame_id = 'world'
@@ -457,15 +461,18 @@ class GraspClient():
         self.panda_planned_joint_trajectory = res.trajectory
         return res.success
 
-    def plan_cartesian_path_trajectory_client(self):
+    def plan_cartesian_path_trajectory_client(self, place_goal_pose=None):
         wait_for_service('plan_cartesian_path_trajectory')
         try:
             plan_cartesian_path_trajectory = rospy.ServiceProxy('plan_cartesian_path_trajectory',
                                                                 PlanCartesianPathTrajectory)
             req = PlanCartesianPathTrajectoryRequest()
             # Change the reference frame of desired_pre and approach pose to be
-            req.palm_goal_pose_world = self.palm_poses["desired_pre"]
-            req.palm_approach_pose_world = self.palm_poses["approach"]
+            if place_goal_pose is not None:
+                req.palm_goal_pose_world = place_goal_pose
+            else:
+                req.palm_goal_pose_world = self.palm_poses["desired_pre"]
+                req.palm_approach_pose_world = self.palm_poses["approach"]
             res = plan_cartesian_path_trajectory(req)
         except rospy.ServiceException, e:
             rospy.loginfo('Service plan_arm_trajectory call failed: %s' % e)
@@ -662,9 +669,8 @@ class GraspClient():
                                                         'object_pose',
                                                         rospy.Time(0),
                                                         timeout=rospy.Duration(5))
-                aligned_T_pose = tft.quaternion_matrix([
-                    trans.rotation.x, trans.rotation.y, trans.rotation.z, trans.rotation.w
-                ])
+                quat = trans.transform.rotation
+                aligned_T_pose = tft.quaternion_matrix([quat.x, quat.y, quat.z, quat.w])
                 bb_extent_aligned = np.abs(aligned_T_pose.dot(bb_extent))
                 self.object_metadata["aligned_dim_whd"] = bb_extent_aligned[:3]
                 self.object_segment_response.object.width = bb_extent_aligned[0]
@@ -857,11 +863,11 @@ class GraspClient():
         """
         self.get_preshape_for_all_points_client()
         self.filter_preshapes()
-        self.record_collision_data_client()
+        if self.prune_idxs:
+            self.record_collision_data_client()
 
     def grasp_and_lift_object(self):
         # Control the hithand to it's preshape
-        #self.control_hithand_config_client()
         i = 0
         # As long as there are viable poses
         if not self.grasps_available:
@@ -925,16 +931,17 @@ class GraspClient():
 
         # Lift the object
         if letter == 'y' or letter == 'Y':
-            lift_pose = self.palm_poses["desired_pre"]
+            lift_pose = copy.deepcopy(self.palm_poses["desired_pre"])
             lift_pose.pose.position.z += self.object_lift_height
-            execution_success = False
             start = time.time()
+            execution_success = False
             while not execution_success:
                 if time.time() - start > 60:
                     rospy.loginfo('Could not find a lift pose')
                     break
-                self.plan_arm_trajectory_client(place_goal_pose=lift_pose)
-                execution_success = self.execute_joint_trajectory_client()
+                plan_exists = self.plan_arm_trajectory_client(place_goal_pose=lift_pose)
+                if plan_exists:
+                    execution_success = self.execute_joint_trajectory_client(speed='slow')
                 lift_pose.pose.position.x += np.random.uniform(-0.05, 0.05)
                 lift_pose.pose.position.y += np.random.uniform(-0.05, 0.05)
                 lift_pose.pose.position.z += np.random.uniform(0, 0.1)
