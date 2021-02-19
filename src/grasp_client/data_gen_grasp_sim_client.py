@@ -7,15 +7,15 @@ import shutil
 from object_names_in_datasets import YCB_OBJECTS, KIT_OBJECTS, BIGBIRD_OBJECTS
 
 kit_no_roll_angle = [""]
-ycb_pi_half_roll = ["035_power_drill"]
+YCB_PI_HALF_ROLL = ["008_pudding_box", "035_power_drill"]
 
 
 class MetaDataHandler():
     """ Simple class to help iterate through objects and 
     """
     def __init__(self, gazebo_objects_path='/home/vm/object_datasets/objects_gazebo'):
-        self.datasets = [BIGBIRD_OBJECTS, KIT_OBJECTS, YCB_OBJECTS]
-        self.datasets_name = ['bigbird', 'kit', 'ycb']
+        self.datasets = [YCB_OBJECTS, BIGBIRD_OBJECTS, KIT_OBJECTS]
+        self.datasets_name = ['ycb', 'bigbird', 'kit']
         self.object_ix = -1
         self.dataset_ix = 0
         self.gazebo_objects_path = gazebo_objects_path
@@ -27,7 +27,7 @@ class MetaDataHandler():
         while (not choose_success):
             try:
                 # When this is called a new object is requested
-                self.object_ix += 2
+                self.object_ix += 3
 
                 # Check if we are past the last object of the dataset. If so take next dataset
                 if self.object_ix == len(self.datasets[self.dataset_ix]):
@@ -59,14 +59,12 @@ class MetaDataHandler():
                 object_metadata["aligned_pose"] = None
                 object_metadata["seg_dim_whd"] = None
                 object_metadata["aligned_dim_whd"] = None
-                object_metadata["spawn_height_z"] = 0.01
+                object_metadata["spawn_height_z"] = 0.2
                 object_metadata["spawn_angle_roll"] = 0
-                if curr_dataset_name == 'kit':
-                    object_metadata["spawn_height_z"] = 0.1
+                if curr_dataset_name == 'kit' or object_name in YCB_PI_HALF_ROLL:
                     object_metadata["spawn_angle_roll"] = 1.57079632679
                     if object_name in kit_no_roll_angle:
                         object_metadata["spawn_angle_roll"] = 0
-                        object_metadata["spawn_height_z"] = 0.15
 
                 rospy.loginfo('Trying to grasp object: %s' % object_metadata["name"])
                 choose_success = True
