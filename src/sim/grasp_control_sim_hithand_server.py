@@ -33,8 +33,8 @@ class HithandGraspController():
             0, self.delta_pos_joint_1, self.delta_pos_joint_2, self.delta_pos_joint_3
         ])
 
-        self.check_vel_interval = 10
-        self.vel_thresh = 1e-2  # In % of expected movement. If a joint moved less than this, it is considered to have zero velocity
+        self.check_vel_interval = 15
+        self.vel_thresh = 1e-3  # In % of expected movement. If a joint moved less than this, it is considered to have zero velocity
         self.avg_vel = None
         self.moving_avg_vel = np.zeros([
             20, self.check_vel_interval
@@ -46,7 +46,7 @@ class HithandGraspController():
         ]
 
         # For controlling hithand config
-        self.run_rate = rospy.Rate(20)
+        self.run_rate = rospy.Rate(50)
         self.control_steps = 50
         self.reach_gap_thresh = 0.1
 
@@ -89,7 +89,7 @@ class HithandGraspController():
     def cb_update_curr_pos(self, msg):
         #start = time.time()
         self.curr_pos = np.array(msg.position)
-        self.curr_vel = np.array(msg.velocity)
+        self.curr_vel = np.abs(np.array(msg.velocity))
         self.received_curr_pos = True
 
         # Compute moving avg of last self.check_vel_interval velocity measurements
@@ -160,7 +160,7 @@ class HithandGraspController():
         jc_pos = init_joint_pos
         for i in xrange(self.control_steps):
             print("Index_joint_vel AVG: " + str(self.avg_vel[:4]))
-            if i > 3:
+            if i > 5:
                 delta[self.avg_vel < self.vel_thresh] = 0
                 if sum(delta) < 1e-3:
                     break
