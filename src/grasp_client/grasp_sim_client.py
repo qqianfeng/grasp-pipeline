@@ -82,8 +82,7 @@ class GraspClient():
         tf2_pose = tf2_geometry_msgs.PoseStamped()
         tf2_pose.pose = pose.pose
         tf2_pose.header.frame_id = from_frame
-        tf2_pose.header.stamp = rospy.Time.now()
-        pose_stamped = self.tf_buffer.transform(tf2_pose, to_frame, rospy.Duration(2))
+        pose_stamped = self.tf_buffer.transform(tf2_pose, to_frame, rospy.Duration(5))
 
         return pose_stamped
 
@@ -370,17 +369,20 @@ class GraspClient():
             1. palm pose
             2. hithand joint state
         """
-        (palm_trans, palm_rot) = self.tf_listener.lookupTransform('world', 'palm_link_hithand',
-                                                                  rospy.Time())
+        trans = self.tf_buffer.lookup_transform('world',
+                                                'palm_link_hithand',
+                                                rospy.Time(0),
+                                                timeout=rospy.Duration(5))
+
         palm_pose = PoseStamped()
         palm_pose.header.frame_id = 'world'
-        palm_pose.pose.position.x = palm_trans[0]
-        palm_pose.pose.position.y = palm_trans[1]
-        palm_pose.pose.position.z = palm_trans[2]
-        palm_pose.pose.orientation.x = palm_rot[0]
-        palm_pose.pose.orientation.y = palm_rot[1]
-        palm_pose.pose.orientation.z = palm_rot[2]
-        palm_pose.pose.orientation.w = palm_rot[3]
+        palm_pose.pose.position.x = trans.transform.translation.x
+        palm_pose.pose.position.y = trans.transform.translation.y
+        palm_pose.pose.position.z = trans.transform.translation.z
+        palm_pose.pose.orientation.x = trans.transform.rotation.x
+        palm_pose.pose.orientation.y = trans.transform.rotation.y
+        palm_pose.pose.orientation.z = trans.transform.rotation.z
+        palm_pose.pose.orientation.w = trans.transform.rotation.w
         joint_state = rospy.wait_for_message("/hithand/joint_states", JointState, timeout=5)
         return palm_pose, joint_state
 
@@ -481,6 +483,7 @@ class GraspClient():
         except rospy.ServiceException, e:
             rospy.loginfo('Service plan_reset_trajectory call failed: %s' % e)
         rospy.loginfo('Service plan_reset_trajectory is executed.')
+        return res.success
 
     def record_collision_data_client(self):
         """ self.heuristic_preshapes stores all grasp poses. Self.prune_idxs contains idxs of poses in collision. Store 
@@ -604,14 +607,15 @@ class GraspClient():
             rospy.loginfo('Service reset_hithand_joints call failed: %s' % e)
         rospy.loginfo('Service reset_hithand_joints is executed.')
 
-    def save_visual_data_client(self):
+    def save_visual_data_client(self, save_pcd=True):
         wait_for_service('save_visual_data')
         try:
             save_visual_data = rospy.ServiceProxy('save_visual_data', SaveVisualData)
             req = SaveVisualDataRequest()
             req.color_img_save_path = self.color_img_save_path
             req.depth_img_save_path = self.depth_img_save_path
-            req.scene_pcd_save_path = self.scene_pcd_save_path
+            if save_pcd == True:
+                req.scene_pcd_save_path = self.scene_pcd_save_path
             res = save_visual_data(req)
         except rospy.ServiceException, e:
             rospy.loginfo('Service save_visual_data call failed: %s' % e)
@@ -654,9 +658,13 @@ class GraspClient():
                 rospy.sleep(0.2)
                 bb_extent = np.ones(4)
                 bb_extent[:3] = np.array(self.object_metadata["seg_dim_whd"])
-                (_, quat) = self.tf_listener.lookupTransform('object_pose_aligned', 'object_pose',
-                                                             rospy.Time())
-                aligned_T_pose = tft.quaternion_matrix([quat[0], quat[1], quat[2], quat[3]])
+                trans = self.tf_buffer.lookup_transform('object_pose_aligned',
+                                                        'object_pose',
+                                                        rospy.Time(0),
+                                                        timeout=rospy.Duration(5))
+                aligned_T_pose = tft.quaternion_matrix([
+                    trans.rotation.x, trans.rotation.y, trans.rotation.z, trans.rotation.w
+                ])
                 bb_extent_aligned = np.abs(aligned_T_pose.dot(bb_extent))
                 self.object_metadata["aligned_dim_whd"] = bb_extent_aligned[:3]
                 self.object_segment_response.object.width = bb_extent_aligned[0]
@@ -746,10 +754,8 @@ class GraspClient():
             self.side1_idxs.remove(self.chosen_grasp_idx)
         elif self.chosen_grasp_type == 'side2' and self.chosen_grasp_idx in self.side2_idxs:
             self.side2_idxs.remove(self.chosen_grasp_idx)
-        elif self.chosen_grasp_type == 'top':
+        elif self.chosen_grasp_type == 'top' and self.chosen_grasp_idx in self.top_idxs:
             self.top_idxs.remove(self.chosen_grasp_idx)
-        else:
-            raise ValueError
 
         if len(self.top_idxs + self.side1_idxs + self.side2_idxs) == 0:
             self.grasps_available = False
@@ -757,9 +763,9 @@ class GraspClient():
     def reset_hithand_and_panda(self):
         """ Reset panda and hithand to their home positions
         """
-        self.plan_reset_trajectory_client()
-        self.execute_joint_trajectory_client()
-        # Introduce a backup if reset from topic is failing
+        reset_plan_exists = self.plan_reset_trajectory_client()
+        if reset_plan_exists:
+            self.execute_joint_trajectory_client()
         self.reset_hithand_joints_client()
 
     def spawn_object(self, pose_type, pose_arr=None):
@@ -808,7 +814,7 @@ class GraspClient():
 
     def save_visual_data_and_record_grasp(self):
         self.set_visual_data_save_paths(grasp_phase='post')
-        self.save_visual_data_client()
+        self.save_visual_data_client(save_pcd=False)
         #self.generate_voxel_from_pcd_client()
         self.record_grasp_trial_data_client()
 
@@ -816,7 +822,7 @@ class GraspClient():
         """ Saves only depth and color by setting scene_pcd_save_path to None. Resets scene_pcd_save_path afterwards.
         """
         self.set_visual_data_save_paths(grasp_phase=grasp_phase)
-        self.save_visual_data_client()
+        self.save_visual_data_client(save_pcd=False)
 
     def save_visual_data_and_segment_object(self):
         self.set_visual_data_save_paths(grasp_phase='pre')
@@ -892,10 +898,10 @@ class GraspClient():
         # If the function did not already return, it means a valid plan has been found and will be executed
         # The pose to which the found plan leads is the pose which gets evaluated with respect to grasp success. Transform this pose to object_centric_fram
 
-        self.palm_poses["palm_in_object_aligned_frame"] = self.transform_pose(
-            self.palm_poses["desired_pre"], from_frame='world', to_frame='object_pose_aligned')
-        assert self.palm_poses[
-            "palm_in_object_aligned_frame"].header.frame_id == 'object_pose_aligned'
+        # self.palm_poses["palm_in_object_aligned_frame"] = self.transform_pose(
+        #     self.palm_poses["desired_pre"], from_frame='world', to_frame='object_pose_aligned')
+        # assert self.palm_poses[
+        #     "palm_in_object_aligned_frame"].header.frame_id == 'object_pose_aligned'
 
         # Get the current actual joint position and palm pose
         self.palm_poses["true_pre"], self.hand_joint_states[
