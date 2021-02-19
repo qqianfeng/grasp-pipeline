@@ -40,6 +40,14 @@ class RobotTrajectoryManager():
             self.loop_rate.sleep()
 
     def handle_execute_joint_trajectory(self, req):
+        # Set the speed:
+        if req.fast_trajectory:
+            self.max_acc = 4 * np.ones(7)
+            self.max_vel = 8 * np.ones(7)
+        else:
+            self.max_acc = 0.75 * np.ones(7)
+            self.max_vel = 1.5 * np.ones(7)
+
         self.joint_trajectory = req.joint_trajectory
         if req.smoothen_trajectory:
             self.get_smooth_trajectory_client()
@@ -62,9 +70,9 @@ class RobotTrajectoryManager():
             self.loop_rate.sleep()
         rospy.loginfo('***Arm reached: %s' % str(reached))
         rospy.loginfo('***Arm reach error: %s' % str(err))
-        response = ExecuteJointTrajectoryResponse()
-        response.success = reached
-        return response
+        res = ExecuteJointTrajectoryResponse()
+        res.success = reached
+        return res
 
     def create_execute_joint_trajectory_server(self):
         rospy.Service('execute_joint_trajectory', ExecuteJointTrajectory,
