@@ -82,7 +82,7 @@ poses = [[0.5, 0.0, 0.2, 0, 0, 0], [0.5, 0.0, 0.2, 0, 0, 1.571], [0.5, 0.0, 0.2,
 if __name__ == '__main__':
     # Some relevant variables
     data_recording_path = '/home/vm/'
-    gazebo_objects_path = '/home/vm/object_datasets/objects_gazebo'
+    gazebo_objects_path = '/home/vm/gazebo-objects/objects_gazebo'
 
     # Remove these while testing
     shutil.rmtree('/home/vm/grasp_data', ignore_errors=True)

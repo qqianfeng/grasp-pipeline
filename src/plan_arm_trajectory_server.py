@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import copy
 import rospy
 import tf
 import tf.transformations as tft
@@ -121,10 +122,8 @@ class CartesianPoseMoveitPlanner():
 
         # Add 3 waypoints: current pose, approach pose and goal pose
         waypoints = []
-        wpose = self.get_ee_pose()
-        waypoints.append(wpose)
-        waypoints.append(req.palm_approach_pose_world.pose)
-        waypoints.append(req.palm_goal_pose_world.pose)
+        waypoints.append(self.get_ee_pose())
+        waypoints.append(copy.deepcopy(req.palm_goal_pose_world.pose))
 
         # Plan path through these waypoints
         (plan, fraction) = self.move_group.compute_cartesian_path(waypoints, 0.01, 0.0)
