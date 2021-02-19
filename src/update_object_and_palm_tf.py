@@ -107,7 +107,7 @@ if __name__ == '__main__':
     broadcast_tf.update_palm_pose_server()
     broadcast_tf.update_object_pose_server()
     broadcast_tf.update_object_mesh_frame_pose_server()
-    rate = rospy.Rate(10)
+    rate = rospy.Rate(100)
     while not rospy.is_shutdown():
         broadcast_tf.broadcast_tf()
         rate.sleep()
