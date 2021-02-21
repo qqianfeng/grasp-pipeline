@@ -3,7 +3,7 @@ import rospy
 import time
 from grasp_pipeline.srv import *
 from sensor_msgs.msg import JointState
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, Float64
 import numpy as np
 from copy import deepcopy
 from std_srvs.srv import SetBool, SetBoolResponse, SetBoolRequest
@@ -34,14 +34,16 @@ class HithandGraspController():
         ])
 
         self.check_vel_interval = 15
-        self.vel_thresh = 1e-3  # In % of expected movement. If a joint moved less than this, it is considered to have zero velocity
+        self.vel_thresh = 1e-1  # In % of expected movement. If a joint moved less than this, it is considered to have zero velocity
         self.avg_vel = None
         self.moving_avg_vel = np.zeros([
             20, self.check_vel_interval
         ])  # Rows is vel of each joint for one measurement, cols are successive measurements
+        self.check_vel_thumb = 20
+        self.moving_avg_thmub = np.zeros([4, self.check_vel_thumb])
         self.reset_position = [
             0, 0.0872665, 0.0872665, 0.0872665, 0, 0.0872665, 0.0872665, 0.0872665, 0, 0.0872665,
-            0.0872665, 0.0872665, 0, 0.0872665, 0.0872665, 0.0872665, 0.15, 0.0872665, 0.0872665,
+            0.0872665, 0.0872665, 0, 0.0872665, 0.0872665, 0.0872665, 0.0, 0.0872665, 0.0872665,
             0.0872665
         ]
 
@@ -49,6 +51,8 @@ class HithandGraspController():
         self.run_rate = rospy.Rate(50)
         self.control_steps = 50
         self.reach_gap_thresh = 0.1
+
+        self.thumb_0_max_torque = 1.15
 
     def verify_needs_reset(self):
         while True:
@@ -96,7 +100,8 @@ class HithandGraspController():
         self.moving_avg_vel[:, 1:] = self.moving_avg_vel[:, :-1]  # shift all columns right
         self.moving_avg_vel[:, 0] = self.curr_vel
         self.avg_vel = np.sum(self.moving_avg_vel, 1, dtype=np.float) / self.check_vel_interval
-        #print("CB took: " + str(time.time() - start))
+
+        self.thumb_effort = np.array(msg.effort)[-4:]
 
     def handle_grasp_control_hithand(self, req):
         # First subscribe to the hithand joint state topic, which will continuously update the joint position at 100Hz
@@ -109,7 +114,6 @@ class HithandGraspController():
 
         # Initialize the delta vector every time as this changes during execution
         delta_pos = self.get_delta_joint_vector()
-
         joint_pos_msg = JointState()
         desired_pos = self.curr_pos
 
@@ -153,17 +157,40 @@ class HithandGraspController():
         return res
 
     def control_hithand(self):
-        jc = JointState()
         target_joint_pos = np.array(self.target_joint_state.position)
+
+        # Bring the thumb to its initial position first:
+        pos = np.zeros(20)
+        pos[16] = target_joint_pos[16]
+        js = JointState(position=pos)
+        for i in xrange(3):
+            self.joint_command_pub.publish(js)
+            rospy.sleep(0.1)
+        # Sleep to make sure current pos is updated
+        rospy.sleep(0.05)
+
+        jc = JointState()
         init_joint_pos = self.curr_pos
         delta = (target_joint_pos - init_joint_pos) / self.control_steps
+        delta[16] = 0  # Set thumb abd joint angle delta to 0
+        delta[16:] *= 1.5
         jc_pos = init_joint_pos
+
+        max_torque_cnt = 0
+
         for i in xrange(self.control_steps):
-            print("Index_joint_vel AVG: " + str(self.avg_vel[:4]))
+            print("Thumb effort" + str(self.thumb_effort))
             if i > 5:
                 delta[self.avg_vel < self.vel_thresh] = 0
-                if sum(delta) < 1e-3:
+                if sum(delta) < 1e-3:  # or min(self.thumb_avg_vel[1:]) < -0.05:
                     break
+                if self.thumb_effort[1] == self.thumb_0_max_torque:
+                    max_torque_cnt += 1
+                    if max_torque_cnt == 6:
+                        break
+                else:
+                    max_torque_cnt = 0
+
             jc_pos += delta
             jc.position = jc_pos.tolist()
             self.joint_command_pub.publish(jc)
