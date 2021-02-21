@@ -27,6 +27,7 @@ class ObjectSegmenter():
         rospy.init_node("object_segmentation_node")
         self.align_bounding_box = rospy.get_param('align_bounding_box', 'true')
         self.scene_pcd_topic = rospy.get_param('scene_pcd_topic')
+        self.VISUALIZE = rospy.get_param('visualize', False)
         pcd_topic = rospy.get_param('scene_pcd_topic')
         self.init_pcd_frame(pcd_topic)
 
@@ -178,9 +179,6 @@ class ObjectSegmenter():
 
         if self.world_t_cam is None:
             self.world_t_cam = [0.8275, -0.996, 0.36]
-        if VISUALIZE:
-            self.custom_draw_scene(pcd)
-        #start = time.time()
 
         # segment the panda base from point cloud
         points = np.asarray(pcd.points)
@@ -191,31 +189,31 @@ class ObjectSegmenter():
         pcd.points = o3d.utility.Vector3dVector(points[mask])
         pcd.colors = o3d.utility.Vector3dVector(colors[mask])
 
-        if VISUALIZE:
+        if self.VISUALIZE:
             self.custom_draw_scene(pcd)
 
         # segment plane
         _, inliers = pcd.segment_plane(distance_threshold=0.01, ransac_n=3, num_iterations=30)
         object_pcd = pcd.select_down_sample(inliers, invert=True)
-        #print(time.time() - start)
-        if VISUALIZE:
+
+        if self.VISUALIZE:
             self.custom_draw_object(object_pcd)
 
         # compute normals of object
         object_pcd.estimate_normals(
             search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.5, max_nn=100))
 
-        if VISUALIZE:
+        if self.VISUALIZE:
             self.custom_draw_scene(object_pcd)
 
         # downsample point cloud
-        object_pcd = object_pcd.voxel_down_sample(voxel_size=0.03)  # downsample, 0.15
+        object_pcd = object_pcd.voxel_down_sample(voxel_size=0.003)
         del pcd, points, colors
         # compute normals of object
         # object_pcd.estimate_normals(
         #     search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.25, max_nn=50))
 
-        if VISUALIZE:
+        if self.VISUALIZE:
             self.custom_draw_scene(object_pcd)
 
         #object_pcd = object_pcd.voxel_down_sample(voxel_size=0.015)  # downsample
@@ -269,7 +267,7 @@ class ObjectSegmenter():
         #self.visualize_normals(object_pcd)
 
         # Draw object, bounding box and colored corners
-        if VISUALIZE:
+        if self.VISUALIZE:
             self.custom_draw_object(object_pcd, object_bounding_box, False, True)
 
         # Store segmented object to disk
@@ -305,8 +303,6 @@ class ObjectSegmenter():
         rospy.loginfo('Service segment_object:')
         rospy.loginfo('Ready to segment the table from the object point cloud.')
 
-
-VISUALIZE = False
 
 if __name__ == "__main__":
     oseg = ObjectSegmenter()
