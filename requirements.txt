@@ -86,7 +86,7 @@ scipy == 1.2.0
 # grasp_pipeline/src/sim/grasp_control_sim_hithand_server.py: 4
 # grasp_pipeline/src/sim/segment_object_server.py: 12
 # grasp_pipeline/src/utils.py: 1,4
-sensor_msgs == 1.12.7
+#sensor_msgs == 1.12.7
 
 # grasp_pipeline/scripts/test/test_grasp_controller.py: 9
 # grasp_pipeline/scripts/test/test_servers.py: 10

@@ -87,5 +87,5 @@
     <node name="update_object_pose_node" pkg="grasp_pipeline" type="update_object_and_palm_tf.py" output="screen"/>
 
     <!-- Generate voxel grid from  -->
-    <node name="generate_voxel_node" pkg="grasp_pipeline" type="generate_voxel_from_pcd_server.py" output="screen"/>
+    <!-- <node name="generate_voxel_node" pkg="grasp_pipeline" type="generate_voxel_from_pcd_server.py" output="screen"/> -->
 </launch>
