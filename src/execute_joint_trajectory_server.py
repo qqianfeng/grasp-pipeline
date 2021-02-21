@@ -41,12 +41,15 @@ class RobotTrajectoryManager():
 
     def handle_execute_joint_trajectory(self, req):
         # Set the speed:
-        if req.fast_trajectory:
-            self.max_acc = 4 * np.ones(7)
-            self.max_vel = 8 * np.ones(7)
+        if req.trajectory_speed == 'fast':
+            factor = 4
+        elif req.trajectory_speed == 'mid':
+            factor = 1.5
         else:
-            self.max_acc = 0.75 * np.ones(7)
-            self.max_vel = 1.5 * np.ones(7)
+            factor = 0.75
+
+        self.max_acc = factor * np.ones(7)
+        self.max_vel = 2 * factor * np.ones(7)
 
         self.joint_trajectory = req.joint_trajectory
         if req.smoothen_trajectory:

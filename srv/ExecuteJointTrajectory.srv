@@ -1,5 +1,5 @@
 bool smoothen_trajectory
-bool fast_trajectory
+string trajectory_speed
 trajectory_msgs/JointTrajectory joint_trajectory
 ---
 bool success
