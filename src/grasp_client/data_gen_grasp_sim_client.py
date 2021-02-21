@@ -128,11 +128,11 @@ if __name__ == '__main__':
                     # Create dirs
                     grasp_client.create_dirs_new_grasp_trial()
 
-                    # Spawn object in same position
-                    grasp_client.spawn_object(pose_type="same")
-
                     # Reset panda and hithand
                     grasp_client.reset_hithand_and_panda()
+
+                    # Spawn object in same position
+                    grasp_client.spawn_object(pose_type="same")
 
                 # Grasp and lift object
                 grasp_arm_plan = grasp_client.grasp_and_lift_object()
