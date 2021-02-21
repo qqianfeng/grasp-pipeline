@@ -245,19 +245,15 @@ class GraspClient():
             self.previous_grasp_type = self.chosen_grasp_type
 
     # ++++++++ PART II: Second part consist of all clients that interact with different nodes/services ++++++++++++
-    def control_hithand_config_client(self, go_home=False, close_hand=False):
+    def control_hithand_config_client(self):
         wait_for_service('control_hithand_config')
         try:
             req = ControlHithandRequest()
             control_hithand_config = rospy.ServiceProxy('control_hithand_config', ControlHithand)
-            if go_home:
-                req.go_home = True
-            elif close_hand:
-                req.close_hand = True
-            else:
-                req.hithand_target_joint_state = self.hand_joint_states["desired_pre"]
-                res = control_hithand_config(req)
-            # Buht how is the logic here for data gathering? Execute all of the samples and record responses right?
+            req.hithand_target_joint_state = self.hand_joint_states["desired_pre"]
+            print("####### THUMB 0 ANGLE: " +
+                  str(self.hand_joint_states["desired_pre"].position[16]))
+            res = control_hithand_config(req)
         except rospy.ServiceException as e:
             rospy.loginfo('Service control_hithand_config call failed: %s' % e)
         rospy.loginfo('Service control_allegro_config is executed %s.' % str(res))
@@ -277,10 +273,7 @@ class GraspClient():
                 req = ExecuteJointTrajectoryRequest()
                 req.smoothen_trajectory = smoothen_trajectory
                 req.joint_trajectory = self.panda_planned_joint_trajectory
-                if speed == 'slow':
-                    req.fast_trajectory = False
-                else:
-                    req.fast_trajectory = True
+                req.trajectory_speed = speed
                 res = execute_joint_trajectory(req)
                 return True
             else:
@@ -457,7 +450,7 @@ class GraspClient():
             res = moveit_cartesian_pose_planner(req)
         except rospy.ServiceException, e:
             rospy.loginfo('Service plan_arm_trajectory call failed: %s' % e)
-        rospy.loginfo('Service plan_arm_trajectory is executed %s.' % str(res.success))
+        rospy.loginfo('Service plan_arm_trajectory is executed.')
         self.panda_planned_joint_trajectory = res.trajectory
         return res.success
 
@@ -769,10 +762,10 @@ class GraspClient():
     def reset_hithand_and_panda(self):
         """ Reset panda and hithand to their home positions
         """
+        self.reset_hithand_joints_client()
         reset_plan_exists = self.plan_reset_trajectory_client()
         if reset_plan_exists:
             self.execute_joint_trajectory_client()
-        self.reset_hithand_joints_client()
 
     def spawn_object(self, pose_type, pose_arr=None):
         # Generate a random valid object pose
@@ -889,14 +882,14 @@ class GraspClient():
                 approach_plan_exists = self.plan_arm_trajectory_client(self.palm_poses["approach"])
                 # If a plan could be found, execute
                 if approach_plan_exists:
-                    self.execute_joint_trajectory_client()
+                    self.execute_joint_trajectory_client(speed='mid')
 
             # Step 3, try to move to the desired palm position
             desired_plan_exists = self.plan_arm_trajectory_client()
 
             # Step 4 if a plan exists execute it, otherwise delete unsuccessful pose and start from top:
             if desired_plan_exists:
-                self.execute_joint_trajectory_client()
+                self.execute_joint_trajectory_client(speed='mid')
                 break
             else:
                 self.remove_grasp_pose()
