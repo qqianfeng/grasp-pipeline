@@ -1,12 +1,12 @@
 import os
 import rospy
-from object_names_in_datasets import YCB_OBJECTS, KIT_OBJECTS, BIGBIRD_OBJECTS
+from grasp_pipeline.utils.object_names_in_datasets import YCB_OBJECTS, KIT_OBJECTS, BIGBIRD_OBJECTS
 
 kit_no_roll_angle = [""]
 YCB_PI_HALF_ROLL = ["008_pudding_box", "035_power_drill"]
 
 
-class MetaDataHandler():
+class MetadataHandler():
     """ Simple class to help iterate through objects and 
     """
     def __init__(self, gazebo_objects_path='/home/vm/object_datasets/objects_gazebo'):

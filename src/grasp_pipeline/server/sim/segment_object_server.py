@@ -1,25 +1,22 @@
 #!/usr/bin/env python
 import rospy
-from grasp_pipeline.srv import *
 import open3d as o3d
 import os
 import copy
 import time
 import numpy as np
 from scipy.spatial.transform import Rotation
-import copy
+
+import tf.transformations as tft
+import tf2_ros
+import tf
+
 from std_msgs.msg import Float64MultiArray
 from geometry_msgs.msg import PoseStamped, Pose, PointStamped
 from sensor_msgs.msg import PointCloud2
 from visualization_msgs.msg import MarkerArray, Marker
-import tf.transformations as tft
-import roslib.packages as rp
-pkg_path = rp.get_pkg_dir('grasp_pipeline')
-import sys
-sys.path.append(pkg_path + '/src')
-from utils import pcd_from_ros_to_o3d
-import tf2_ros
-import tf
+
+from grasp_pipeline.srv import *
 
 
 class ObjectSegmenter():

@@ -4,6 +4,6 @@ https://arxiv.org/pdf/2001.09242.pdf
 Side:     +1559 -2616
 Overhead: +749  -4064
 """
-from ..grasp_client.grasp_sim_client import GraspClient
+from grasp_pipeline.grasp_client.grasp_sim_client import GraspClient
 
 grasp_client = GraspClient(grasp_data_recording_path='')

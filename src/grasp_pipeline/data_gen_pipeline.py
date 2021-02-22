@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 import rospy
-from grasp_sim_client import GraspClient
+from grasp_pipeline.grasp_client.grasp_sim_client import GraspClient
 import os
 import time
 import shutil
-from metadata_handler import MetaDataHandler
+from grasp_pipeline.utils.metadata_handler import MetadataHandler
 
 poses = [[0.5, 0.0, 0.2, 0, 0, 0], [0.5, 0.0, 0.2, 0, 0, 1.571], [0.5, 0.0, 0.2, 0, 0, 3.14],
          [0.5, 0.0, 0.2, 0, 0, -1.571]]
@@ -19,7 +19,7 @@ if __name__ == '__main__':
 
     # Create grasp client and metadata handler
     grasp_client = GraspClient(grasp_data_recording_path=data_recording_path)
-    metadata_handler = MetaDataHandler(gazebo_objects_path=gazebo_objects_path)
+    metadata_handler = MetadataHandler(gazebo_objects_path=gazebo_objects_path)
 
     # This loop runs for all objects, 4 poses, and evaluates N grasps per pose
     for i in range(metadata_handler.get_total_num_objects()):

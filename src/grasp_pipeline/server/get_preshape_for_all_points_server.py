@@ -14,8 +14,8 @@ import numpy as np
 import copy
 import open3d as o3d
 
-from eigengrasps_hithand import *
-from utils import get_pose_stamped_from_trans_and_quat
+from grasp_pipeline.utils.eigengrasps_hithand import *
+from grasp_pipeline.utils.utils import get_pose_stamped_from_trans_and_quat
 
 
 class BoundingBoxFace():

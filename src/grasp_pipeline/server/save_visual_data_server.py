@@ -1,24 +1,22 @@
 #!/usr/bin/env python
 import rospy
-import roslib.packages as rp
-pkg_path = rp.get_pkg_dir('grasp_pipeline')
-import sys
-sys.path.append(pkg_path + '/src')
-
-from sensor_msgs.msg import Image, PointCloud2
-from grasp_pipeline.srv import *
-from std_msgs.msg import Header
-from tf2_sensor_msgs.tf2_sensor_msgs import do_transform_cloud
-import tf2_ros
-import tf.transformations as tft
-
-import cv2
-from cv_bridge import CvBridge, CvBridgeError
 import numpy as np
 import os
 import time
 import open3d as o3d
 import ros_numpy
+import cv2
+from cv_bridge import CvBridge, CvBridgeError
+
+from tf2_sensor_msgs.tf2_sensor_msgs import do_transform_cloud
+import tf2_ros
+import tf.transformations as tft
+
+from sensor_msgs.msg import Image, PointCloud2
+from std_msgs.msg import Header
+
+from grasp_pipeline.srv import *
+
 # This module should save, restore and display depth images as well as point clouds
 
 

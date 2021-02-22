@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 import rospy
-from grasp_pipeline.srv import *
-from geometry_msgs.msg import Pose, Quaternion, PoseStamped
-from sensor_msgs.msg import JointState
+import os
 import h5py
 import numpy as np
 from datetime import datetime
-import os
+
+from geometry_msgs.msg import Pose, Quaternion, PoseStamped
+from sensor_msgs.msg import JointState
+
+from grasp_pipeline.srv import *
 
 
 class RecordGraspData():

@@ -13,8 +13,8 @@ from sensor_msgs.msg import JointState
 from gazebo_msgs.srv import GetModelState, GetModelStateRequest
 import sys
 sys.path.append('..')
-from utils import wait_for_service, get_pose_stamped_from_array, get_pose_array_from_stamped, plot_voxel
-from align_object_frame import align_object
+from grasp_pipeline.utils.utils import wait_for_service, get_pose_stamped_from_array, get_pose_array_from_stamped, plot_voxel
+from grasp_pipeline.utils.align_object_frame import align_object
 import numpy as np
 from std_srvs.srv import SetBool, SetBoolRequest
 import os
