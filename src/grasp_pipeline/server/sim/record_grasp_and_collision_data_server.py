@@ -17,10 +17,10 @@ class RecordGraspData():
             rospy.init_node('record_grasp_and_collision_data_node')
             self.data_recording_path = rospy.get_param('data_recording_path', '/home/vm')
         else:
-            self.data_recording_path = '/home/vm/'
+            self.data_recording_path = '/home/vm'
 
-        if os.path.exists('/home/vm/grasp_data.h5'):
-            os.remove('/home/vm/grasp_data.h5')
+        # if os.path.exists('/home/vm/grasp_data.h5'):
+        #     os.remove('/home/vm/grasp_data.h5')
         self.grasp_data_file_name = os.path.join(self.data_recording_path, 'grasp_data.h5')
         self.recording_session_id = None
         self.initialize_data_file()
@@ -72,11 +72,11 @@ class RecordGraspData():
         """ Creates a new grasp file under grasp_data_file_name or opens existing one and then creates "grasp_trials" and "grasp_metadata" groups if they do not yet exist.
         """
         # a: Read/write if exists, create otherwise
-        with h5py.File(self.grasp_data_file_name, 'a') as file:
-            # Either create the whole file structure if file did not exist before:
-            if 'recording_sessions' not in file.keys():
+        with h5py.File(self.grasp_data_file_name, 'a') as hdf:
+            # Either create the whole hdf structure if hdf did not exist before:
+            if 'recording_sessions' not in hdf.keys():
                 # grasp_data.h5 --> recording_sessions Create recording_sessions group
-                recording_sessions_gp = file.create_group('recording_sessions')
+                recording_sessions_gp = hdf.create_group('recording_sessions')
                 # recording_sessions --> recording_session1
                 self.curr_sess_name = 'recording_session_0001'
                 recording_session_1_gp = recording_sessions_gp.create_group(self.curr_sess_name)
@@ -87,7 +87,7 @@ class RecordGraspData():
                 self.initialize_sess_metadata(sess_metadata)
 
                 # grasp_data.h5 --> metadata Create overall metadata
-                metadata_gp = file.create_group('metadata')
+                metadata_gp = hdf.create_group('metadata')
 
                 # Initalize all the variables to be stored in metadata
                 self.initialize_file_metadata(metadata_gp)
@@ -96,16 +96,16 @@ class RecordGraspData():
                 self.curr_sess_name = 'recording_session_0001'
 
             # If recording_sessions group exists, just create a new subgroup
-            elif 'recording_sessions' in file.keys():
-                file['metadata']['total_num_recordings'][()] += 1
+            elif 'recording_sessions' in hdf.keys():
+                hdf['metadata']['total_num_recordings'][()] += 1
                 self.curr_sess_name = 'recording_session_' + str(
-                    file['metadata']['total_num_recordings'][()]).zfill(4)
-                recording_start_ds = file["metadata"]["datetime_recording_start"]
+                    hdf['metadata']['total_num_recordings'][()]).zfill(4)
+                recording_start_ds = hdf["metadata"]["datetime_recording_start"]
                 recording_start_ds.resize((recording_start_ds.shape[0] + 1, ))
                 recording_start_ds[-1] = datetime.now().isoformat()
 
                 # recording_sessions --> recordings_session_name
-                recording_session_n_gp = file['recording_sessions'].create_group(
+                recording_session_n_gp = hdf['recording_sessions'].create_group(
                     self.curr_sess_name)
                 # recording_sessions_name --> (metadata and grasp_trials)
                 sess_metadata = recording_session_n_gp.create_group('metadata')
