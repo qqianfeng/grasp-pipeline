@@ -10,9 +10,9 @@ GSL = 'grasp_success_label'
 
 
 class GraspDataHandler():
-    def __init__(self, file_path):
+    def __init__(self, file_path, sess_name='-1'):
         self.file_path = file_path
-        self.sess_name = None
+        self.set_sess_name(sess_name)
 
     def set_sess_name(self, sess_name):
         if sess_name != '-1':
@@ -55,11 +55,13 @@ class GraspDataHandler():
     ### +++++ Part II: Access Dataset +++++ ###
     def get_objects_list(self):
         with h5py.File(self.file_path, "r") as grasp_file:
+            self.check_sess_name(grasp_file)
             grasps_gp = grasp_file[RS][self.sess_name][GT]
             return grasps_gp.keys()
 
     def get_successful_grasps_idxs(self, object_name):
         with h5py.File(self.file_path, "r") as grasp_file:
+            self.check_sess_name(grasp_file)
             no_coll_gp = grasp_file[RS][self.sess_name][GT][object_name][G]['no_collision']
 
             # Build a list with all the successful grasps
@@ -68,6 +70,7 @@ class GraspDataHandler():
 
     def get_single_successful_grasp(self, object_name, random=False, grasp_idx=-1):
         with h5py.File(self.file_path, "r") as grasp_file:
+            self.check_sess_name(grasp_file)
             # Get thr group holding all non-collision grasps
             no_coll_gp = grasp_file[RS][self.sess_name][GT][object_name][G]['no_collision']
 
