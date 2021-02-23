@@ -80,6 +80,12 @@ class GraspClient():
         self.is_rec_sess = is_rec_sess
 
     # +++++++ PART I: First part are all the "helper functions" w/o interface to any other nodes/services ++++++++++
+    def log_object_cycle_time(self, cycle_time):
+        file_path = os.path.join(self.base_path, 'grasp_timing.txt')
+        with open(file_path, 'a') as timing_file:
+            timing_file.writelines(self.object_metadata["name_rec_path"] + ': ' + str(cycle_time) +
+                                   '\n')
+
     def transform_pose(self, pose, from_frame, to_frame):
         assert pose.header.frame_id == from_frame
 
@@ -132,7 +138,7 @@ class GraspClient():
         self.grasp_id_num = 0
         self.object_metadata = object_metadata
 
-    def create_dirs_new_grasp_trial(self):
+    def create_dirs_new_grasp_trial(self, is_new_pose_or_object=False):
         """ This should be called anytime before a new grasp trial is attempted as it will create the necessary folder structure.
         """
         # Check if directory for object name exists
@@ -152,7 +158,8 @@ class GraspClient():
         os.mkdir(self.curr_grasp_trial_path)
         os.mkdir(self.curr_grasp_trial_path + '/during_grasp')
         os.mkdir(self.curr_grasp_trial_path + '/post_grasp')
-        os.mkdir(self.curr_grasp_trial_path + '/pre_grasp')
+        if is_new_pose_or_object:
+            os.mkdir(self.curr_grasp_trial_path + '/pre_grasp')
 
     def _setup_workspace_boundaries(self):
         """ Sets the boundaries in which an object can be spawned and placed.
@@ -827,6 +834,7 @@ class GraspClient():
         elif pose_type == "init":
             # set the roll angle
             pose_arr[3] = self.object_metadata["spawn_angle_roll"]
+            pose_arr[2] = self.object_metadata["spawn_height_z"]
 
             self.object_metadata["mesh_frame_pose"] = get_pose_stamped_from_array(pose_arr)
 

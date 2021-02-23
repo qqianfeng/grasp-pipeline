@@ -29,10 +29,11 @@ if __name__ == '__main__':
         grasp_client.update_object_metadata(object_metadata)
 
         for pose in poses:
-            start = time.time()
+            object_cycle_start = time.time()
+            start = object_cycle_start
 
             # Create dirs
-            grasp_client.create_dirs_new_grasp_trial()
+            grasp_client.create_dirs_new_grasp_trial(is_new_pose_or_object=True)
 
             # Reset panda and hithand
             grasp_client.reset_hithand_and_panda()
@@ -56,7 +57,7 @@ if __name__ == '__main__':
                     start = time.time()
 
                     # Create dirs
-                    grasp_client.create_dirs_new_grasp_trial()
+                    grasp_client.create_dirs_new_grasp_trial(is_new_pose_or_object=False)
 
                     # Reset panda and hithand
                     grasp_client.reset_hithand_and_panda()
@@ -73,3 +74,6 @@ if __name__ == '__main__':
                 # measure time
                 print("One cycle took: " + str(time.time() - start))
                 j += 1
+
+            # Finally write the time to file it took to test all poses
+            grasp_client.log_object_cycle_time(time.time() - object_cycle_start)
