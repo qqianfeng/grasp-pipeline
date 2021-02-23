@@ -77,6 +77,8 @@
         <node name="grasp_control_hithand_node" pkg="grasp_pipeline" type="grasp_control_sim_hithand_server.py" output="screen"/>
         <!-- Record grasp data in sim -->
         <node name="record_grasp_data_sim_node" pkg="grasp_pipeline" type="record_grasp_and_collision_data_server.py" output="screen"/>
+        <!-- Record grasp data in sim -->
+        <node name="record_sim_grasp_data_utah" pkg="grasp_pipeline" type="record_grasp_and_collision_data_server.py" output="screen"/>
     </group>
 
 
@@ -84,8 +86,8 @@
     <node name="object_segmentation_node" pkg="grasp_pipeline" type="segment_object_server.py" output="screen"/>
    
     <!-- Node to update palm and object poses-->
-    <node name="update_object_pose_node" pkg="grasp_pipeline" type="update_object_and_palm_tf.py" output="screen"/>
+    <node name="update_object_pose_node" pkg="grasp_pipeline" type="update_object_and_palm_tf_server.py" output="screen"/>
 
     <!-- Generate voxel grid from  -->
-    <!-- <node name="generate_voxel_node" pkg="grasp_pipeline" type="generate_voxel_from_pcd_server.py" output="screen"/> -->
+    <node name="generate_voxel_node" pkg="grasp_pipeline" type="generate_voxel_from_pcd_server.py" output="screen"/>
 </launch>
