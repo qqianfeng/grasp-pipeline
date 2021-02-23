@@ -71,7 +71,7 @@ class GetPreshapeForAllPoints():
         self.palm_obj_max = 0.115  # max dist to object point
         self.approach_dist = 0.1
         self.min_obj_height = 0.05
-        self.max_hand_spread = 0.12  # true max spread more like 9 or 9.5cm, object must not be bigger than this
+        self.max_hand_spread = 0.135  # true max spread more like 9 or 9.5cm, object must not be bigger than this
         self.pos_delta_3D = 0.01  # 1cm noise in 3D position
         self.roll_sample_delta = 0.7
         self.pitch_sample_delta = 0.3
@@ -378,7 +378,7 @@ class GetPreshapeForAllPoints():
         """ Sample a joint state for the hithand
         """
         # Generate the mixing weights
-        weights = np.random.uniform(0.1, max_weight, 4)
+        weights = np.random.uniform(0.25, max_weight, 4)
 
         # Eigengrasp comp thumb abduction
         thumb_abd = THUMB_ABD_MIN + weights[0] * (THUMB_ABD_MAX - THUMB_ABD_MIN)
