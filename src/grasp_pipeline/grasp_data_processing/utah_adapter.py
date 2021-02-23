@@ -15,7 +15,7 @@ if __name__ == '__main__':
     file_path = os.path.join('/home/vm', 'grasp_data.h5')
 
     grasp_client = GraspClient(is_rec_sess=False)
-    data_handler = GraspDataHandler(file_path=file_path)
+    data_handler = GraspDataHandler(file_path=file_path, sess_name='recording_session_0001')
     metadata_handler = MetadataHandler()
 
     # Get all available objects and choose one

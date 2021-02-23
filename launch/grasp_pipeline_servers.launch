@@ -78,7 +78,7 @@
         <!-- Record grasp data in sim -->
         <node name="record_grasp_data_sim_node" pkg="grasp_pipeline" type="record_grasp_and_collision_data_server.py" output="screen"/>
         <!-- Record grasp data in sim -->
-        <node name="record_sim_grasp_data_utah" pkg="grasp_pipeline" type="record_grasp_and_collision_data_server.py" output="screen"/>
+        <node name="record_sim_grasp_data_utah" pkg="grasp_pipeline" type="record_sim_data_server_utah.py" output="screen"/>
     </group>
 
 
