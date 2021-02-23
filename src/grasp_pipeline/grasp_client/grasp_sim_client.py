@@ -25,12 +25,13 @@ import copy
 class GraspClient():
     """ This class is a wrapper around all the individual functionality involved in grasping experiments.
     """
-    def __init__(self, grasp_data_recording_path):
+    def __init__(self, is_rec_sess, grasp_data_recording_path=''):
         rospy.init_node('grasp_client')
         self.object_datasets_folder = rospy.get_param('object_datasets_folder',
                                                       '/home/vm/object_datasets')
         self.grasp_data_recording_path = grasp_data_recording_path
-        self.create_grasp_folder_structure(self.grasp_data_recording_path)
+        if grasp_data_recording_path is not '':
+            self.create_grasp_folder_structure(self.grasp_data_recording_path)
         # Save metainformation on object to be grasped in these vars
         self.object_metadata = dict()  # This dict holds info about object name, pose, meshpath
         self.palm_poses = dict()  # Saves the palm poses at different stages of the experiment
@@ -48,8 +49,9 @@ class GraspClient():
         # These variables get changed dynamically during execution to store relevant data under correct folder
         self.color_img_save_path = None
         self.depth_img_save_path = None
-        self.scene_pcd_save_path = '/home/vm/scene.pcd'
-        self.object_pcd_save_path = '/home/vm/object.pcd'
+        self.base_path = '/home/vm'
+        self.scene_pcd_save_path = os.path.join(self.base_path, 'scene.pcd')
+        self.object_pcd_save_path = os.path.joint(self.base_path, 'object.pcd')
         self.object_pcd_record_path = ''
 
         self.heuristic_preshapes = None  # This variable stores all the information on multiple heuristically sampled grasping pre shapes
@@ -74,6 +76,8 @@ class GraspClient():
         self.voxel_grid_dim = np.array([26, 26, 26])
         self.voxel_grid_dim_full = np.array([32, 32, 32])
         self.voxel_translation_dim = (self.voxel_grid_dim_full - self.voxel_grid_dim) // 2
+
+        self.is_rec_sess = is_rec_sess
 
     # +++++++ PART I: First part are all the "helper functions" w/o interface to any other nodes/services ++++++++++
     def transform_pose(self, pose, from_frame, to_frame):
@@ -155,7 +159,6 @@ class GraspClient():
         """
         self.spawn_object_x_min, self.spawn_object_x_max = 0.25, 0.65
         self.spawn_object_y_min, self.spawn_object_y_max = -0.2, 0.2
-        self.table_height = 0
 
     def generate_random_object_pose_for_experiment(self):
         """Generates a random x,y position and z orientation within object_spawn boundaries for grasping experiments.
@@ -257,6 +260,20 @@ class GraspClient():
         except rospy.ServiceException as e:
             rospy.loginfo('Service control_hithand_config call failed: %s' % e)
         rospy.loginfo('Service control_allegro_config is executed %s.' % str(res))
+
+    def check_pose_validity_utah_client(self, grasp_pose):
+        wait_for_service('check_pose_validity_utah')
+        try:
+            check_pose_validity_utah = rospy.ServiceProxy('check_pose_validity_utah',
+                                                          CheckPoseValidity)
+            req = CheckPoseValidityRequest()
+            req.object = self.object_segment_response.object
+            req.pose = grasp_pose
+            res = check_pose_validity_utah(req)
+        except rospy.ServiceException as e:
+            rospy.loginfo('Service check_pose_validity_utah call failed: %s' % e)
+        rospy.loginfo('Service check_pose_validity_utah is executed.')
+        return res.is_valid
 
     def execute_joint_trajectory_client(self, smoothen_trajectory=True, speed='fast'):
         """ Service call to smoothen and execute a joint trajectory.
@@ -591,6 +608,26 @@ class GraspClient():
             rospy.loginfo('Service record_grasp_data call failed: %s' % e)
         rospy.loginfo('Service record_grasp_data is executed.')
 
+    def recrod_sim_grasp_data_utah_client(self, grasp_id):
+        wait_for_service('record_sim_grasp_data_utah')
+        try:
+            record_sim_grasp_data_utah = rospy.ServiceProxy("record_sim_grasp_data_utah",
+                                                            SimGraspData)
+            req = SimGraspDataRequest()
+            req.grasp_id = grasp_id
+            req.object_name = self.object_metadata["name_rec_path"]
+            req.preshape_palm_world_pose = self.palm_poses["desired_pre"]
+            req.true_preshape_palm_world_pose = self.palm_poses["true_pre"]
+            req.preshape_allegro_joint_state = self.hand_joint_states["desired_pre"]
+            req.true_preshape_joint_state = self.hand_joint_states["true_pre"]
+            req.grasp_success_label = self.grasp_label
+            req.top_grasp = self.chosen_is_top_grasp
+            req.sparse_voxel_grid = self.object_metadata["sparse_voxel_grid"]
+            req.object_size = self.object_metadata["aligned_dim_whd_utah"]
+        except rospy.ServiceException, e:
+            rospy.loginfo('Service sim_grasp_data_utah call failed: %s' % e)
+        rospy.loginfo('Service sim_grasp_data_utah is executed.')
+
     def reset_hithand_from_topic(self):
         pub = rospy.Publisher("/start_hithand_reset", Bool, latch=True, queue_size=1)
         self.trigger_cond = not self.trigger_cond
@@ -648,13 +685,13 @@ class GraspClient():
                 print(self.object_metadata["seg_dim_whd"])
 
                 self.update_object_pose_aligned_client()
-                print("whd from alignment: ")
-                print([
+                self.object_metadata["aligned_dim_whd_utah"] = [
                     self.object_segment_response.object.width,
                     self.object_segment_response.object.height,
                     self.object_segment_response.object.depth
-                ])
-
+                ]
+                print("whd from alignment: ")
+                print(self.object_metadata["aligned_dim_whd_utah"])
                 rospy.sleep(0.2)
                 bb_extent = np.ones(4)
                 bb_extent[:3] = np.array(self.object_metadata["seg_dim_whd"])
@@ -712,6 +749,17 @@ class GraspClient():
         rospy.loginfo('Service update_gazebo_object is executed %s.' % str(res.success))
         return res.success
 
+    def update_grasp_palm_pose_client(self, palm_pose):
+        wait_for_service("update_grasp_palm_pose")
+        try:
+            update_grasp_palm_pose = rospy.ServiceProxy('update_grasp_palm_pose', UpdatePalmPose)
+            req = UpdatePalmPoseRequest()
+            req.palm_pose = palm_pose
+            res = update_grasp_palm_pose(req)
+        except rospy.ServiceException, e:
+            rospy.loginfo('Service update_grasp_palm_pose call failed: %s' % e)
+        rospy.loginfo('Service update_grasp_palm_pose is executed.')
+
     def update_object_pose_aligned_client(self):
         wait_for_service("update_grasp_object_pose")
         try:
@@ -737,6 +785,9 @@ class GraspClient():
         rospy.loginfo('Service update_object_mesh_frame_pose is executed.')
 
     # ++++++++ PART III: The third part consists of all the main logic/orchestration of Parts I and II ++++++++++++
+    def check_pose_validity_utah(self, grasp_pose):
+        return self.check_pose_validity_utah_client(grasp_pose)
+
     def label_grasp(self):
         object_pose = self.get_grasp_object_pose_client()
         object_pos_delta_z = np.abs(object_pose.position.z -
@@ -797,19 +848,19 @@ class GraspClient():
         self.update_object_mesh_frame_pose_client()
 
     def set_visual_data_save_paths(self, grasp_phase):
-        if grasp_phase == 'pre':
-            folder_name = '/pre_grasp/'
-        elif grasp_phase == 'during':
-            folder_name = '/during_grasp/'
-        elif grasp_phase == 'post':
-            folder_name = '/post_grasp/'
-        else:
-            rospy.logerr('Given grasp_phase is not valid. Must be pre, during or post.')
+        if self.is_rec_sess:
+            if grasp_phase not in ['pre', 'during', 'post']:
+                rospy.logerr('Given grasp_phase is not valid. Must be pre, during or post.')
 
-        self.depth_img_save_path = self.curr_grasp_trial_path + folder_name + self.object_metadata[
-            "name"] + '_depth.png'
-        self.color_img_save_path = self.curr_grasp_trial_path + folder_name + self.object_metadata[
-            "name"] + '_color.jpg'
+            self.depth_img_save_path = os.path.join(self.curr_grasp_trial_path, grasp_phase,
+                                                    '_grasp', self.object_metadata["name"],
+                                                    '_depth.png')
+            self.color_img_save_path = os.path.join(self.curr_grasp_trial_path, grasp_phase,
+                                                    '_grasp', self.object_metadata["name"],
+                                                    '_color.jpg')
+        else:
+            self.depth_img_save_path = os.path.join(self.base_path, 'depth.png')
+            self.color_img_save_path = os.path.join(self.base_path, 'color.jpg')
 
     def save_visual_data_and_record_grasp(self):
         self.set_visual_data_save_paths(grasp_phase='post')

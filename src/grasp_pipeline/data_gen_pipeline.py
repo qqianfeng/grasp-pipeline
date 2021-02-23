@@ -18,7 +18,7 @@ if __name__ == '__main__':
     shutil.rmtree('/home/vm/grasp_data', ignore_errors=True)
 
     # Create grasp client and metadata handler
-    grasp_client = GraspClient(grasp_data_recording_path=data_recording_path)
+    grasp_client = GraspClient(is_rec_sess=True, grasp_data_recording_path=data_recording_path)
     metadata_handler = MetadataHandler(gazebo_objects_path=gazebo_objects_path)
 
     # This loop runs for all objects, 4 poses, and evaluates N grasps per pose
