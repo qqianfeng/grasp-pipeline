@@ -5,7 +5,7 @@ from grasp_pipeline.srv import *
 from trajectory_smoothing.srv import *
 import numpy as np
 import time
-from utils import wait_for_service
+from grasp_pipeline.utils.utils import wait_for_service
 
 
 class RobotTrajectoryManager():
