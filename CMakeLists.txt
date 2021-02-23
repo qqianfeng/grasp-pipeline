@@ -32,6 +32,7 @@ add_message_files(
 
 add_service_files(
     FILES
+    CheckPoseValidity.srv
     ControlHithand.srv
     ExecuteJointTrajectory.srv
     FilterPalmPoses.srv
@@ -48,6 +49,7 @@ add_service_files(
     RecordGraspTrialData.srv
     SaveVisualData.srv
     SegmentGraspObject.srv
+    SimGraspData.srv
     UpdateObjectGazebo.srv
     UpdateObjectPose.srv
     UpdatePalmPose.srv

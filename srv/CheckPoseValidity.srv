@@ -1,0 +1,4 @@
+GraspObject object
+geometry_msgs/PoseStamped PoseStamped
+---
+bool is_valid
