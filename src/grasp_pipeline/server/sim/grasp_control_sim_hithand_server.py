@@ -34,7 +34,7 @@ class HithandGraspController():
         ])
 
         self.check_vel_interval = 15
-        self.vel_thresh = 1e-1  # In % of expected movement. If a joint moved less than this, it is considered to have zero velocity
+        self.vel_thresh = 1e-2  # In % of expected movement. If a joint moved less than this, it is considered to have zero velocity
         self.avg_vel = None
         self.moving_avg_vel = np.zeros([
             20, self.check_vel_interval
@@ -42,9 +42,8 @@ class HithandGraspController():
         self.check_vel_thumb = 20
         self.moving_avg_thmub = np.zeros([4, self.check_vel_thumb])
         self.reset_position = [
-            0, 0.0872665, 0.0872665, 0.0872665, 0, 0.0872665, 0.0872665, 0.0872665, 0, 0.0872665,
-            0.0872665, 0.0872665, 0, 0.0872665, 0.0872665, 0.0872665, 0.0, 0.0872665, 0.0872665,
-            0.0872665
+            0.0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0
         ]
 
         # For controlling hithand config
@@ -53,6 +52,8 @@ class HithandGraspController():
         self.reach_gap_thresh = 0.1
 
         self.thumb_0_max_torque = 1.15
+
+        self.max_torque_cnt = 8
 
     def verify_needs_reset(self):
         while True:
@@ -181,16 +182,30 @@ class HithandGraspController():
         for i in xrange(self.control_steps):
             print("Thumb effort" + str(self.thumb_effort))
             if i > 5:
-                delta[self.avg_vel < self.vel_thresh] = 0
+                #delta[self.avg_vel < self.vel_thresh] = 0
                 if sum(delta) < 1e-3:  # or min(self.thumb_avg_vel[1:]) < -0.05:
-                    break
+                    return
                 if self.thumb_effort[1] == self.thumb_0_max_torque:
                     max_torque_cnt += 1
-                    if max_torque_cnt == 6:
-                        break
+                    if max_torque_cnt == self.max_torque_cnt:
+                        return
                 else:
                     max_torque_cnt = 0
 
+            jc_pos += delta
+            jc.position = jc_pos.tolist()
+            self.joint_command_pub.publish(jc)
+            self.run_rate.sleep()
+
+        # If code got till here the hand moved to the full config without significant contact
+        # Keep sending the position deltas until significant contact is established
+        max_torque_cnt = 0
+        start = time.time()
+        while (max_torque_cnt != self.max_torque_cnt) and (time.time() - start < 5):
+            if self.thumb_effort[1] == self.thumb_0_max_torque:
+                max_torque_cnt += 1
+            else:
+                max_torque_cnt = 0
             jc_pos += delta
             jc.position = jc_pos.tolist()
             self.joint_command_pub.publish(jc)
