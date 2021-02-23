@@ -76,7 +76,7 @@ class BroadcastTf:
         response.success = True
         return response
 
-    def update_palm_pose_server(self):
+    def create_update_grasp_palm_pose_server(self):
         '''
         Create the ROS server to update the palm tf.
         '''
@@ -84,7 +84,7 @@ class BroadcastTf:
         rospy.loginfo('Service update_grasp_palm_pose:')
         rospy.loginfo('Ready to update grasp palm pose:')
 
-    def update_object_pose_server(self):
+    def create_update_object_pose_server(self):
         '''
         Create the ROS server to update the object tf.
         '''
@@ -92,7 +92,7 @@ class BroadcastTf:
         rospy.loginfo('Service update_grasp_object_pose:')
         rospy.loginfo('Ready to update grasp object pose:')
 
-    def update_object_mesh_frame_pose_server(self):
+    def create_update_object_mesh_frame_pose_server(self):
         '''
         Create the ROS server to update the object mesh tf.
         '''
@@ -104,9 +104,9 @@ class BroadcastTf:
 
 if __name__ == '__main__':
     broadcast_tf = BroadcastTf()
-    broadcast_tf.update_palm_pose_server()
-    broadcast_tf.update_object_pose_server()
-    broadcast_tf.update_object_mesh_frame_pose_server()
+    broadcast_tf.create_update_palm_pose_server()
+    broadcast_tf.create_update_object_pose_server()
+    broadcast_tf.create_update_object_mesh_frame_pose_server()
     rate = rospy.Rate(100)
     while not rospy.is_shutdown():
         broadcast_tf.broadcast_tf()
