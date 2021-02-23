@@ -35,12 +35,12 @@ class GazeboSceneManager():
         try:
             with open(object_model_file, 'r') as f:
                 model_file = f.read()
-            quaternion = quaternion_from_euler(object_pose_array[0], object_pose_array[1],
-                                               object_pose_array[2])
+            quaternion = quaternion_from_euler(object_pose_array[3], object_pose_array[4],
+                                               object_pose_array[5])
             initial_pose = Pose()
-            initial_pose.position.x = object_pose_array[3]
-            initial_pose.position.y = object_pose_array[4]
-            initial_pose.position.z = object_pose_array[5]
+            initial_pose.position.x = object_pose_array[0]
+            initial_pose.position.y = object_pose_array[1]
+            initial_pose.position.z = object_pose_array[2]
             initial_pose.orientation.x = quaternion[0]
             initial_pose.orientation.y = quaternion[1]
             initial_pose.orientation.z = quaternion[2]

@@ -76,7 +76,7 @@ class BroadcastTf:
         response.success = True
         return response
 
-    def create_update_grasp_palm_pose_server(self):
+    def create_update_palm_pose_server(self):
         '''
         Create the ROS server to update the palm tf.
         '''

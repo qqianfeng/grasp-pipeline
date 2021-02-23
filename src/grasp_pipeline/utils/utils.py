@@ -102,11 +102,12 @@ def get_pose_stamped_from_array(pose_array, frame_id='/world'):
     pose_stamped = PoseStamped()
     pose_stamped.header.frame_id = frame_id
     # RPY to quaternion
+    pose_stamped.pose.position.x, pose_stamped.pose.position.y, pose_stamped.pose.position.z = \
+        pose_array[0], pose_array[1], pose_array[2]
     pose_quaternion = tft.quaternion_from_euler(pose_array[3], pose_array[4], pose_array[5])
     pose_stamped.pose.orientation.x, pose_stamped.pose.orientation.y, \
             pose_stamped.pose.orientation.z, pose_stamped.pose.orientation.w = pose_quaternion[0], pose_quaternion[1], pose_quaternion[2], pose_quaternion[3]
-    pose_stamped.pose.position.x, pose_stamped.pose.position.y, pose_stamped.pose.position.z = \
-            pose_array[0], pose_array[1], pose_array[2]
+
     return pose_stamped
 
 
@@ -133,7 +134,7 @@ def get_pose_array_from_stamped(pose_stamped):
         pose_stamped.pose.orientation.z, pose_stamped.pose.orientation.w
     ])
     x_p, y_p, z_p = pose_stamped.pose.position.x, pose_stamped.pose.position.y, pose_stamped.pose.position.z
-    pose_array = [r, p, y, x_p, y_p, z_p]
+    pose_array = [x_p, y_p, z_p, r, p, y]
     return pose_array
 
 

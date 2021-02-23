@@ -51,7 +51,7 @@ class GraspClient():
         self.depth_img_save_path = None
         self.base_path = '/home/vm'
         self.scene_pcd_save_path = os.path.join(self.base_path, 'scene.pcd')
-        self.object_pcd_save_path = os.path.joint(self.base_path, 'object.pcd')
+        self.object_pcd_save_path = os.path.join(self.base_path, 'object.pcd')
         self.object_pcd_record_path = ''
 
         self.heuristic_preshapes = None  # This variable stores all the information on multiple heuristically sampled grasping pre shapes
@@ -103,15 +103,16 @@ class GraspClient():
     def create_grasp_folder_structure(self, base_path):
         rec_sess_path = base_path + 'grasp_data/recording_sessions'
         if os.path.exists(rec_sess_path):
-            self.sess_id_num = int(sorted(os.listdir(rec_sess_path))[-1].split('_')[-1]) + 1
-            if os.listdir(rec_sess_path + '/recording_session_' +
-                          str(self.sess_id_num - 1).zfill(4)):
-                self.grasp_id_num = int(
-                    sorted(
-                        os.listdir(rec_sess_path + '/recording_session_' +
-                                   str(self.sess_id_num - 1).zfill(4)))[-1].split('_')[-1])
-            else:
-                self.grasp_id_num = 0
+            self.ess_id_num = int(sorted(os.listdir(rec_sess_path))[-1].split('_')[-1]) + 1
+            self.grasp_id_num = 0
+            # if os.listdir(rec_sess_path + '/recording_session_' +
+            #               str(self.sess_id_num - 1).zfill(4)):
+            #     self.grasp_id_num = int(
+            #         sorted(
+            #             os.listdir(rec_sess_path + '/recording_session_' +
+            #                        str(self.sess_id_num - 1).zfill(4)))[-1].split('_')[-1])
+            # else:
+            #     self.grasp_id_num = 0
         else:  # if the path did not exist yet, this is the first recording
             self.sess_id_num = 1
             self.grasp_id_num = 0
@@ -167,8 +168,8 @@ class GraspClient():
         rand_y = np.random.uniform(self.spawn_object_y_min, self.spawn_object_y_max)
         rand_z_orientation = np.random.uniform(0., 2 * np.pi)
         object_pose = [
-            self.object_metadata["spawn_angle_roll"], 0, rand_z_orientation, rand_x, rand_y,
-            self.object_metadata["spawn_height_z"]
+            rand_x, rand_y, self.object_metadata["spawn_height_z"],
+            self.object_metadata["spawn_angle_roll"], 0, rand_z_orientation
         ]
         rospy.loginfo('Generated random object pose:')
         rospy.loginfo(object_pose)
