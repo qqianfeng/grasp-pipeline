@@ -36,38 +36,41 @@ class MetadataHandler():
                         self.dataset_ix = 0
 
                 # Set some relevant variables
-                curr_dataset = self.datasets[self.dataset_ix]
-                curr_dataset_name = self.datasets_name[self.dataset_ix]
-                object_name = curr_dataset[self.object_ix]
-                curr_object_path = os.path.join(self.gazebo_objects_path, curr_dataset_name,
-                                                object_name)
-                files = os.listdir(curr_object_path)
-                collision_mesh = [s for s in files if "collision" in s][0]
+                dataset = self.datasets[self.dataset_ix]
+                dataset_name = self.datasets_name[self.dataset_ix]
+                object_name = dataset[self.object_ix]
 
-                # Create the final metadata dict to return
-                object_metadata = dict()
-                object_metadata["name"] = object_name
-                object_metadata["model_file"] = os.path.join(curr_object_path,
-                                                             object_name + '.sdf')
-                object_metadata["collision_mesh_path"] = os.path.join(
-                    curr_object_path, collision_mesh)
-                object_metadata["dataset"] = curr_dataset_name
-                object_metadata["name_rec_path"] = curr_dataset_name + '_' + object_name
-                object_metadata["mesh_frame_pose"] = None
-                object_metadata["seg_pose"] = None
-                object_metadata["aligned_pose"] = None
-                object_metadata["seg_dim_whd"] = None
-                object_metadata["aligned_dim_whd"] = None
-                object_metadata["spawn_height_z"] = 0.2
-                object_metadata["spawn_angle_roll"] = 0
-                if curr_dataset_name == 'kit' or object_name in YCB_PI_HALF_ROLL:
-                    object_metadata["spawn_angle_roll"] = 1.57079632679
-                    if object_name in kit_no_roll_angle:
-                        object_metadata["spawn_angle_roll"] = 0
+                object_metadata = self.get_object_metadata(dataset_name, object_name)
 
                 rospy.loginfo('Trying to grasp object: %s' % object_metadata["name"])
                 choose_success = True
             except:
                 self.object_ix += 1
+
+        return object_metadata
+
+    def get_object_metadata(self, dataset_name, object_name):
+        object_path = os.path.join(self.gazebo_objects_path, dataset_name, object_name)
+        files = os.listdir(object_path)
+        collision_mesh = [s for s in files if "collision" in s][0]
+
+        # Create the final metadata dict to return
+        object_metadata = dict()
+        object_metadata["name"] = object_name
+        object_metadata["model_file"] = os.path.join(object_path, object_name + '.sdf')
+        object_metadata["collision_mesh_path"] = os.path.join(object_path, collision_mesh)
+        object_metadata["dataset"] = dataset_name
+        object_metadata["name_rec_path"] = dataset_name + '_' + object_name
+        object_metadata["mesh_frame_pose"] = None
+        object_metadata["seg_pose"] = None
+        object_metadata["aligned_pose"] = None
+        object_metadata["seg_dim_whd"] = None
+        object_metadata["aligned_dim_whd"] = None
+        object_metadata["spawn_height_z"] = 0.2
+        object_metadata["spawn_angle_roll"] = 0
+        if dataset_name == 'kit' or object_name in YCB_PI_HALF_ROLL:
+            object_metadata["spawn_angle_roll"] = 1.57079632679
+            if object_name in kit_no_roll_angle:
+                object_metadata["spawn_angle_roll"] = 0
 
         return object_metadata
