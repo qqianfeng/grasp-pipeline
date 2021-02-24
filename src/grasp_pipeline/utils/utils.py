@@ -111,6 +111,20 @@ def get_pose_stamped_from_array(pose_array, frame_id='/world'):
     return pose_stamped
 
 
+def get_pose_stamped_from_rot_quat_list(pose_list, frame_id="world"):
+    """ Transform a list of 3 position and 4 orientation/quaternion elements to a stamped pose
+    """
+    pose_stamped = PoseStamped()
+    pose_stamped.header.frame_id = frame_id
+    # RPY to quaternion
+    pose_stamped.pose.position.x, pose_stamped.pose.position.y, pose_stamped.pose.position.z = \
+        pose_list[0], pose_list[1], pose_list[2]
+    pose_stamped.pose.orientation.x, pose_stamped.pose.orientation.y, \
+            pose_stamped.pose.orientation.z, pose_stamped.pose.orientation.w = pose_list[3], pose_list[4], pose_list[5], pose_list[6]
+
+    return pose_stamped
+
+
 def get_pose_stamped_from_trans_and_quat(trans, quat, frame_id='world'):
     pose_stamped = PoseStamped()
     pose_stamped.header.frame_id = 'world'
