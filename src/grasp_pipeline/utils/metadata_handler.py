@@ -2,7 +2,8 @@ import os
 import rospy
 from grasp_pipeline.utils.object_names_in_datasets import YCB_OBJECTS, KIT_OBJECTS, BIGBIRD_OBJECTS
 
-kit_no_roll_angle = [""]
+KIT_NO_ROLL_ANGLE = [""]
+KIT_SMALL_HEIGHT_Z = ["ChoppedTomatoes"]
 YCB_PI_HALF_ROLL = ["008_pudding_box", "035_power_drill"]
 
 
@@ -70,7 +71,10 @@ class MetadataHandler():
         object_metadata["spawn_angle_roll"] = 0
         if dataset_name == 'kit' or object_name in YCB_PI_HALF_ROLL:
             object_metadata["spawn_angle_roll"] = 1.57079632679
-            if object_name in kit_no_roll_angle:
+            if object_name in KIT_NO_ROLL_ANGLE:
                 object_metadata["spawn_angle_roll"] = 0
+            if object_name in KIT_SMALL_HEIGHT_Z:
+                object_metadata["spawn_height_z"] = 0.05
+                print("KIT Object tends to tip over")
 
         return object_metadata
