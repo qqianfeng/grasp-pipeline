@@ -614,7 +614,8 @@ class GraspClient():
             rospy.loginfo('Service record_grasp_data call failed: %s' % e)
         rospy.loginfo('Service record_grasp_data is executed.')
 
-    def record_sim_grasp_data_utah_client(self, grasp_id):
+    def record_sim_grasp_data_utah_client(self, grasp_id, object_name, grasp_config_obj, is_top,
+                                          label):
         wait_for_service('record_sim_grasp_data_utah')
         try:
             record_sim_grasp_data_utah = rospy.ServiceProxy("record_sim_grasp_data_utah",
@@ -622,12 +623,8 @@ class GraspClient():
             req = SimGraspDataRequest()
             req.grasp_id = grasp_id
             req.object_name = self.object_metadata["name_rec_path"]
-            req.preshape_palm_world_pose = self.palm_poses["desired_pre"]
-            req.true_preshape_palm_world_pose = self.palm_poses["true_pre"]
-            req.preshape_allegro_joint_state = self.hand_joint_states["desired_pre"]
-            req.true_preshape_joint_state = self.hand_joint_states["true_pre"]
-            req.grasp_success_label = self.grasp_label
-            req.top_grasp = self.chosen_is_top_grasp
+            req.grasp_config_obj = grasp_config_obj
+            req.top_grasp = is_top
             req.sparse_voxel_grid = self.object_metadata["sparse_voxel_grid"]
             req.object_size = self.object_metadata["aligned_dim_whd_utah"]
 
