@@ -630,6 +630,8 @@ class GraspClient():
             req.top_grasp = self.chosen_is_top_grasp
             req.sparse_voxel_grid = self.object_metadata["sparse_voxel_grid"]
             req.object_size = self.object_metadata["aligned_dim_whd_utah"]
+
+            res = record_sim_grasp_data_utah(req)
         except rospy.ServiceException, e:
             rospy.loginfo('Service sim_grasp_data_utah call failed: %s' % e)
         rospy.loginfo('Service sim_grasp_data_utah is executed.')
