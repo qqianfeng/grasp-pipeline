@@ -1,4 +1,4 @@
-from sensor_msgs.msg import Image, PointCloud2, PointField
+from sensor_msgs.msg import Image, PointCloud2, PointField, JointState
 import open3d as o3d
 from ctypes import *
 import sensor_msgs.point_cloud2 as pc2
@@ -197,3 +197,40 @@ def convert_to_sparse_voxel_grid(voxel_grid, threshold=0.5):
                 if voxel_grid[i, j, k] > threshold:
                     sparse_voxel_grid.append([i, j, k])
     return np.asarray(sparse_voxel_grid)
+
+
+def get_utah_grasp_config_from_pose_and_joints(palm_pose, joint_state):
+    # Get pos and quat
+    pos = palm_pose.pose.position
+    q = palm_pose.pose.orientation
+    quat = [q.x, q.y, q.z, q.w]
+    # "allocate" memory for full pose 6D and 10 joints
+    pose_array = np.zeros(6 + 10)
+
+    # Bring ori from quaternion to euler
+    r, p, y = tft.euler_from_quaternion(quat)
+
+    # Insert pos and euler in right places
+    pose_array[:3] = [pos.x, pos.y, pos.z]
+    pose_array[3:6] = [r, p, y]
+
+    # Insert joint angles in the right place
+    # Index, Little, Middle, Ring, Thumb
+    js_pos = joint_state.position
+    des_joints = []
+    for i in range(0, len(js_pos), 4):
+        des_joints.append(js_pos[i])
+        des_joints.append(js_pos[i + 1])
+    assert len(des_joints) == 10
+    pose_array[6:] = des_joints
+
+    return pose_array
+
+
+if __name__ == '__main__':
+    js = JointState()
+    js.position = np.random.randint(0, 100, 20)
+
+    palm_pose = PoseStamped()
+
+    get_utah_grasp_config_from_pose_and_joints(palm_pose, js)
