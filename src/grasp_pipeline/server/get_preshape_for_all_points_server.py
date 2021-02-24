@@ -66,7 +66,7 @@ class GetPreshapeForAllPoints():
             latch=True)  # publishes the bounding box center points
 
         # Ros params / hyperparameters
-        self.VISUALIZE = rospy.get_param('visualize', False)
+        self.VISUALIZE = rospy.get_param('visualize', True)
         self.palm_obj_min = 0.045  # min dist to object point
         self.palm_obj_max = 0.115  # max dist to object point
         self.approach_dist = 0.1
@@ -192,6 +192,12 @@ class GetPreshapeForAllPoints():
         idxs = [i for i, x in enumerate(closest_face_idxs) if x == 3]
         self.visualize(self.object_points[idxs, :])
 
+    def show_closest_face_validity(self, pose_pos, faces, closest_face_idx):
+        points = np.zeros((2, 3))
+        points[0, :] = faces[closest_face_idx[0]].center
+        points[1, :] = pose_pos
+        self.visualize(points)
+
     # PART I: Visualize and broadcast information on bounding box and palm poses
     def broadcast_palm_poses(self):
         if self.service_is_called:
@@ -284,7 +290,7 @@ class GetPreshapeForAllPoints():
     ##################################################
     ############ Part II Sampling grasps #############
     ##################################################
-    def get_oriented_bounding_box_faces(self, grasp_object):
+    def get_oriented_bounding_box_faces(self, grasp_object, is_check_validity=False):
         """ Get the center points of 3 oriented bounding box faces, 1 top and 2 closest to camera.
         """
         # The 1. and 5. point of bounding_box_corner points are cross-diagonal
@@ -355,6 +361,7 @@ class GetPreshapeForAllPoints():
 
         # Sort along y axis and delete the face furthest away (no normals in this area)
         faces_world = sorted(faces_world, key=lambda x: x.center[1])
+        face_back = copy.deepcopy(faces_world[-1])
         del faces_world[-1]
 
         # Label front face with 'side1'
@@ -367,6 +374,9 @@ class GetPreshapeForAllPoints():
 
         # Publish the bounding box face center points for visualization in RVIZ
         self.publish_points(faces_world, publisher='box_center')
+
+        if is_check_validity:
+            faces_world.append(face_back)
 
         if self.VISUALIZE:
             points_array = np.array([bb.center for bb in faces_world])
@@ -505,23 +515,35 @@ class GetPreshapeForAllPoints():
 
     def handle_check_pose_validity(self, req):
         # Extract only the position of the query pose
-        grasp_pos = [req.pose.pose.position.x, req.pose.pose.position.y, req.pose.pose.position.z]
+        grasp_pos = np.array([[
+            req.pose.pose.position.x, req.pose.pose.position.y, req.pose.pose.position.z
+        ]])
 
         # Get new information on segmented object from rostopics/disk and store in instance attributes
         self.update_object_information()
 
         # Get all bounding box faces
-        faces = self.get_oriented_bounding_box_faces(req.object)
+        faces = self.get_oriented_bounding_box_faces(req.object, is_check_validity=True)
 
-        # For each point in pointcloud find closest bounding box face
-        closest_face_idx = self.find_face_for_each_point(self.object_points, faces)
+        # Remove the top face
+        faces = sorted(faces, key=lambda x: x.center[2])
+        del faces[-1]
+
+        closest_pcd_point, _ = self.nearest_neighbor(self.object_points, grasp_pos[0, :])
+
+        # Bring point to correct format
+        cpd = np.zeros((1, 3))
+        cpd[0, :] = closest_pcd_point
+
+        # Find closest face to point cloud point closest to grasp pos
+        closest_face_idx = self.find_face_for_each_point(cpd, faces)
 
         # Visualize the closest face
-        self.show_closest_face(faces, closest_face_idx)
+        self.show_closest_face_validity(cpd, faces, closest_face_idx)
 
         # Return
         res = CheckPoseValidityResponse()
-        if faces[closest_face_idx].face_id in ['side1', 'side2']:
+        if faces[closest_face_idx[0]].face_id in ['side1', 'side2']:
             res.is_valid = True
         else:
             res.is_valid = False
@@ -537,6 +559,8 @@ class GetPreshapeForAllPoints():
     def create_check_pose_validity_utah_server(self):
         rospy.Service('check_pose_validity_utah', CheckPoseValidity,
                       self.handle_check_pose_validity)
+        rospy.loginfo('Service check_pose_validity_utah:')
+        rospy.loginfo('Ready to check_pose_validity_utah')
 
 
 if __name__ == '__main__':
