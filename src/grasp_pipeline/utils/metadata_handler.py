@@ -1,6 +1,6 @@
 import os
 import rospy
-from grasp_pipeline.utils.object_names_in_datasets import YCB_OBJECTS, KIT_OBJECTS, BIGBIRD_OBJECTS
+from grasp_pipeline.utils.object_names_in_datasets import *
 
 KIT_NO_ROLL_ANGLE = [""]
 KIT_SMALL_HEIGHT_Z = ["ChoppedTomatoes"]
@@ -45,6 +45,9 @@ class MetadataHandler():
 
                 rospy.loginfo('Trying to grasp object: %s' % object_metadata["name"])
                 choose_success = True
+
+                if dataset == 'kit' and object_metadata["name"] in KIT_OBJECTS_DATA_GENERATED:
+                    choose_success = False
             except:
                 self.object_ix += 1
 

@@ -212,3 +212,7 @@ print(len(YCB_OBJECTS + KIT_OBJECTS + BIGBIRD_OBJECTS))
 
 # for obj in KIT_OBJECTS:
 #     os.mkdir(base_path + obj)
+KIT_OBJECTS_DATA_GENERATED = [
+    "BakingSoda", "BakingVanilla", "BathDetergent", "BlueSaltCube", "BroccoliSoup", "CeylonTea",
+    "ChickenSoup"
+]
