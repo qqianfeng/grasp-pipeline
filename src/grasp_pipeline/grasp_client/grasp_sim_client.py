@@ -614,7 +614,7 @@ class GraspClient():
             rospy.loginfo('Service record_grasp_data call failed: %s' % e)
         rospy.loginfo('Service record_grasp_data is executed.')
 
-    def recrod_sim_grasp_data_utah_client(self, grasp_id):
+    def record_sim_grasp_data_utah_client(self, grasp_id):
         wait_for_service('record_sim_grasp_data_utah')
         try:
             record_sim_grasp_data_utah = rospy.ServiceProxy("record_sim_grasp_data_utah",

@@ -89,4 +89,4 @@ if __name__ == '__main__':
 
     # Lastly use the utah server to store info
     grasp_id = 1
-    grasp_client.recrod_sim_grasp_data_utah_client(grasp_id)
+    grasp_client.record_sim_grasp_data_utah_client(grasp_data, palm_pose_curr_mf)
