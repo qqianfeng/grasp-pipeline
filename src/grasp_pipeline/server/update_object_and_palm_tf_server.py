@@ -17,6 +17,7 @@ class BroadcastTf:
         self.palm_pose = None
         self.object_pose_world = None
         self.object_mesh_frame_pose = None
+        self.object_mesh_frame_data_gen = None
         self.tf_br = tf.TransformBroadcaster()
 
     def broadcast_tf(self):
@@ -52,6 +53,17 @@ class BroadcastTf:
                                      rospy.Time.now(), 'object_mesh_frame',
                                      self.object_mesh_frame_pose.header.frame_id)
 
+        if self.object_mesh_frame_data_gen is not None:
+            self.tf_br.sendTransform((self.object_mesh_frame_data_gen.pose.position.x,
+                                      self.object_mesh_frame_data_gen.pose.position.y,
+                                      self.object_mesh_frame_data_gen.pose.position.z),
+                                     (self.object_mesh_frame_data_gen.pose.orientation.x,
+                                      self.object_mesh_frame_data_gen.pose.orientation.y,
+                                      self.object_mesh_frame_data_gen.pose.orientation.z,
+                                      self.object_mesh_frame_data_gen.pose.orientation.w),
+                                     rospy.Time.now(), 'object_mesh_frame_data_gen',
+                                     self.object_mesh_frame_data_gen.header.frame_id)
+
     def handle_update_palm_pose(self, req):
         '''
         Handler to update the palm pose tf.
@@ -72,6 +84,12 @@ class BroadcastTf:
 
     def handle_update_object_mesh_frame_pose(self, req):
         self.object_mesh_frame_pose = req.object_pose_world
+        response = UpdateObjectPoseResponse()
+        response.success = True
+        return response
+
+    def handle_update_object_mesh_frame_data_gen(self, req):
+        self.object_mesh_frame_data_gen = req.object_pose_world
         response = UpdateObjectPoseResponse()
         response.success = True
         return response
@@ -98,16 +116,26 @@ class BroadcastTf:
         '''
         rospy.Service('update_object_mesh_frame_pose', UpdateObjectPose,
                       self.handle_update_object_mesh_frame_pose)
-        rospy.loginfo('Service update_grasp_object_pose:')
-        rospy.loginfo('Ready to update grasp object pose:')
+        rospy.loginfo('Service update_object_mesh_frame_pose:')
+        rospy.loginfo('Ready to update_object_mesh_frame_pose:')
+
+    def create_update_object_mesh_frame_data_gen_server(self):
+        '''
+        Create the ROS server to update the object mesh frame data gen tf.
+        '''
+        rospy.Service('update_object_mesh_frame_data_gen', UpdateObjectPose,
+                      self.handle_update_object_mesh_frame_data_gen)
+        rospy.loginfo('Service update_object_mesh_frame_data_gen:')
+        rospy.loginfo('Ready to update_object_mesh_frame_data_gen:')
 
 
 if __name__ == '__main__':
-    broadcast_tf = BroadcastTf()
-    broadcast_tf.create_update_palm_pose_server()
-    broadcast_tf.create_update_object_pose_server()
-    broadcast_tf.create_update_object_mesh_frame_pose_server()
+    btf = BroadcastTf()
+    btf.create_update_palm_pose_server()
+    btf.create_update_object_pose_server()
+    btf.create_update_object_mesh_frame_pose_server()
+    btf.create_update_object_mesh_frame_data_gen_server()
     rate = rospy.Rate(100)
     while not rospy.is_shutdown():
-        broadcast_tf.broadcast_tf()
+        btf.broadcast_tf()
         rate.sleep()

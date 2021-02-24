@@ -768,6 +768,18 @@ class GraspClient():
             rospy.loginfo('Service update_grasp_palm_pose call failed: %s' % e)
         rospy.loginfo('Service update_grasp_palm_pose is executed.')
 
+    def update_object_mesh_frame_data_gen_client(self, object_mesh_frame_pose):
+        wait_for_service("update_object_mesh_frame_data_gen")
+        try:
+            update_object_mesh_frame_data_gen = rospy.ServiceProxy(
+                'update_object_mesh_frame_data_gen', UpdateObjectPose)
+            req = UpdateObjectPoseRequest()
+            req.object_pose_world = object_mesh_frame_pose
+            res = update_object_mesh_frame_data_gen(req)
+        except rospy.ServiceException, e:
+            rospy.loginfo('Service update_object_mesh_frame_data_gen call failed: %s' % e)
+        rospy.loginfo('Service update_object_mesh_frame_data_gen is executed.')
+
     def update_object_pose_aligned_client(self):
         wait_for_service("update_grasp_object_pose")
         try:

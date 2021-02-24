@@ -14,7 +14,7 @@ if __name__ == '__main__':
     # grasp data file path
     file_path = os.path.join('/home/vm', 'grasp_data.h5')
 
-    #grasp_client = GraspClient(is_rec_sess=False)
+    grasp_client = GraspClient(is_rec_sess=False)
     data_handler = GraspDataHandler(file_path=file_path, sess_name='recording_session_0001')
     metadata_handler = MetadataHandler()
 
@@ -53,6 +53,7 @@ if __name__ == '__main__':
     grasp_client.update_object_mesh_frame_data_gen_client(grasp_data["object_world_sim_pose"])
 
     # Transform first the chosen pose from mesh_frame during data gen and current mesh frame
+    palm_pose_current_mesh_frame = grasp_client.transform_pose(grasp_pose, '')
 
     # Transform the valid grasp pose from current mesh frame to object-centric frame/pose
     grasp_pose_utah = grasp_client.transform_pose(grasp_data,
