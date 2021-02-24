@@ -14,7 +14,7 @@ if __name__ == '__main__':
     # grasp data file path
     file_path = os.path.join('/home/vm', 'grasp_data.h5')
 
-    grasp_client = GraspClient(is_rec_sess=False)
+    #grasp_client = GraspClient(is_rec_sess=False)
     data_handler = GraspDataHandler(file_path=file_path, sess_name='recording_session_0001')
     metadata_handler = MetadataHandler()
 
@@ -37,19 +37,25 @@ if __name__ == '__main__':
     # Segment object and publish object-centric frame (also gets the dim_w_h_d)
     grasp_client.save_visual_data_and_segment_object()
 
-    # Until valid pose:
-    #       Choose a random valid pose from grasp_data.h5 file
-    #       Reject sampled pose if pose is behind object or to the right side of object
+    # TODO: Change .*_world_pose to *_mesh_frame
+    # Grasp_data.keys() = [u'is_top_grasp', u'lifted_joint_state', u'desired_preshape_joint_state', u'desired_preshape_palm_world_pose', 'object_name', u'true_preshape_joint_state', u'closed_joint_state', u'object_world_sim_pose', u'time_stamp', u'true_preshape_palm_world_pose', u'grasp_success_label']
+
     is_valid_pose = False
     while not is_valid_pose:
-        grasp_pose = data_handler.get_single_successful_grasp(full_object_name, random=True)
+        grasp_data = data_handler.get_single_successful_grasp(full_object_name, random=True)
+        grasp_pose = grasp_data["true_preshape_palm_world_pose"]
         is_valid_pose = grasp_client.check_pose_validity_utah(grasp_pose)
 
     # Publish the object mesh frame pose
     grasp_client.update_object_mesh_frame_pose_client()
 
-    # Tranform the valid grasp pose from object mesh frame to object-centric frame/pose
-    grasp_pose_utah = grasp_client.transform_pose(grasp_pose,
+    # Publish the object mesh frame as it wasm TODO: Change object_world_sim_pose to object_mesh_frame_world
+    grasp_client.update_object_mesh_frame_data_gen_client(grasp_data["object_world_sim_pose"])
+
+    # Transform first the chosen pose from mesh_frame during data gen and current mesh frame
+
+    # Transform the valid grasp pose from current mesh frame to object-centric frame/pose
+    grasp_pose_utah = grasp_client.transform_pose(grasp_data,
                                                   from_frame='object_mesh_frame',
                                                   to_frame='object_pose_aligned')
 
