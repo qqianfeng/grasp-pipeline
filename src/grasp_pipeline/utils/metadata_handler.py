@@ -27,7 +27,7 @@ class MetadataHandler():
         while (not choose_success):
             try:
                 # When this is called a new object is requested
-                self.object_ix += 1
+                self.object_ix += 3
 
                 # Check if we are past the last object of the dataset. If so take next dataset
                 if self.object_ix == len(self.datasets[self.dataset_ix]):
