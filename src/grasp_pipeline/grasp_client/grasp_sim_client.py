@@ -875,12 +875,12 @@ class GraspClient():
             if grasp_phase not in ['pre', 'during', 'post']:
                 rospy.logerr('Given grasp_phase is not valid. Must be pre, during or post.')
 
-            self.depth_img_save_path = os.path.join(self.curr_grasp_trial_path, grasp_phase,
-                                                    '_grasp', self.object_metadata["name"],
-                                                    '_depth.png')
-            self.color_img_save_path = os.path.join(self.curr_grasp_trial_path, grasp_phase,
-                                                    '_grasp', self.object_metadata["name"],
-                                                    '_color.jpg')
+            self.depth_img_save_path = os.path.join(self.curr_grasp_trial_path,
+                                                    grasp_phase + '_grasp',
+                                                    self.object_metadata["name"] + '_depth.png')
+            self.color_img_save_path = os.path.join(self.curr_grasp_trial_path,
+                                                    grasp_phase + '_grasp',
+                                                    self.object_metadata["name"] + '_color.jpg')
         else:
             self.depth_img_save_path = os.path.join(self.base_path, 'depth.png')
             self.color_img_save_path = os.path.join(self.base_path, 'color.jpg')
