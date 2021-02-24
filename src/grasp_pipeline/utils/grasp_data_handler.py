@@ -94,6 +94,8 @@ class GraspDataHandler():
             for key in grasp_gp.keys():
                 grasp_data[key] = grasp_gp[key][()]
 
+            # Grasp data holds the following keys:
+            #[u'is_top_grasp', u'lifted_joint_state', u'desired_preshape_joint_state', u'desired_preshape_palm_world_pose', 'object_name', u'true_preshape_joint_state', u'closed_joint_state', u'object_world_sim_pose', u'time_stamp', u'true_preshape_palm_world_pose', u'grasp_success_label']
             return grasp_data
 
 

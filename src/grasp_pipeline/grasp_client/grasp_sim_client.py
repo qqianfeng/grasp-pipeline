@@ -27,8 +27,6 @@ class GraspClient():
     """
     def __init__(self, is_rec_sess, grasp_data_recording_path=''):
         rospy.init_node('grasp_client')
-        self.object_datasets_folder = rospy.get_param('object_datasets_folder',
-                                                      '/home/vm/object_datasets')
         self.grasp_data_recording_path = grasp_data_recording_path
         if grasp_data_recording_path is not '':
             self.create_grasp_folder_structure(self.grasp_data_recording_path)
@@ -694,6 +692,8 @@ class GraspClient():
                 print("whd from alignment: ")
                 print(self.object_metadata["aligned_dim_whd_utah"])
                 rospy.sleep(0.2)
+                if not self.is_rec_sess:
+                    rospy.sleep(2)
                 bb_extent = np.ones(4)
                 bb_extent[:3] = np.array(self.object_metadata["seg_dim_whd"])
                 trans = self.tf_buffer.lookup_transform('object_pose_aligned',

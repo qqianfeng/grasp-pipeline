@@ -9,7 +9,7 @@ YCB_PI_HALF_ROLL = ["008_pudding_box", "035_power_drill"]
 class MetadataHandler():
     """ Simple class to help iterate through objects and 
     """
-    def __init__(self, gazebo_objects_path='/home/vm/object_datasets/objects_gazebo'):
+    def __init__(self, gazebo_objects_path='/home/vm/gazebo-objects/objects_gazebo'):
         self.datasets = [YCB_OBJECTS, BIGBIRD_OBJECTS, KIT_OBJECTS]
         self.datasets_name = ['ycb', 'bigbird', 'kit']
         self.object_ix = -1

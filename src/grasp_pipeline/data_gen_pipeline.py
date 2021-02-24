@@ -15,7 +15,7 @@ if __name__ == '__main__':
     gazebo_objects_path = '/home/vm/gazebo-objects/objects_gazebo'
 
     # Remove these while testing
-    shutil.rmtree('/home/vm/grasp_data', ignore_errors=True)
+    #shutil.rmtree('/home/vm/grasp_data', ignore_errors=True)
 
     # Create grasp client and metadata handler
     grasp_client = GraspClient(is_rec_sess=True, grasp_data_recording_path=data_recording_path)

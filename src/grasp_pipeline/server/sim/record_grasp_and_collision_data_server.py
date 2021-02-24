@@ -212,14 +212,14 @@ class RecordGraspData():
             grasp_group.create_dataset('grasp_success_label', data=req.grasp_success_label)
 
             # object_world_sim_pose
-            grasp_group.create_dataset('object_world_sim_pose',
+            grasp_group.create_dataset('object_mesh_frame_world',
                                        data=self.convert_pose_to_list(req.object_mesh_frame_world))
             # desired_preshape_palm_world_pose
-            grasp_group.create_dataset('desired_preshape_palm_world_pose',
+            grasp_group.create_dataset('desired_preshape_palm_mesh_frame',
                                        data=self.convert_pose_to_list(
                                            req.desired_preshape_palm_mesh_frame))
             # true_preshape_palm_world_pose
-            grasp_group.create_dataset('true_preshape_palm_world_pose',
+            grasp_group.create_dataset('true_preshape_palm_mesh_frame',
                                        data=self.convert_pose_to_list(
                                            req.true_preshape_palm_mesh_frame))
 

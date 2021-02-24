@@ -1,4 +1,4 @@
 GraspObject object
-geometry_msgs/PoseStamped PoseStamped
+geometry_msgs/PoseStamped pose
 ---
 bool is_valid
