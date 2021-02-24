@@ -10,7 +10,7 @@ import copy
 from grasp_pipeline.grasp_client.grasp_sim_client import GraspClient
 from grasp_pipeline.utils.grasp_data_handler import GraspDataHandler
 from grasp_pipeline.utils.metadata_handler import MetadataHandler
-from grasp_pipeline.utils.utils import get_pose_stamped_from_rot_quat_list
+import grasp_pipeline.utils.utils as utils
 
 if __name__ == '__main__':
 
@@ -53,9 +53,9 @@ if __name__ == '__main__':
         object_mesh_frame_data_gen = grasp_data["object_world_sim_pose"]
 
         # Transform the palm and object mesh frame pose from a list to a pose stamped
-        palm_pose_mf_dg_stamped = get_pose_stamped_from_rot_quat_list(
+        palm_pose_mf_dg_stamped = utils.get_pose_stamped_from_rot_quat_list(
             palm_pose, frame_id="object_mesh_frame_data_gen")
-        obj_mf_dg_stamped = get_pose_stamped_from_rot_quat_list(object_mesh_frame_data_gen)
+        obj_mf_dg_stamped = utils.get_pose_stamped_from_rot_quat_list(object_mesh_frame_data_gen)
 
         # Publish the object mesh frame as it was during data generation TODO: Change object_world_sim_pose to object_mesh_frame_world
         grasp_client.update_object_mesh_frame_data_gen_client(obj_mf_dg_stamped)
@@ -87,6 +87,12 @@ if __name__ == '__main__':
     # Generate voxel grid from pcd
     grasp_client.generate_voxel_from_pcd_client()
 
+    # Combine the true hand preshape 6D pose and true joint state into a 16-dim array
+    grasp_config_obj = utils.get_utah_grasp_config_from_pose_and_joints(
+        palm_pose_obj_aligned, grasp_data["true_preshape_joint_state"])
+
     # Lastly use the utah server to store info
     grasp_id = 1
-    grasp_client.record_sim_grasp_data_utah_client(grasp_data, palm_pose_curr_mf)
+    grasp_client.record_sim_grasp_data_utah_client(grasp_id, grasp_data["object_name"],
+                                                   grasp_config_obj, grasp_data["is_top_grasp"],
+                                                   grasp_data["grasp_success_label"])
