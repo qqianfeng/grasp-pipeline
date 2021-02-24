@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+
+<launch>
+    <!-- +++++++NOTE: The different paths in the args must be modified for your machine. ++++++++ -->
+    <arg name="sim"                     default="true"/>
+    <arg name="object_datasets_folder"  default="/home/vm/gazebo-objects"/>
+    <arg name="object_pcd_path"         default="/home/vm/object.pcd"/>
+    <arg name="scene_pcd_path"          default="/home/vm/scene.pcd"/>
+    <arg name="color_img_save_path"     default="/home/vm/scene.ppm"/>
+    <arg name="depth_img_save_path"     default="/home/vm/depth.pgm"/>
+    <arg name="scene_pcd_topic"         default="/camera/depth/points"/>  <!-- /depth_registered/points -->   
+    <arg name="color_img_topic"         default="/camera/color/image_raw"/>    
+    <arg name="depth_img_topic"         default="/camera/depth/image_raw"/>    
+    <!-- +++++++++++++++++++ Set the params needed by the different nodes ++++++++++++++++++++++++++++++++ -->
+    <param name="object_pcd_path"         value="$(arg object_pcd_path)"        type="string" />
+    <param name="scene_pcd_path"          value="$(arg scene_pcd_path)"         type="string" />
+    <param name="object_datasets_folder"  value="$(arg object_datasets_folder)" type="string" />
+    <param name="color_img_save_path"     value="$(arg color_img_save_path)"    type="string" />
+    <param name="depth_img_save_path"     value="$(arg depth_img_save_path)"    type="string" />
+    <param name="scene_pcd_topic"         value="$(arg scene_pcd_topic)"        type="string" />
+    <param name="color_img_topic"         value="$(arg color_img_topic)"        type="string" />
+    <param name="depth_img_topic"         value="$(arg depth_img_topic)"        type="string" />   
+    <param name="/use_sim_time" value="true"/>
+
+    <!-- +++++++++++++++++++++++++++++++++++++++++++++++++++ -->
+
+    <!-- Manage moveit scene -->
+    <node name="manage_moveit_scene_node" pkg="grasp_pipeline"
+        type="manage_moveit_scene_server.py" output="screen">
+        <param name="sim" type="bool" value="$(arg sim)"/>
+    </node>
+
+    <node name="get_preshape_for_all_points_node" pkg="grasp_pipeline" type="get_preshape_for_all_points_server.py" output="screen"/>
+
+    <!-- Filter palm poses based on collision with object or ground plane -->
+    <node name="filter_palm_goal_poses_node" pkg="grasp_pipeline" type="filter_palm_goal_poses_server.py" output="screen"/>
+
+
+    <!-- Save visual data node -->
+    <node name="save_visual_data_node" pkg="grasp_pipeline" type="save_visual_data_server.py" output="screen"/>
+
+
+    <group if="$(arg sim)">
+        <!-- Gazebo scene manager -->
+        <node name="manage_gazebo_scene_node" pkg="grasp_pipeline" type="manage_gazebo_scene_server.py" output="screen"/>
+        <!-- Record grasp data in sim -->
+        <node name="record_sim_grasp_data_utah" pkg="grasp_pipeline" type="record_sim_data_server_utah.py" output="screen"/>
+    </group>
+
+
+    <!--Launch node which advertises service to segment the table from an object -->
+    <node name="object_segmentation_node" pkg="grasp_pipeline" type="segment_object_server.py" output="screen"/>
+   
+    <!-- Node to update palm and object poses-->
+    <node name="update_object_pose_node" pkg="grasp_pipeline" type="update_object_and_palm_tf_server.py" output="screen"/>
+
+    <!-- Generate voxel grid from  -->
+    <node name="generate_voxel_node" pkg="grasp_pipeline" type="generate_voxel_from_pcd_server.py" output="screen"/>
+</launch>
