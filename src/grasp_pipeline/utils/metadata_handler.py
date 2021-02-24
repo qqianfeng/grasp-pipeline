@@ -11,8 +11,8 @@ class MetadataHandler():
     """ Simple class to help iterate through objects and 
     """
     def __init__(self, gazebo_objects_path='/home/vm/gazebo-objects/objects_gazebo'):
-        self.datasets = [YCB_OBJECTS, BIGBIRD_OBJECTS, KIT_OBJECTS]
-        self.datasets_name = ['ycb', 'bigbird', 'kit']
+        self.datasets = [KIT_OBJECTS, YCB_OBJECTS, BIGBIRD_OBJECTS]
+        self.datasets_name = ['kit', 'ycb', 'bigbird']
         self.object_ix = -1
         self.dataset_ix = 0
         self.gazebo_objects_path = gazebo_objects_path

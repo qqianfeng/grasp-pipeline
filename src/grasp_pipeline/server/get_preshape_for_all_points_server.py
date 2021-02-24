@@ -66,7 +66,7 @@ class GetPreshapeForAllPoints():
             latch=True)  # publishes the bounding box center points
 
         # Ros params / hyperparameters
-        self.VISUALIZE = rospy.get_param('visualize', True)
+        self.VISUALIZE = rospy.get_param('visualize', False)
         self.palm_obj_min = 0.045  # min dist to object point
         self.palm_obj_max = 0.115  # max dist to object point
         self.approach_dist = 0.1
