@@ -3,7 +3,7 @@ import rospy
 import numpy as np
 import open3d as o3d
 from sensor_msgs.msg import PointCloud2
-from grasp_planner.srv import *
+from grasp_pipeline.srv import *
 import tf.transformations as tft
 import tf
 
