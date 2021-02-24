@@ -5,9 +5,12 @@ Side:     +1559 -2616
 Overhead: +749  -4064
 """
 import os
+import copy
+
 from grasp_pipeline.grasp_client.grasp_sim_client import GraspClient
 from grasp_pipeline.utils.grasp_data_handler import GraspDataHandler
 from grasp_pipeline.utils.metadata_handler import MetadataHandler
+from grasp_pipeline.utils.utils import get_pose_stamped_from_rot_quat_list
 
 if __name__ == '__main__':
 
@@ -42,26 +45,44 @@ if __name__ == '__main__':
 
     is_valid_pose = False
     while not is_valid_pose:
+        # get all the data on the grasp
         grasp_data = data_handler.get_single_successful_grasp(full_object_name, random=True)
-        grasp_pose = grasp_data["true_preshape_palm_world_pose"]
-        is_valid_pose = grasp_client.check_pose_validity_utah(grasp_pose)
 
-    # Publish the object mesh frame pose
-    grasp_client.update_object_mesh_frame_pose_client()
+        # Take the 6D palm position and the mesh frame during data generation
+        palm_pose = grasp_data["true_preshape_palm_world_pose"]  # w.r.t to mesh frame NOT world
+        object_mesh_frame_data_gen = grasp_data["object_world_sim_pose"]
 
-    # Publish the object mesh frame as it wasm TODO: Change object_world_sim_pose to object_mesh_frame_world
-    grasp_client.update_object_mesh_frame_data_gen_client(grasp_data["object_world_sim_pose"])
+        # Transform the palm and object mesh frame pose from a list to a pose stamped
+        palm_pose_mf_dg_stamped = get_pose_stamped_from_rot_quat_list(
+            palm_pose, frame_id="object_mesh_frame_data_gen")
+        obj_mf_dg_stamped = get_pose_stamped_from_rot_quat_list(object_mesh_frame_data_gen)
 
-    # Transform first the chosen pose from mesh_frame during data gen and current mesh frame
-    palm_pose_current_mesh_frame = grasp_client.transform_pose(grasp_pose, '')
+        # Publish the object mesh frame as it was during data generation TODO: Change object_world_sim_pose to object_mesh_frame_world
+        grasp_client.update_object_mesh_frame_data_gen_client(obj_mf_dg_stamped)
 
-    # Transform the valid grasp pose from current mesh frame to object-centric frame/pose
-    grasp_pose_utah = grasp_client.transform_pose(grasp_data,
-                                                  from_frame='object_mesh_frame',
-                                                  to_frame='object_pose_aligned')
+        # Transform first the chosen pose from mesh_frame during data gen to current mesh frame by just changing the frame_id
+        assert palm_pose_mf_dg_stamped.header.frame_id == "object_mesh_frame_data_gen"
+        palm_pose_curr_mf = copy.deepcopy(palm_pose_mf_dg_stamped)
+        palm_pose_curr_mf.header.frame_id = "object_mesh_frame"
 
-    # Update the transformed pose and check validity in ros
-    grasp_client.update_grasp_palm_pose_client(grasp_pose_utah)
+        # Transform the valid grasp pose from current mesh frame to world
+        palm_pose_world = grasp_client.transform_pose(palm_pose_curr_mf,
+                                                      from_frame='object_mesh_frame',
+                                                      to_frame='world')
+
+        # Update the transformed pose and check validity in ros
+        grasp_client.update_grasp_palm_pose_client(palm_pose_world)
+
+        # Check if the pose is valid in UTAH world (from front, side or top of current object)
+        if grasp_data["is_top_grasp"]:
+            is_valid_pose = False
+        else:
+            is_valid_pose = grasp_client.check_pose_validity_utah(palm_pose_world)
+
+    # Transform the valid grasp pose from current mesh frame to object-centric frame which is the format in which UTAH stores it
+    palm_pose_obj_aligned = grasp_client.transform_pose(palm_pose_curr_mf,
+                                                        from_frame='object_mesh_frame',
+                                                        to_frame='object_pose_aligned')
 
     # Generate voxel grid from pcd
     grasp_client.generate_voxel_from_pcd_client()
