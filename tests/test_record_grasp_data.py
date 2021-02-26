@@ -9,8 +9,11 @@ sys.path.append(pkg_path + '/src')
 import numpy as np
 from utils import plot_voxel, convert_to_full_voxel_grid
 
+PRINT_TREE = True
+
 utah_grasp_data = "/home/vm/Downloads/merged_grasp_data_10_sets.h5"
-vincent_grasp_data = "/home/vm/grasp_data.h5"
+#vincent_grasp_data = "/home/vm/grasp_data.h5"
+vincent_grasp_data = "/home/vm/Documents/2021-02-24/grasp_data.h5"
 
 joints = [
     'index0', 'index1', 'index2', 'index3', 'little0', 'little1', 'little2', 'little3', 'middle0',
@@ -18,19 +21,19 @@ joints = [
     'thumb2', 'thumb3'
 ]
 
-with h5py.File(vincent_grasp_data, "r") as hdf:
-    valid_grasps = hdf['recording_sessions']['recording_session_0001']['grasp_trials'][
-        'ycb_035_power_drill']['grasps']['no_collision']
-    last_grasp = valid_grasps.keys()[-2]
-    grasp = valid_grasps[last_grasp]
-    desired_pre = grasp['desired_preshape_joint_state'][()]
-    true_pre = grasp['true_preshape_joint_state'][()]
-    # print("Desired: ")
-    # print(np.round(desired_pre, 4))
-    # print("True: ")
-    # print(np.round(true_pre, 4))
-    for joint, number1, number2 in zip(joints, desired_pre, true_pre):
-        print '{}: \t \t {:9.4f} | {:9.4f}'.format(joint, number1, number2)
+# with h5py.File(vincent_grasp_data, "r") as hdf:
+#     valid_grasps = hdf['recording_sessions']['recording_session_0001']['grasp_trials'][
+#         'ycb_035_power_drill']['grasps']['no_collision']
+#     last_grasp = valid_grasps.keys()[-2]
+#     grasp = valid_grasps[last_grasp]
+#     desired_pre = grasp['desired_preshape_joint_state'][()]
+#     true_pre = grasp['true_preshape_joint_state'][()]
+#     # print("Desired: ")
+#     # print(np.round(desired_pre, 4))
+#     # print("True: ")
+#     # print(np.round(true_pre, 4))
+#     for joint, number1, number2 in zip(joints, desired_pre, true_pre):
+#         print '{}: \t \t {:9.4f} | {:9.4f}'.format(joint, number1, number2)
 
 # with h5py.File(vincent_grasp_data, "r") as hdf:
 #     last_sess_name = hdf['recording_sessions'].keys()[-1]
@@ -43,47 +46,49 @@ with h5py.File(vincent_grasp_data, "r") as hdf:
 #             print(grasp[grasp_key][()])
 
 # Print the whole file tree
-# with h5py.File(vincent_grasp_data, "r") as hdf:
-#     for l1 in hdf.keys():
-#         print("Level 1: " + l1)
-#         try:
-#             for l2 in hdf[l1].keys():
-#                 print("Level 2: " + l2)
-#                 try:
-#                     for l3 in hdf[l1][l2].keys():
-#                         print("Level 3: " + l3)
-#                         try:
-#                             for l4 in hdf[l1][l2][l3].keys():
-#                                 print("Level 4: " + l4)
-#                                 try:
-#                                     for l5 in hdf[l1][l2][l3][l4].keys():
-#                                         print("Level 5: " + l5)
-#                                         try:
-#                                             for l6 in hdf[l1][l2][l3][l4][l5].keys():
-#                                                 print("Level 6: " + l6)
-#                                                 try:
-#                                                     for l7 in hdf[l1][l2][l3][l4][l5][l6].keys():
-#                                                         print("Level 7: " + l7)
-#                                                         try:
-#                                                             for l8 in hdf[l1][l2][l3][l4][l5][l6][
-#                                                                     l7].keys():
-#                                                                 print("Level 8:" + l8)
-#                                                                 print(hdf[l1][l2][l3][l4][l5][l6]
-#                                                                       [l7][l8][()])
-#                                                         except:
-#                                                             continue
-#                                                 except:
-#                                                     continue
-#                                         except:
-#                                             continue
-#                                 except:
-#                                     continue
-#                         except:
-#                             continue
-#                 except:
-#                     continue
-#         except:
-#             continue
+if PRINT_TREE:
+    with h5py.File(vincent_grasp_data, "r") as hdf:
+        for l1 in hdf.keys():
+            print("Level 1: " + l1)
+            try:
+                for l2 in hdf[l1].keys():
+                    print("Level 2: " + l2)
+                    try:
+                        for l3 in hdf[l1][l2].keys():
+                            print("Level 3: " + l3)
+                            try:
+                                for l4 in hdf[l1][l2][l3].keys():
+                                    print("Level 4: " + l4)
+                                    try:
+                                        for l5 in hdf[l1][l2][l3][l4].keys():
+                                            print("Level 5: " + l5)
+                                            try:
+                                                for l6 in hdf[l1][l2][l3][l4][l5].keys():
+                                                    print("Level 6: " + l6)
+                                                    try:
+                                                        for l7 in hdf[l1][l2][l3][l4][l5][l6].keys(
+                                                        ):
+                                                            print("Level 7: " + l7)
+                                                            try:
+                                                                for l8 in hdf[l1][l2][l3][l4][l5][
+                                                                        l6][l7].keys():
+                                                                    print("Level 8: " + l8)
+                                                                    print(hdf[l1][l2][l3][l4][l5]
+                                                                          [l6][l7][l8][()])
+                                                            except:
+                                                                continue
+                                                    except:
+                                                        continue
+                                            except:
+                                                continue
+                                    except:
+                                        continue
+                            except:
+                                continue
+                    except:
+                        continue
+            except:
+                continue
 
 # with h5py.File(vincent_grasp_data, "r") as hdf:
 #     keys = hdf.keys()
