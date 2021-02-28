@@ -46,41 +46,39 @@ YCB_OBJECTS = [
 
 BIGBIRD_OBJECTS = [
     '3m_high_tack_spray_adhesive', 'advil_liqui_gels', 'aunt_jemima_original_syrup',
-    'band_aid_clear_strips', 'band_aid_sheer_strips', 'blue_clover_baby_toy', 'canon_ack_e10_box',
-    'chewy_dipps_chocolate_chip', 'chewy_dipps_peanut_butter', 'cholula_chipotle_hot_sauce',
-    'coffee_mate_french_vanilla', 'colgate_cool_mint', 'crayola_24_crayons',
-    'crest_complete_minty_fresh', 'crystal_hot_sauce', 'detergent', 'dove_go_fresh_burst',
-    'eating_right_for_healthy_living_raspberry', 'fruit_by_the_foot', 'gushers_tropical_flavors',
-    'hunts_paste', 'hunts_sauce', 'krylon_crystal_clear', 'krylon_short_cuts',
-    'mom_to_mom_butternut_squash_pear', 'nature_valley_crunchy_oats_n_honey',
-    'nutrigrain_apple_cinnamon', 'nutrigrain_fruit_crunch_apple_cobbler', 'pepto_bismol',
-    'pop_secret_butter', 'pop_secret_light_butter', 'pringles_bbq',
-    'quaker_chewy_peanut_butter_chocolate_chip', 'quaker_chewy_smores', 'red_bull',
-    'softsoap_gold', 'spam', 'spongebob_squarepants_fruit_snaks',
-    'sunkist_fruit_snacks_mixed_fruit', 'tapatio_hot_sauce', 'v8_fusion_peach_mango',
-    'vo5_extra_body_volumizing_shampoo', 'white_rain_sensations_apple_blossom_hydrating_body_wash'
+    'chewy_dipps_peanut_butter', 'cholula_chipotle_hot_sauce', 'coffee_mate_french_vanilla',
+    'colgate_cool_mint', 'crayola_24_crayons', 'crest_complete_minty_fresh', 'crystal_hot_sauce',
+    'detergent', 'dove_go_fresh_burst', 'eating_right_for_healthy_living_raspberry',
+    'fruit_by_the_foot', 'gushers_tropical_flavors', 'hunts_paste', 'hunts_sauce',
+    'krylon_crystal_clear', 'krylon_short_cuts', 'mom_to_mom_butternut_squash_pear',
+    'nature_valley_crunchy_oats_n_honey', 'nutrigrain_apple_cinnamon',
+    'nutrigrain_fruit_crunch_apple_cobbler', 'pepto_bismol', 'pop_secret_butter',
+    'pop_secret_light_butter', 'pringles_bbq', 'quaker_chewy_peanut_butter_chocolate_chip',
+    'quaker_chewy_smores', 'red_bull', 'softsoap_gold', 'spam',
+    'spongebob_squarepants_fruit_snaks', 'sunkist_fruit_snacks_mixed_fruit', 'tapatio_hot_sauce',
+    'v8_fusion_peach_mango', 'vo5_extra_body_volumizing_shampoo',
+    'white_rain_sensations_apple_blossom_hydrating_body_wash'
 ]
 
 KIT_OBJECTS = [
     'BakingSoda', 'BakingVanilla', 'BathDetergent', 'BlueSaltCube', 'BroccoliSoup', 'CeylonTea',
     'ChickenSoup', 'ChocSticks', 'ChocolateBars', 'ChoppedTomatoes', 'CleaningCloths',
-    'CoffeeCookies', 'CoffeeFilters2', 'CoffeeFilters', 'CokePlasticSmallGrasp',
-    'CokePlasticSmall', 'CondensedMilk', 'CoughDropsBerries', 'CoughDropsHoney', 'CoughDropsLemon',
-    'Curry', 'Deodorant', 'DropsCherry', 'DropsOrange', 'FennelTea', 'FizzyTabletsCalcium',
-    'FizzyTablets', 'FlowerCup', 'FruitBars', 'FruitDrink', 'FruitTea', 'GreenCup',
-    'GreenSaltCylinder', 'HamburgerSauce', 'HerbSalt', 'HeringTin', 'HotPot2', 'HotPot',
-    'HygieneSpray', 'InstantDumplings', 'InstantIceCoffee', 'InstantMousse', 'InstantSauce2',
-    'InstantSauce', 'InstantSoup', 'InstantTomatoSoup', 'JamSugar', 'KnaeckebrotRye',
-    'Knaeckebrot', 'KoalaCandy', 'LivioClassicOil', 'LivioSunflowerOil', 'Margarine', 'Marjoram',
-    'MashedPotatoes', 'MelforBottle', 'MilkDrinkVanilla', 'MilkRice', 'MuesliBars', 'NutCandy',
-    'NutellaGo', 'OrangeMarmelade', 'OrgFruitTea', 'OrgHerbTea', 'Paprika', 'PatchesSensitive',
-    'Patches', 'Peanuts2', 'Peanuts', 'Peas', 'PineappleSlices', 'Pitcher', 'Pony',
-    'PotatoeDumplings', 'PotatoeStarch', 'PowderedSugarMill', 'PowderedSugar', 'RedCup', 'Rice',
-    'SardinesCan', 'SauceThickener', 'SauerkrautSmall', 'Shampoo', 'ShowerGel', 'SmacksCereals',
-    'SmallGlass', 'SoftCakeOrange', 'Sprayflask', 'Sprudelflasche', 'StrawberryPorridge',
-    'Sweetener', 'TomatoHerbSauce', 'TomatoSauce', 'TomatoSoup', 'Toothpaste', 'ToyCarYelloq',
-    'VitalisCereals', 'Waterglass', 'WhippedCream2', 'WhippedCream', 'WhiteCup', 'Wineglass',
-    'YellowSaltCube2', 'YellowSaltCube', 'YellowSaltCylinderSmall', 'YellowSaltCylinder'
+    'CoffeeCookies', 'CoffeeFilters2', 'CoffeeFilters', 'CokePlasticSmallGrasp', 'CondensedMilk',
+    'CoughDropsBerries', 'CoughDropsHoney', 'CoughDropsLemon', 'Curry', 'Deodorant', 'DropsCherry',
+    'DropsOrange', 'FennelTea', 'FizzyTabletsCalcium', 'FizzyTablets', 'FlowerCup', 'FruitBars',
+    'FruitDrink', 'FruitTea', 'GreenCup', 'GreenSaltCylinder', 'HamburgerSauce', 'HerbSalt',
+    'HeringTin', 'HotPot2', 'HotPot', 'HygieneSpray', 'InstantDumplings', 'InstantIceCoffee',
+    'InstantMousse', 'InstantSauce2', 'InstantSauce', 'InstantSoup', 'InstantTomatoSoup',
+    'JamSugar', 'KnaeckebrotRye', 'Knaeckebrot', 'KoalaCandy', 'LivioClassicOil',
+    'LivioSunflowerOil', 'Marjoram', 'MashedPotatoes', 'MelforBottle', 'MilkDrinkVanilla',
+    'MilkRice', 'MuesliBars', 'NutCandy', 'NutellaGo', 'OrangeMarmelade', 'OrgFruitTea', 'Paprika',
+    'Patches', 'Peanuts2', 'Peanuts', 'Peas', 'PineappleSlices', 'Pitcher', 'PotatoeDumplings',
+    'PotatoeStarch', 'PowderedSugarMill', 'PowderedSugar', 'RedCup', 'Rice', 'SardinesCan',
+    'SauceThickener', 'SauerkrautSmall', 'Shampoo', 'ShowerGel', 'SmacksCereals', 'SmallGlass',
+    'SoftCakeOrange', 'Sprayflask', 'Sprudelflasche', 'StrawberryPorridge', 'Sweetener',
+    'TomatoHerbSauce', 'TomatoSauce', 'TomatoSoup', 'Toothpaste', 'ToyCarYelloq', 'VitalisCereals',
+    'Waterglass', 'WhippedCream2', 'WhippedCream', 'WhiteCup', 'Wineglass', 'YellowSaltCube2',
+    'YellowSaltCube', 'YellowSaltCylinderSmall', 'YellowSaltCylinder'
 ]
 
 ######### ORIGINAL FULL ITEM LISTS BELOW
@@ -198,6 +196,13 @@ YCB_TEST_OBJECTS = [
 
 print(len(YCB_OBJECTS + KIT_OBJECTS + BIGBIRD_OBJECTS))
 
+SPAWN_HIGH_Z = [
+    'MelforBottle', 'SmacksCereals', 'Sprayflask', 'Sprudelflasche', 'VitalisCereals',
+    '008_pudding_box', '009_gelatin_box', '035_power_drill', 'chewy_dipps_chocolate_chip',
+    'chewy_dipps_peanut_butter', 'colgate_cool_mint', 'crest_complete_minty_fresh',
+    'eating_right_for_healthy_living_raspberry', 'sunkist_fruit_snacks_mixed_fruit'
+]
+
 # import os
 
 # base_path = '/home/vm/object_datasets/kit/'
@@ -214,5 +219,6 @@ print(len(YCB_OBJECTS + KIT_OBJECTS + BIGBIRD_OBJECTS))
 #     os.mkdir(base_path + obj)
 KIT_OBJECTS_DATA_GENERATED = [
     "BakingSoda", "BakingVanilla", "BathDetergent", "BlueSaltCube", "BroccoliSoup", "CeylonTea",
-    "ChickenSoup"
+    "ChickenSoup", "ChocSticks", "ChocolateBars", "ChoppedTomatoes", "CleaningCloths",
+    "CoffeeCookies", "CoffeeFilters2", "CoffeeFilters", "CokePlasticSmallGrasp"
 ]
