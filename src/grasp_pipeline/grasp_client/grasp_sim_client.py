@@ -849,6 +849,8 @@ class GraspClient():
 
             self.object_metadata["mesh_frame_pose"] = get_pose_stamped_from_array(pose_arr)
 
+        #print "Spawning object here:", pose_arr
+
         # Update gazebo object, delete old object and spawn new one
         self.update_gazebo_object_client()
 
