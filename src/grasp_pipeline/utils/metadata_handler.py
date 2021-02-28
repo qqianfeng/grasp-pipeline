@@ -86,4 +86,7 @@ class MetadataHandler():
         if dataset_name == 'kit' or object_name in YCB_PI_HALF_ROLL:
             object_metadata["spawn_angle_roll"] = 1.57079632679
 
+        if object_name in SPAWN_HIGH_Z:
+            object_metadata["spawn_height_z"] += 0.1
+
         return object_metadata
