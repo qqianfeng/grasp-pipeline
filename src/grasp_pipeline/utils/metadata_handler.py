@@ -2,17 +2,20 @@ import os
 import rospy
 from grasp_pipeline.utils.object_names_in_datasets import *
 
-KIT_NO_ROLL_ANGLE = [""]
-KIT_SMALL_HEIGHT_Z = ["ChoppedTomatoes"]
-YCB_PI_HALF_ROLL = ["008_pudding_box", "035_power_drill"]
+KIT_SMALL_HEIGHT_Z = ["BathDetergent", "ChoppedTomatoes"]
+YCB_PI_HALF_ROLL = ["008_pudding_box", "009_gelatin_box", "035_power_drill"]
 
 
 class MetadataHandler():
     """ Simple class to help iterate through objects and 
     """
     def __init__(self, gazebo_objects_path='/home/vm/gazebo-objects/objects_gazebo'):
+        #self.datasets = [BIGBIRD_OBJECTS]
         self.datasets = [KIT_OBJECTS, YCB_OBJECTS, BIGBIRD_OBJECTS]
+
+        #self.datasets_name = ['bigbird']
         self.datasets_name = ['kit', 'ycb', 'bigbird']
+
         self.object_ix = -1
         self.dataset_ix = 0
         self.gazebo_objects_path = gazebo_objects_path
@@ -27,7 +30,7 @@ class MetadataHandler():
         while (not choose_success):
             try:
                 # When this is called a new object is requested
-                self.object_ix += 3
+                self.object_ix += 1
 
                 # Check if we are past the last object of the dataset. If so take next dataset
                 if self.object_ix == len(self.datasets[self.dataset_ix]):
@@ -37,16 +40,16 @@ class MetadataHandler():
                         self.dataset_ix = 0
 
                 # Set some relevant variables
-                dataset = self.datasets[self.dataset_ix]
+                dataset_list = self.datasets[self.dataset_ix]
                 dataset_name = self.datasets_name[self.dataset_ix]
-                object_name = dataset[self.object_ix]
+                object_name = dataset_list[self.object_ix]
 
                 object_metadata = self.get_object_metadata(dataset_name, object_name)
 
                 rospy.loginfo('Trying to grasp object: %s' % object_metadata["name"])
                 choose_success = True
 
-                if dataset == 'kit' and object_metadata["name"] in KIT_OBJECTS_DATA_GENERATED:
+                if dataset_name == 'kit' and object_metadata["name"] in KIT_OBJECTS_DATA_GENERATED:
                     choose_success = False
             except:
                 self.object_ix += 1
@@ -70,14 +73,17 @@ class MetadataHandler():
         object_metadata["aligned_pose"] = None
         object_metadata["seg_dim_whd"] = None
         object_metadata["aligned_dim_whd"] = None
-        object_metadata["spawn_height_z"] = 0.2
         object_metadata["spawn_angle_roll"] = 0
+
+        # Set the spawn height differently for the different datasets
+        if dataset_name == 'kit' or dataset_name == 'ycb':
+            object_metadata["spawn_height_z"] = 0.05
+        elif dataset_name == 'bigbird':
+            object_metadata["spawn_height_z"] = 0.02
+        else:
+            raise Exception("Bad dataset name.")
+
         if dataset_name == 'kit' or object_name in YCB_PI_HALF_ROLL:
             object_metadata["spawn_angle_roll"] = 1.57079632679
-            if object_name in KIT_NO_ROLL_ANGLE:
-                object_metadata["spawn_angle_roll"] = 0
-            if object_name in KIT_SMALL_HEIGHT_Z:
-                object_metadata["spawn_height_z"] = 0.05
-                print("KIT Object tends to tip over")
 
         return object_metadata
