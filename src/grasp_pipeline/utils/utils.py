@@ -152,6 +152,46 @@ def get_pose_array_from_stamped(pose_stamped):
     return pose_array
 
 
+def hom_matrix_from_ros_transform(transform_ros):
+    """ Transform a ROS transform to a 4x4 homogenous numpy array
+    """
+    q = transform_ros.transform.rotation
+    t = transform_ros.transform.translation
+    hom_matrix = tft.quaternion_matrix([q.x, q.y, q.z, q.w])
+    hom_matrix[:, 3] = [t.x, t.y, t.z, 1]
+    return hom_matrix
+
+
+def hom_matrix_from_pose_stamped(pose_stamped):
+    q = pose_stamped.pose.orientation
+    r = pose_stamped.pose.position
+    hom_matrix = tft.quaternion_matrix([q.x, q.y, q.z, q.w])
+    hom_matrix[:, 3] = [r.x, r.y, r.z, 1]
+    return hom_matrix
+
+
+def trans_rot_list_from_ros_transform(ros_transform):
+    t = ros_transform.transform.translation
+    q = ros_transform.transform.rotation
+    return [t.x, t.y, t.z, q.x, q.y, q.z, q.w]
+
+
+def pose_stamped_from_hom_matrix(hom_matrix, frame_id):
+    q = tft.quaternion_from_matrix(hom_matrix)
+
+    pose_stamped = PoseStamped()
+    pose_stamped.header.frame_id = frame_id
+    pose_stamped.pose.position.x = hom_matrix[0, 3]
+    pose_stamped.pose.position.y = hom_matrix[1, 3]
+    pose_stamped.pose.position.z = hom_matrix[2, 3]
+    pose_stamped.pose.orientation.x = q[0]
+    pose_stamped.pose.orientation.y = q[1]
+    pose_stamped.pose.orientation.z = q[2]
+    pose_stamped.pose.orientation.w = q[3]
+
+    return pose_stamped
+
+
 def plot_voxel(voxel, img_path=None, voxel_res=None, centroid=None, pca_axes=None):
     fig = pyplot.figure()
 
