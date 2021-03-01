@@ -648,12 +648,11 @@ class GraspClient():
             rospy.loginfo('Service reset_hithand_joints call failed: %s' % e)
         rospy.loginfo('Service reset_hithand_joints is executed.')
 
-    def save_visual_data_client(self, save_pcd=True, keep_object_in_camera_frame=False):
+    def save_visual_data_client(self, save_pcd=True):
         wait_for_service('save_visual_data')
         try:
             save_visual_data = rospy.ServiceProxy('save_visual_data', SaveVisualData)
             req = SaveVisualDataRequest()
-            req.keep_object_in_camera_frame = keep_object_in_camera_frame
             req.color_img_save_path = self.color_img_save_path
             req.depth_img_save_path = self.depth_img_save_path
             if save_pcd == True:
@@ -855,7 +854,8 @@ class GraspClient():
 
         # Now wait for 2 seconds for object to rest and update actual object position
         if pose_type == "init" or pose_type == "random":
-            rospy.sleep(3)
+            if self.is_rec_sess:
+                rospy.sleep(3)
             object_pose = self.get_grasp_object_pose_client()
 
             # Update the sim_pose with the actual pose of the object after it came to rest
@@ -863,7 +863,8 @@ class GraspClient():
                                                                   pose=object_pose)
 
         # Update moveit scene object
-        self.update_moveit_scene_client()
+        if self.is_rec_sess:
+            self.update_moveit_scene_client()
 
         # Update the true mesh pose
         self.update_object_mesh_frame_pose_client()
@@ -895,11 +896,10 @@ class GraspClient():
         self.set_visual_data_save_paths(grasp_phase=grasp_phase)
         self.save_visual_data_client(save_pcd=False)
 
-    def save_visual_data_and_segment_object(self,
-                                            keep_object_in_camera_frame=False,
-                                            down_sample_pcd=True):
+    def save_visual_data_and_segment_object(self, down_sample_pcd=True, object_pcd_record_path=''):
+        self.object_pcd_record_path = object_pcd_record_path
         self.set_visual_data_save_paths(grasp_phase='pre')
-        self.save_visual_data_client(keep_object_in_camera_frame=keep_object_in_camera_frame)
+        self.save_visual_data_client()
         self.segment_object_client(down_sample_pcd=down_sample_pcd)
 
     def filter_preshapes(self):

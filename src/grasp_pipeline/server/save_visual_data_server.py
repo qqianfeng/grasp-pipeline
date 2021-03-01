@@ -101,9 +101,7 @@ class VisualDataSaver():
                 ros_numpy.point_cloud2.pointcloud2_to_xyz_array(pcd))
             del pcd
 
-            # Transform pcd to world only if keep_pcd_in_camera_frame is false
-            if not req.keep_pcd_in_camera_frame:
-                pcd_o3d.transform(self.world_T_camera)
+            pcd_o3d.transform(self.world_T_camera)
 
             p = np.asarray(pcd_o3d.points)
             colors = (-3.) * np.linspace(0.1, 0.9, p.shape[0]) - 0.05
