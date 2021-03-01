@@ -34,6 +34,13 @@ class ObjectSegmenter():
         rospy.sleep(0.5)  # essential, otherwise next line crashes
         self.transform_camera_world = self.tf_buffer.lookup_transform(
             'world', self.pcd_frame, rospy.Time())
+        self.transform_world_camera = self.tf_buffer.lookup_transform(
+            self.pcd_frame, 'world', rospy.Time())
+        q = self.transform_world_camera.transform.rotation
+        r = self.transform_world_camera.transform.translation
+        self.camera_T_world = tft.quaternion_matrix([q.x, q.y, q.z, q.w])
+        self.camera_T_world[:, 3] = [r.x, r.y, r.z, 1]
+
         self.bounding_box_corner_pub = rospy.Publisher(
             '/segmented_object_bounding_box_corner_points',
             Float64MultiArray,
@@ -51,6 +58,7 @@ class ObjectSegmenter():
             self.transform_camera_world.transform.translation.y,
             self.transform_camera_world.transform.translation.z
         ])
+        self.cam_q = self.transform_camera_world.transform.rotation
         self.colors = np.array(
             [
                 [0, 0, 0],  #black,       left/front/up
@@ -67,6 +75,8 @@ class ObjectSegmenter():
         self.object_pose = None
         self.object_size = None
         self.object_center = None
+
+        self.object_centroid = None
 
     # +++++++++++++++++ Part I: Helper functions ++++++++++++++++++++++++
     def init_pcd_frame(self, pcd_topic):
@@ -88,7 +98,8 @@ class ObjectSegmenter():
         vis.run()
 
     def custom_draw_scene(self, pcd):
-        o3d.visualization.draw_geometries([pcd])
+        origin = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1)
+        o3d.visualization.draw_geometries([pcd, origin])
 
     def construct_corner_box_objects(self):
         boxes = []
@@ -142,6 +153,12 @@ class ObjectSegmenter():
                 (self.object_pose.orientation.x, self.object_pose.orientation.y,
                  self.object_pose.orientation.z, self.object_pose.orientation.w), rospy.Time.now(),
                 "object_pose", "world")
+
+        if self.object_centroid is not None:
+            self.tf_broadcaster_object_pose.sendTransform(
+                (self.object_centroid[0], self.object_centroid[1], self.object_centroid[2]),
+                (self.cam_q.x, self.cam_q.y, self.cam_q.z, self.cam_q.w), rospy.Time.now(),
+                "object_centroid_vae", "world")
 
     def publish_box_corner_points(self, points_stamped, color=(1., 0., 0.)):
         markerArray = MarkerArray()
@@ -203,8 +220,6 @@ class ObjectSegmenter():
         # downsample point cloud or make mean free if downsampling is not requested
         if req.down_sample_pcd:
             object_pcd = object_pcd.voxel_down_sample(voxel_size=0.003)
-        else:
-            object_pcd.translate(object_pcd.get_center())
 
         del pcd, points, colors
 
@@ -258,6 +273,13 @@ class ObjectSegmenter():
         # Store segmented object to disk
         if os.path.exists(self.object_pcd_path):
             os.remove(self.object_pcd_path)
+
+        if not req.down_sample_pcd:  # if req.down_sample is false, we assume this should be stored in VAE format, therefore transform the cloud back to camera frame
+            self.object_centroid = object_pcd.get_center()
+            object_pcd.transform(self.camera_T_world)
+            object_pcd.translate((-1) * object_pcd.get_center())
+            self.custom_draw_scene(object_pcd)
+
         o3d.io.write_point_cloud(self.object_pcd_path, object_pcd)
         if req.object_pcd_record_path != '':
             o3d.io.write_point_cloud(req.object_pcd_record_path, object_pcd)
