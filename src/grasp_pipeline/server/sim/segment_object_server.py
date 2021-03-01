@@ -174,9 +174,6 @@ class ObjectSegmenter():
 
         pcd = o3d.io.read_point_cloud(self.scene_pcd_path)
 
-        if self.world_t_cam is None:
-            self.world_t_cam = [0.8275, -0.996, 0.36]
-
         # segment the panda base from point cloud
         points = np.asarray(pcd.points)
         colors = np.asarray(pcd.colors)
@@ -203,17 +200,16 @@ class ObjectSegmenter():
         if self.VISUALIZE:
             self.custom_draw_scene(object_pcd)
 
-        # downsample point cloud
-        object_pcd = object_pcd.voxel_down_sample(voxel_size=0.003)
+        # downsample point cloud or make mean free if downsampling is not requested
+        if req.down_sample_pcd:
+            object_pcd = object_pcd.voxel_down_sample(voxel_size=0.003)
+        else:
+            object_pcd.translate(object_pcd.get_center())
+
         del pcd, points, colors
-        # compute normals of object
-        # object_pcd.estimate_normals(
-        #     search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.25, max_nn=50))
 
         if self.VISUALIZE:
             self.custom_draw_scene(object_pcd)
-
-        #object_pcd = object_pcd.voxel_down_sample(voxel_size=0.015)  # downsample
 
         # compute bounding box and object_pose
         object_bounding_box = object_pcd.get_oriented_bounding_box()
@@ -222,8 +218,6 @@ class ObjectSegmenter():
         self.object_center = object_pcd.get_center()
         self.object_R = copy.deepcopy(object_bounding_box.R)
         self.object_R[:, 2] = np.cross(self.object_R[:, 0], self.object_R[:, 1])
-        # Attention, self.object_R can be an improper rotation meaning det(R)=-1, therefore check which eigenvalue is negative and turn the corresponding column of rotation matrix around
-        #eigs = np.linalg.eigvals(self.object_R)
         object_T_world = np.eye(4)
         object_T_world[:3, :3] = self.object_R
         object_quat = tft.quaternion_from_matrix(object_T_world)
@@ -239,7 +233,6 @@ class ObjectSegmenter():
 
         # get the 8 corner points, from these you can compute the bounding box face center points from which you can get the nearest neighbour from the point cloud
         self.bounding_box_corner_points = np.asarray(object_bounding_box.get_box_points())
-        #print(self.bounding_box_corner_points)
 
         # Publish the bounding box corner points for visualization in Rviz
         box_corners_world_frame = []
@@ -251,17 +244,12 @@ class ObjectSegmenter():
             corner_stamped_world.point.z = corner[2]
             box_corners_world_frame.append(copy.deepcopy(corner_stamped_world))
         self.publish_box_corner_points(box_corners_world_frame)
-        #self.custom_draw_object(object_pcd, object_bounding_box)
-
-        #self.custom_draw_object(object_pcd, object_bounding_box, True)
 
         # orient normals towards camera
         rospy.loginfo('Orienting normals towards this location:')
         rospy.loginfo(self.world_t_cam)
         object_pcd.orient_normals_towards_camera_location(self.world_t_cam)
         print("Original scene point cloud reference frame assumed as: " + str(self.pcd_frame))
-
-        #self.visualize_normals(object_pcd)
 
         # Draw object, bounding box and colored corners
         if self.VISUALIZE:
@@ -277,7 +265,6 @@ class ObjectSegmenter():
 
         # Publish and latch newly computed dimensions and bounding box points
         print("I will publish the corner points now:")
-        #print(self.bounding_box_corner_points)
         corner_msg = Float64MultiArray()
         corner_msg.data = np.ndarray.tolist(np.ndarray.flatten(self.bounding_box_corner_points))
         self.bounding_box_corner_pub.publish(corner_msg)
