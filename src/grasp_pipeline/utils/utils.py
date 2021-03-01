@@ -199,7 +199,7 @@ def convert_to_sparse_voxel_grid(voxel_grid, threshold=0.5):
     return np.asarray(sparse_voxel_grid)
 
 
-def get_utah_grasp_config_from_pose_and_joints(palm_pose, joint_state):
+def get_utah_grasp_config_from_pose_and_joints(palm_pose, joint_pos):
     # Get pos and quat
     pos = palm_pose.pose.position
     q = palm_pose.pose.orientation
@@ -216,11 +216,10 @@ def get_utah_grasp_config_from_pose_and_joints(palm_pose, joint_state):
 
     # Insert joint angles in the right place
     # Index, Little, Middle, Ring, Thumb
-    js_pos = joint_state.position
     des_joints = []
-    for i in range(0, len(js_pos), 4):
-        des_joints.append(js_pos[i])
-        des_joints.append(js_pos[i + 1])
+    for i in range(0, len(joint_pos), 4):
+        des_joints.append(joint_pos[i])
+        des_joints.append(joint_pos[i + 1])
     assert len(des_joints) == 10
     pose_array[6:] = des_joints
 
