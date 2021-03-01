@@ -1,3 +1,4 @@
+bool keep_pcd_in_camera_frame
 bool real_d435
 sensor_msgs/PointCloud2 scene_pcd
 sensor_msgs/Image depth_img
