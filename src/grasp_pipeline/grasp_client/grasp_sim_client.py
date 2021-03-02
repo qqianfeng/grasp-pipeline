@@ -616,17 +616,16 @@ class GraspClient():
 
     def record_sim_grasp_data_utah_client(self, grasp_id, object_name, grasp_config_obj, is_top,
                                           label):
-        wait_for_service('record_sim_grasp_data_utah')
+        wait_for_service('record_grasp_data_utah')
         try:
-            record_sim_grasp_data_utah = rospy.ServiceProxy("record_sim_grasp_data_utah",
-                                                            SimGraspData)
+            record_sim_grasp_data_utah = rospy.ServiceProxy("record_grasp_data_utah", SimGraspData)
             req = SimGraspDataRequest()
             req.grasp_id = grasp_id
-            req.object_name = self.object_metadata["name_rec_path"]
-            req.grasp_config_obj = grasp_config_obj
-            req.top_grasp = is_top
-            req.sparse_voxel_grid = self.object_metadata["sparse_voxel_grid"]
-            req.object_size = self.object_metadata["aligned_dim_whd_utah"]
+            req.object_name = str(self.object_metadata["name_rec_path"])
+            req.grasp_config_obj = list(grasp_config_obj)
+            req.top_grasp = bool(is_top)
+            req.sparse_voxel = list(self.object_metadata["sparse_voxel_grid"])
+            req.dim_w_h_d = list(self.object_metadata["aligned_dim_whd_utah"])
 
             res = record_sim_grasp_data_utah(req)
         except rospy.ServiceException, e:
@@ -663,11 +662,12 @@ class GraspClient():
             rospy.loginfo('Service save_visual_data call failed: %s' % e)
         rospy.loginfo('Service save_visual_data is executed %s' % res.success)
 
-    def segment_object_client(self, align_object_world=True):
+    def segment_object_client(self, align_object_world=True, down_sample_pcd=True):
         wait_for_service('segment_object')
         try:
             segment_object = rospy.ServiceProxy('segment_object', SegmentGraspObject)
             req = SegmentGraspObjectRequest()
+            req.down_sample_pcd = down_sample_pcd
             req.scene_pcd_path = self.scene_pcd_save_path
             req.object_pcd_path = self.object_pcd_save_path
             req.object_pcd_record_path = self.object_pcd_record_path
@@ -856,7 +856,8 @@ class GraspClient():
 
         # Now wait for 2 seconds for object to rest and update actual object position
         if pose_type == "init" or pose_type == "random":
-            rospy.sleep(3)
+            if self.is_rec_sess:
+                rospy.sleep(3)
             object_pose = self.get_grasp_object_pose_client()
 
             # Update the sim_pose with the actual pose of the object after it came to rest
@@ -864,7 +865,8 @@ class GraspClient():
                                                                   pose=object_pose)
 
         # Update moveit scene object
-        self.update_moveit_scene_client()
+        if self.is_rec_sess:
+            self.update_moveit_scene_client()
 
         # Update the true mesh pose
         self.update_object_mesh_frame_pose_client()
@@ -896,10 +898,11 @@ class GraspClient():
         self.set_visual_data_save_paths(grasp_phase=grasp_phase)
         self.save_visual_data_client(save_pcd=False)
 
-    def save_visual_data_and_segment_object(self):
+    def save_visual_data_and_segment_object(self, down_sample_pcd=True, object_pcd_record_path=''):
+        self.object_pcd_record_path = object_pcd_record_path
         self.set_visual_data_save_paths(grasp_phase='pre')
         self.save_visual_data_client()
-        self.segment_object_client()
+        self.segment_object_client(down_sample_pcd=down_sample_pcd)
 
     def filter_preshapes(self):
         self.prune_idxs = list(self.filter_palm_goal_poses_client())

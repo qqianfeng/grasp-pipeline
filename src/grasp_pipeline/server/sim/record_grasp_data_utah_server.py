@@ -22,10 +22,11 @@ class RecordGraspData():
         with h5py.File(self.grasp_file_name, 'a') as hdf:
             grasp_name = 'grasp_' + str(req.grasp_id).zfill(6)
 
-            hdf.create_dataset(grasp_name + '_config_obj', req.grasp_config_obj)
-            hdf.create_dataset(grasp_name + '_sparse_voxel', req.sparse_voxel)
-            hdf.create_dataset(grasp_name + '_dim_w_h_d', req.dim_w_h_d)
-            hdf.create_dataset(grasp_name + '_label', req.label)
+            hdf.create_dataset(grasp_name + '_config_obj', data=req.grasp_config_obj)
+            hdf.create_dataset(grasp_name + '_sparse_voxel',
+                               data=np.reshape(req.sparse_voxel, [len(req.sparse_voxel) / 3, 3]))
+            hdf.create_dataset(grasp_name + '_dim_w_h_d', data=req.dim_w_h_d)
+            hdf.create_dataset(grasp_name + '_label', data=req.label)
 
         res = SimGraspDataResponse(success=True)
         return res

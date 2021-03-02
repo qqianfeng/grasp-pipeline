@@ -7,13 +7,13 @@ import roslib.packages as rp
 pkg_path = rp.get_pkg_dir('grasp_pipeline')
 sys.path.append(pkg_path + '/src')
 import numpy as np
-from utils import plot_voxel, convert_to_full_voxel_grid
+from grasp_pipeline.utils.utils import plot_voxel, convert_to_full_voxel_grid
 
 PRINT_TREE = True
 
 utah_grasp_data = "/home/vm/Downloads/merged_grasp_data_10_sets.h5"
 #vincent_grasp_data = "/home/vm/grasp_data.h5"
-vincent_grasp_data = "/home/vm/Documents/2021-02-27/grasp_data.h5"
+vincent_grasp_data = "/home/vm/data/grasp_data.h5"
 
 joints = [
     'index0', 'index1', 'index2', 'index3', 'little0', 'little1', 'little2', 'little3', 'middle0',

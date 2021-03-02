@@ -75,7 +75,7 @@ if __name__ == '__main__':
 
         # Check if the pose is valid in UTAH world (from front, side or top of current object)
         if grasp_data["is_top_grasp"]:
-            is_valid_pose = False
+            is_valid_pose = True
         else:
             is_valid_pose = grasp_client.check_pose_validity_utah(palm_pose_world)
 

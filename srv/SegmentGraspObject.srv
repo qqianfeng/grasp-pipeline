@@ -1,3 +1,4 @@
+bool down_sample_pcd
 string scene_pcd_path
 string object_pcd_path
 string object_pcd_record_path
