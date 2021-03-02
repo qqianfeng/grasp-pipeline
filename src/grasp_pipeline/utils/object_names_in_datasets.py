@@ -203,22 +203,10 @@ SPAWN_HIGH_Z = [
     'eating_right_for_healthy_living_raspberry', 'sunkist_fruit_snacks_mixed_fruit'
 ]
 
-# import os
-
-# base_path = '/home/vm/object_datasets/kit/'
-# ogre = '/home/vm/object_datasets/OgreObjectModelsScaled/'
-# l = sorted(os.listdir(ogre))
-# model_names = []
-# for i in range(len(l)):
-#     if i % 3 == 0:
-#         model_names.append(l[i].split('_')[0])
-
-# print model_names
-
-# for obj in KIT_OBJECTS:
-#     os.mkdir(base_path + obj)
 KIT_OBJECTS_DATA_GENERATED = [
     "BakingSoda", "BakingVanilla", "BathDetergent", "BlueSaltCube", "BroccoliSoup", "CeylonTea",
     "ChickenSoup", "ChocSticks", "ChocolateBars", "ChoppedTomatoes", "CleaningCloths",
-    "CoffeeCookies", "CoffeeFilters2", "CoffeeFilters", "CokePlasticSmallGrasp"
+    "CoffeeCookies", "CoffeeFilters2", "CoffeeFilters", "CokePlasticSmallGrasp", 'CondensedMilk',
+    'CoughDropsBerries', 'CoughDropsHoney', 'CoughDropsLemon', 'Curry', 'Deodorant', 'DropsCherry',
+    'DropsOrange', 'FennelTea', 'FizzyTabletsCalcium'
 ]

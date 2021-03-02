@@ -1,3 +1,4 @@
+import os
 from sensor_msgs.msg import Image, PointCloud2, PointField, JointState
 import open3d as o3d
 from ctypes import *
@@ -266,10 +267,17 @@ def get_utah_grasp_config_from_pose_and_joints(palm_pose, joint_pos):
     return pose_array
 
 
+def list_of_objects_from_folder(folder_path):
+    dirs = os.listdir(folder_path)
+    objects = []
+    for dir in dirs:
+        obj_name = '_'.join(dir.split('_')[1:])
+        if obj_name not in objects:
+            objects.append(obj_name)
+    return sorted(objects)
+
+
 if __name__ == '__main__':
-    js = JointState()
-    js.position = np.random.randint(0, 100, 20)
-
-    palm_pose = PoseStamped()
-
-    get_utah_grasp_config_from_pose_and_joints(palm_pose, js)
+    folder_path = '/home/vm/Documents/2021-03-01/grasp_data/recording_sessions/recording_session_0001'
+    l = list_of_objects_from_folder(folder_path)
+    print(l)
