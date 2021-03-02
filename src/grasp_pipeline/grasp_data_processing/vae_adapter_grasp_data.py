@@ -12,7 +12,7 @@ import h5py
 import os
 
 RC = 'recording_sessions'
-RC1 = 'recording_sessions_0001'
+RC1 = 'recording_session_0001'
 GT = 'grasp_trials'
 G = 'grasps'
 C = 'collision'
@@ -46,7 +46,7 @@ for dir in os.listdir(base_path):
     hdf_src = h5py.File(src_path, 'r')
     hdf_dst = h5py.File(dst_path, 'a')
 
-    objs_gp = hdf_src[RC][RC1][GT][G]
+    objs_gp = hdf_src[RC][RC1][GT]
     for obj in objs_gp.keys():
         # Grasp idxs
         pos_idx = 0
@@ -63,10 +63,10 @@ for dir in os.listdir(base_path):
             dst_obj_gp = hdf_dst[obj]
 
         # Get the grasps from no collision gp from src_file
-        no_coll_gp = objs_gp[obj][NC]
+        no_coll_gp = objs_gp[obj][G][NC]
         for grasp in no_coll_gp.keys():
             src_grasp_gp = no_coll_gp[grasp]
-            label = src_grasp_gp["grasp_success_label"]
+            label = src_grasp_gp["grasp_success_label"][()]
             if label:
                 dst_grasp_gp = create_grasp_group(dst_obj_gp['positive'], pos_idx)
                 pos_idx += 1
@@ -76,7 +76,7 @@ for dir in os.listdir(base_path):
             log_grasp(src_grasp_gp, dst_grasp_gp)
 
         # Get the grasps from collision gp from src file
-        coll_gp = objs_gp[obj][C]
+        coll_gp = objs_gp[obj][G][C]
         for grasp in coll_gp.keys():
             src_grasp_gp = coll_gp[grasp]
             dst_grasp_gp = create_grasp_group(dst_obj_gp['collision'], coll_idx)
