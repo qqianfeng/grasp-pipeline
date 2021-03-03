@@ -101,7 +101,6 @@ class RecordGraspData():
     def handle_record_grasp_data(self, req):
         # r+ : Read/write, file must exist
         with h5py.File(self.grasp_data_file_name, 'r+') as grasp_file:
-            grasp_file = h5py.File(self.grasp_data_file_name, 'r+')
             # workflow: Create new group under grasp trials. Create dataset for each piece of data stored for this trial
             # 1. Update grasp meta information and update sess metadata
             self.update_grasp_metadata(
