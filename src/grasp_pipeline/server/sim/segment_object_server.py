@@ -89,6 +89,8 @@ class ObjectSegmenter():
                 'Wrong parameter set for scene_pcd_topic in grasp_pipeline_servers.launch')
 
     def visualize_normals(self, pcd):
+        if not self.VISUALIZE:
+            return
         origin = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1)
         vis = o3d.visualization.Visualizer()
         vis.create_window()
@@ -98,10 +100,14 @@ class ObjectSegmenter():
         vis.run()
 
     def custom_draw_scene(self, pcd):
+        if not self.VISUALIZE:
+            return
         origin = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1)
         o3d.visualization.draw_geometries([pcd, origin])
 
     def construct_corner_box_objects(self):
+        if not self.VISUALIZE:
+            return
         boxes = []
         for i in range(8):
             box = o3d.geometry.TriangleMesh.create_box(width=0.01, height=0.01, depth=0.01)
@@ -111,6 +117,8 @@ class ObjectSegmenter():
         return boxes
 
     def custom_draw_object(self, pcd, bounding_box=None, show_normal=False, draw_box=False):
+        if not self.VISUALIZE:
+            return
         if bounding_box == None:
             o3d.visualization.draw_geometries([pcd])
         else:
@@ -200,22 +208,19 @@ class ObjectSegmenter():
         pcd.points = o3d.utility.Vector3dVector(points[mask])
         pcd.colors = o3d.utility.Vector3dVector(colors[mask])
 
-        if self.VISUALIZE:
-            self.custom_draw_scene(pcd)
+        self.custom_draw_scene(pcd)
 
         # segment plane
         _, inliers = pcd.segment_plane(distance_threshold=0.01, ransac_n=3, num_iterations=30)
         object_pcd = pcd.select_down_sample(inliers, invert=True)
 
-        if self.VISUALIZE:
-            self.custom_draw_object(object_pcd)
+        self.custom_draw_object(object_pcd)
 
         # compute normals of object
         object_pcd.estimate_normals(
             search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.5, max_nn=100))
 
-        if self.VISUALIZE:
-            self.custom_draw_scene(object_pcd)
+        self.custom_draw_scene(object_pcd)
 
         # downsample point cloud or make mean free if downsampling is not requested
         if req.down_sample_pcd:
@@ -223,8 +228,7 @@ class ObjectSegmenter():
 
         del pcd, points, colors
 
-        if self.VISUALIZE:
-            self.custom_draw_scene(object_pcd)
+        self.custom_draw_scene(object_pcd)
 
         # compute bounding box and object_pose
         object_bounding_box = object_pcd.get_oriented_bounding_box()
@@ -267,8 +271,7 @@ class ObjectSegmenter():
         print("Original scene point cloud reference frame assumed as: " + str(self.pcd_frame))
 
         # Draw object, bounding box and colored corners
-        if self.VISUALIZE:
-            self.custom_draw_object(object_pcd, object_bounding_box, False, True)
+        self.custom_draw_object(object_pcd, object_bounding_box, False, True)
 
         # Store segmented object to disk
         if os.path.exists(self.object_pcd_path):
