@@ -90,15 +90,6 @@ def test_grasp_pose_transform(dset_obj_name, grasp_client):
 
 
 def create_object_group_in_h5_file(full_obj_name, full_save_path):
-    # Handle the case that the file already exists
-    if os.path.exists(full_save_path):
-        print("This file exsists, should I replace it?\n")
-        l = raw_input("Y/n: \n")
-        if l != "Y" and l != "y":
-            return
-        else:
-            os.remove(full_save_path)
-
     with h5py.File(full_save_path, 'a') as hdf:
         hdf.create_group(full_obj_name)
 
@@ -112,11 +103,9 @@ def save_mesh_frame_centroid_tf(full_save_path, obj_full_pcd, tf_list):
 if __name__ == '__main__':
     # Some "hyperparameters"
     n_pcds_per_obj = 5
-    # objects = KIT_OBJECTS + BIGBIRD_OBJECTS + YCB_OBJECTS
-    # datasets = ['kit'] * len(KIT_OBJECTS) + \
-    #     ['bigbird'] * len(BIGBIRD_OBJECTS) + ['ycb'] * len(YCB_OBJECTS)
-    objects = ["BakingSoda"]
-    datasets = ["kit"]
+    # Get all available objects and choose one
+    with h5py.File('/home/vm/data/vae-grasp/grasp_data_vae.h5', 'r') as hdf:
+        objects = hdf.keys()
 
     # Make the base directory
     dest_folder = '/home/vm/data/vae-grasp'
@@ -129,9 +118,10 @@ if __name__ == '__main__':
     metadata_handler = MetadataHandler()
 
     # Iterate over all objects
-    for obj, dset in zip(objects, datasets):
+    for obj_full in objects:
+        obj = '_'.join(obj_full.split('_')[1:])
+        dset = obj_full.split('_')[0]
         # Create directory for new object
-        obj_full = dset + '_' + obj
         object_folder = os.path.join(pcds_folder, obj_full)
         mkdir(object_folder)
 
