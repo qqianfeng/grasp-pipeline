@@ -77,8 +77,8 @@ KIT_OBJECTS = [
     'SauceThickener', 'SauerkrautSmall', 'Shampoo', 'ShowerGel', 'SmacksCereals', 'SmallGlass',
     'SoftCakeOrange', 'Sprayflask', 'Sprudelflasche', 'StrawberryPorridge', 'Sweetener',
     'TomatoHerbSauce', 'TomatoSauce', 'TomatoSoup', 'Toothpaste', 'ToyCarYelloq', 'VitalisCereals',
-    'Waterglass', 'WhippedCream2', 'WhippedCream', 'WhiteCup', 'Wineglass', 'YellowSaltCube2',
-    'YellowSaltCube', 'YellowSaltCylinderSmall', 'YellowSaltCylinder'
+    'Waterglass', 'WhippedCream', 'WhiteCup', 'Wineglass', 'YellowSaltCube2', 'YellowSaltCube',
+    'YellowSaltCylinderSmall', 'YellowSaltCylinder'
 ]
 
 ######### ORIGINAL FULL ITEM LISTS BELOW
@@ -208,5 +208,7 @@ KIT_OBJECTS_DATA_GENERATED = [
     "ChickenSoup", "ChocSticks", "ChocolateBars", "ChoppedTomatoes", "CleaningCloths",
     "CoffeeCookies", "CoffeeFilters2", "CoffeeFilters", "CokePlasticSmallGrasp", 'CondensedMilk',
     'CoughDropsBerries', 'CoughDropsHoney', 'CoughDropsLemon', 'Curry', 'Deodorant', 'DropsCherry',
-    'DropsOrange', 'FennelTea', 'FizzyTabletsCalcium'
+    'DropsOrange', 'FennelTea', 'FizzyTabletsCalcium', 'FizzyTablets', 'FlowerCup', 'FruitBars',
+    'FruitDrink', 'FruitTea', 'GreenCup', 'GreenSaltCylinder', 'HamburgerSauce', 'HerbSalt',
+    'HeringTin', 'HotPot', 'HotPot2', 'HygieneSpray', 'InstantDumplings'
 ]
