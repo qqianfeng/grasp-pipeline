@@ -67,18 +67,16 @@ KIT_OBJECTS = [
     'CoughDropsBerries', 'CoughDropsHoney', 'CoughDropsLemon', 'Curry', 'Deodorant', 'DropsCherry',
     'DropsOrange', 'FennelTea', 'FizzyTabletsCalcium', 'FizzyTablets', 'FlowerCup', 'FruitBars',
     'FruitDrink', 'FruitTea', 'GreenCup', 'GreenSaltCylinder', 'HamburgerSauce', 'HerbSalt',
-    'HeringTin', 'HotPot2', 'HotPot', 'HygieneSpray', 'InstantDumplings', 'InstantIceCoffee',
-    'InstantMousse', 'InstantSauce2', 'InstantSauce', 'InstantSoup', 'InstantTomatoSoup',
-    'JamSugar', 'KnaeckebrotRye', 'Knaeckebrot', 'KoalaCandy', 'LivioClassicOil',
-    'LivioSunflowerOil', 'Marjoram', 'MashedPotatoes', 'MelforBottle', 'MilkDrinkVanilla',
-    'MilkRice', 'MuesliBars', 'NutCandy', 'NutellaGo', 'OrangeMarmelade', 'OrgFruitTea', 'Paprika',
-    'Patches', 'Peanuts2', 'Peanuts', 'Peas', 'PineappleSlices', 'Pitcher', 'PotatoeDumplings',
+    'HeringTin', 'HotPot2', 'HotPot', 'HygieneSpray', 'InstantDumplings', 'InstantMousse',
+    'InstantSauce2', 'InstantSauce', 'InstantSoup', 'InstantTomatoSoup', 'JamSugar', 'Knaeckebrot',
+    'LivioClassicOil', 'MashedPotatoes', 'MelforBottle', 'MilkDrinkVanilla', 'MilkRice',
+    'MuesliBars', 'NutCandy', 'NutellaGo', 'OrangeMarmelade', 'OrgFruitTea', 'Paprika', 'Patches',
+    'Peanuts2', 'Peanuts', 'Peas', 'PineappleSlices', 'Pitcher', 'PotatoeDumplings',
     'PotatoeStarch', 'PowderedSugarMill', 'PowderedSugar', 'RedCup', 'Rice', 'SardinesCan',
-    'SauceThickener', 'SauerkrautSmall', 'Shampoo', 'ShowerGel', 'SmacksCereals', 'SmallGlass',
-    'SoftCakeOrange', 'Sprayflask', 'Sprudelflasche', 'StrawberryPorridge', 'Sweetener',
-    'TomatoHerbSauce', 'TomatoSauce', 'TomatoSoup', 'Toothpaste', 'ToyCarYelloq', 'VitalisCereals',
-    'Waterglass', 'WhippedCream', 'WhiteCup', 'Wineglass', 'YellowSaltCube2', 'YellowSaltCube',
-    'YellowSaltCylinderSmall', 'YellowSaltCylinder'
+    'SauceThickener', 'Shampoo', 'ShowerGel', 'SmallGlass', 'SoftCakeOrange', 'Sprayflask',
+    'Sprudelflasche', 'StrawberryPorridge', 'Sweetener', 'TomatoHerbSauce', 'TomatoSauce',
+    'TomatoSoup', 'Toothpaste', 'Waterglass', 'WhippedCream', 'WhiteCup', 'Wineglass',
+    'YellowSaltCube2', 'YellowSaltCube', 'YellowSaltCylinderSmall', 'YellowSaltCylinder'
 ]
 
 ######### ORIGINAL FULL ITEM LISTS BELOW
