@@ -163,6 +163,14 @@ def hom_matrix_from_ros_transform(transform_ros):
     return hom_matrix
 
 
+def hom_matrix_from_pos_quat_list(rot_quat_list):
+    p = rot_quat_list[:3]
+    q = rot_quat_list[3:]
+    T = tft.quaternion_matrix(q)
+    T[:3, 3] = p
+    return T
+
+
 def hom_matrix_from_pose_stamped(pose_stamped):
     q = pose_stamped.pose.orientation
     r = pose_stamped.pose.position
@@ -278,6 +286,6 @@ def list_of_objects_from_folder(folder_path):
 
 
 if __name__ == '__main__':
-    folder_path = '/home/vm/Documents/2021-03-01/grasp_data/recording_sessions/recording_session_0001'
+    folder_path = '/home/vm/Documents/2021-03-07/grasp_data/recording_sessions/recording_session_0001'
     l = list_of_objects_from_folder(folder_path)
     print(l)

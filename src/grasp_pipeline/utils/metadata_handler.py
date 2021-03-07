@@ -90,3 +90,20 @@ class MetadataHandler():
             object_metadata["spawn_height_z"] += 0.1
 
         return object_metadata
+
+
+if __name__ == '__main__':
+    import open3d as o3d
+    import numpy as np
+    mesh = o3d.io.read_triangle_mesh(
+        '/home/vm/gazebo-objects/objects_gazebo/kit/NutCandy/NutCandy_25k_tex.obj')
+
+    pc = mesh.sample_points_uniformly(number_of_points=2000)
+    pc.colors = o3d.utility.Vector3dVector(np.zeros(np.asarray(pc.colors).shape) + 0.2)
+
+    for i in range(20):
+        grasp = o3d.geometry.TriangleMesh.create_coordinate_frame(0.01)
+
+    #visualize
+    orig = o3d.geometry.TriangleMesh.create_coordinate_frame(0.01)
+    o3d.visualization.draw_geometries([pc, orig])

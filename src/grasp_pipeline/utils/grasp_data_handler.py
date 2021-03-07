@@ -11,6 +11,27 @@ C = 'collision'
 NC = 'no_collision'
 
 
+class GraspDataHandlerVae:
+    def __init__(self, file_path):
+        self.file_path = file_path
+
+    def get_all_positives_for_object(self, obj_name):
+        palm_poses = []
+        joint_confs = []
+
+        assert os.path.exists(self.file_path)
+        with h5py.File(self.file_path, 'r') as hdf:
+            print hdf.keys()
+            positives_gp = hdf[obj_name]['positive']
+            for i, grasp in enumerate(positives_gp.keys()):
+                grasp_gp = positives_gp[grasp]
+                palm_poses.append(grasp_gp["desired_preshape_palm_mesh_frame"][()])
+                joint_confs.append(grasp_gp["true_preshape_joint_state"][()])
+            num_pos = i
+
+        return palm_poses, joint_confs, num_pos
+
+
 class GraspDataHandler():
     def __init__(self, file_path, sess_name='-1'):
         self.file_path = file_path
@@ -78,6 +99,8 @@ class GraspDataHandler():
 
             print("")
 
+            return grasps_gp.keys()
+
     ### +++++ Part II: Access Dataset +++++ ###
     def get_objects_list(self):
         with h5py.File(self.file_path, "r") as grasp_file:
@@ -126,9 +149,13 @@ class GraspDataHandler():
 
 
 if __name__ == '__main__':
-    file_path = os.path.join('/home/vm/data/exp_data/2021-02-27', 'grasp_data.h5')
+    file_path = os.path.join('/home/vm/Documents/2021-03-05', 'grasp_data.h5')
     gdh = GraspDataHandler(file_path=file_path)
     gdh.set_sess_name(sess_name='-1')
 
     gdh.print_metadata()
-    gdh.print_object_metadata('kit_CoffeeCookies', count=True)
+    objs = gdh.print_objects()
+    grasp_data = gdh.get_single_successful_grasp(objs[-1], random=True)
+    for key, val in grasp_data.items():
+        print(key)
+        print(val)
