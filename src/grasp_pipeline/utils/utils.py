@@ -286,6 +286,6 @@ def list_of_objects_from_folder(folder_path):
 
 
 if __name__ == '__main__':
-    folder_path = '/home/vm/Documents/2021-03-05/grasp_data/recording_sessions/recording_session_0001'
+    folder_path = '/home/vm/Documents/2021-03-07/grasp_data/recording_sessions/recording_session_0001'
     l = list_of_objects_from_folder(folder_path)
     print(l)

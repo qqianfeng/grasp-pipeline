@@ -208,5 +208,8 @@ KIT_OBJECTS_DATA_GENERATED = [
     'CoughDropsBerries', 'CoughDropsHoney', 'CoughDropsLemon', 'Curry', 'Deodorant', 'DropsCherry',
     'DropsOrange', 'FennelTea', 'FizzyTabletsCalcium', 'FizzyTablets', 'FlowerCup', 'FruitBars',
     'FruitDrink', 'FruitTea', 'GreenCup', 'GreenSaltCylinder', 'HamburgerSauce', 'HerbSalt',
-    'HeringTin', 'HotPot', 'HotPot2', 'HygieneSpray', 'InstantDumplings'
+    'HeringTin', 'HotPot', 'HotPot2', 'HygieneSpray', 'InstantDumplings', 'InstantMousse',
+    'InstantSauce', 'InstantSauce2', 'InstantSoup', 'InstantTomatoSoup', 'JamSugar', 'Knaeckebrot',
+    'LivioClassicOil', 'MashedPotatoes', 'MelforBottle', 'MilkDrinkVanilla', 'MilkRice',
+    'MuesliBars', 'NutCandy', 'NutellaGo', 'OrangeMarmelade', 'OrgFruitTea'
 ]
