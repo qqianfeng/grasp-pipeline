@@ -5,6 +5,7 @@ from grasp_pipeline.utils.grasp_data_handler import GraspDataHandlerVae
 from grasp_pipeline.utils.utils import hom_matrix_from_pos_quat_list
 # read mesh and convert to pc
 data_folder = '/home/vm/Documents/2021-03-07/grasp_data/recording_sessions/recording_session_0001'
+
 for obj in os.listdir(data_folder):
     obj_name = obj.split('_')[-1]
     path = os.path.join('/home/vm/gazebo-objects/objects_gazebo/kit', obj_name,
