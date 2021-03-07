@@ -7,6 +7,8 @@ RS = 'recording_sessions'
 GT = 'grasp_trials'
 G = 'grasps'
 GSL = 'grasp_success_label'
+C = 'collision'
+NC = 'no_collision'
 
 
 class GraspDataHandler():
@@ -39,6 +41,30 @@ class GraspDataHandler():
                 print("{:<25} {}".format(key, metadata_gp[key][()]))
 
             print("")
+
+    def print_object_metadata(self, obj_name, count=False):
+        with h5py.File(self.file_path, "r") as hdf:
+            obj_metadata_gp = hdf[RS][self.sess_name][GT][obj_name][MD]
+
+            print("\n***** All object metadata ******")
+            for key in obj_metadata_gp.keys():
+                print("{:<25} {}".format(key, obj_metadata_gp[key][()]))
+
+            print("")
+
+            if count:
+                obj_grasp_gp = hdf[RS][self.sess_name][GT][obj_name][G][NC]
+                num_pos = 0
+                num_neg = 0
+                for key in obj_grasp_gp.keys():
+                    label = obj_grasp_gp[key]['grasp_success_label'][()]
+                    if label == 1:
+                        num_pos += 1
+                    elif label == 0:
+                        num_neg += 1
+                print("Number of negative and positive grasps")
+                print("{:<20} {}".format('negatives', num_neg))
+                print("{:<20} {}".format('positives', num_pos))
 
     def print_objects(self):
         with h5py.File(self.file_path, "r") as grasp_file:
@@ -100,11 +126,9 @@ class GraspDataHandler():
 
 
 if __name__ == '__main__':
-    file_path = os.path.join('/home/vm/Documents/2021-02-28', 'grasp_data.h5')
+    file_path = os.path.join('/home/vm/data/exp_data/2021-02-27', 'grasp_data.h5')
     gdh = GraspDataHandler(file_path=file_path)
     gdh.set_sess_name(sess_name='-1')
 
     gdh.print_metadata()
-    gdh.print_objects()
-    grasp_data = gdh.get_single_successful_grasp('ycb_008_pudding_box', random=True)
-    print(grasp_data["object_name"])
+    gdh.print_object_metadata('kit_CoffeeCookies', count=True)
