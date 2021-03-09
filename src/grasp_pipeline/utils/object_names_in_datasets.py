@@ -211,5 +211,8 @@ KIT_OBJECTS_DATA_GENERATED = [
     'HeringTin', 'HotPot', 'HotPot2', 'HygieneSpray', 'InstantDumplings', 'InstantMousse',
     'InstantSauce', 'InstantSauce2', 'InstantSoup', 'InstantTomatoSoup', 'JamSugar', 'Knaeckebrot',
     'LivioClassicOil', 'MashedPotatoes', 'MelforBottle', 'MilkDrinkVanilla', 'MilkRice',
-    'MuesliBars', 'NutCandy', 'NutellaGo', 'OrangeMarmelade', 'OrgFruitTea'
+    'MuesliBars', 'NutCandy', 'NutellaGo', 'OrangeMarmelade', 'OrgFruitTea', 'Paprika', 'Patches',
+    'Peanuts', 'Peanuts2', 'Peas', 'PineappleSlices', 'Pitcher', 'PotatoeDumplings',
+    'PotatoeStarch', 'PowderedSugar', 'PowderedSugarMill', 'RedCup', 'Rice', 'SardinesCan',
+    'SauceThickener', 'Shampoo', 'ShowerGel'
 ]
