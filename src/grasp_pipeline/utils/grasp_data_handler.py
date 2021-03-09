@@ -13,23 +13,68 @@ NC = 'no_collision'
 
 class GraspDataHandlerVae:
     def __init__(self, file_path):
+        assert os.path.exists(file_path)
         self.file_path = file_path
 
-    def get_all_positives_for_object(self, obj_name):
-        palm_poses = []
-        joint_confs = []
+    def get_grasps_for_object(self, obj_name, outcome='positive'):
+        """ Returns either all grasps for an outcome in [positive, negative, collision, all]. 
+        All means all outcomes are combined and returned.
+        """
+        def grasps_for_outcome(file_path, outcome):
+            if outcome == 'collision':
+                joint_preshape_name = "desired_preshape_joint_state"
+            else:
+                joint_preshape_name = "true_preshape_joint_state"
 
-        assert os.path.exists(self.file_path)
+            palm_poses = []
+            joint_confs = []
+            with h5py.File(file_path, 'r') as hdf:
+                print hdf.keys()
+                outcomes_gp = hdf[obj_name][outcome]
+                for i, grasp in enumerate(outcomes_gp.keys()):
+                    grasp_gp = outcomes_gp[grasp]
+                    palm_poses.append(grasp_gp["desired_preshape_palm_mesh_frame"][()])
+                    joint_confs.append(grasp_gp[joint_preshape_name][()])
+                num_pos = i
+
+            return palm_poses, joint_confs, num_pos
+
+        if outcome == 'all':
+            palm_poses = []
+            joint_confs = []
+            num_g = 0
+            for oc in ['collision', 'negative', 'positive']:
+                palms, joints, num = grasps_for_outcome(self.file_path, oc)
+                palm_poses += palms
+                joint_confs += joints
+                num_g += num
+            return palm_poses, joint_confs, num_g
+        elif outcome in ['collision', 'negative', 'positive']:
+            return grasps_for_outcome(self.file_path, outcome)
+        else:
+            raise Exception("Wrong outcome. Choose [positive, negative, collision, all]")
+
+    def get_num_success_per_object(self):
+        num_success_per_object = {}
         with h5py.File(self.file_path, 'r') as hdf:
-            print hdf.keys()
-            positives_gp = hdf[obj_name]['positive']
-            for i, grasp in enumerate(positives_gp.keys()):
-                grasp_gp = positives_gp[grasp]
-                palm_poses.append(grasp_gp["desired_preshape_palm_mesh_frame"][()])
-                joint_confs.append(grasp_gp["true_preshape_joint_state"][()])
-            num_pos = i
+            for obj in hdf.keys():
+                num_success_per_object[obj] = len(hdf[obj]['positive'].keys())
 
-        return palm_poses, joint_confs, num_pos
+        return num_success_per_object
+
+    def get_single_successful_grasp(self, obj_name, random=True, idx=None):
+        with h5py.File(self.file_path, 'r') as hdf:
+            pos_gp = hdf[obj_name]['positive']
+            grasp_ids = pos_gp.keys()
+            if random:
+                idx = np.random.randint(0, len(grasp_ids))
+            else:
+                idx = idx
+
+            palm_pose = pos_gp[grasp_ids[idx]]["desired_preshape_palm_mesh_frame"][()]
+            joint_conf = pos_gp[grasp_ids[idx]]["true_preshape_joint_state"][()]
+
+        return palm_pose, joint_conf
 
 
 class GraspDataHandler():
