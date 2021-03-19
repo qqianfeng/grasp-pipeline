@@ -2,16 +2,20 @@
 """
 import torch
 import bps_torch
-pass
 
-# Spawn model
+objs_list = ['']
 
-# Get point cloud (mean-free, orientation of camera frame)
 
-# Compute BPS of point cloud
 
-# Build the model
+for obj in objs_list:
+    # Spawn model
+    
+    # Get point cloud (mean-free, orientation of camera frame)
 
-# Sample N latent variables and get the poses
+    # Compute BPS of point cloud
 
-# Execute the grasps and record results
+    # Build the model
+
+    # Sample N latent variables and get the poses
+
+    # Execute the grasps and record results
