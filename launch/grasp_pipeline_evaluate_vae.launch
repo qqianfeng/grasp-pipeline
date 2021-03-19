@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+
+<launch>
+    <arg name="sim"                     default="true"/>
+    <arg name="object_datasets_folder"  default="/home/vm/gazebo-objects"/>
+    <arg name="object_pcd_path"         default="/home/vm/object.pcd"/>
+    <arg name="scene_pcd_path"          default="/home/vm/scene.pcd"/>
+    <arg name="color_img_save_path"     default="/home/vm/scene.ppm"/>
+    <arg name="depth_img_save_path"     default="/home/vm/depth.pgm"/>
+    <arg name="scene_pcd_topic"         default="/camera/depth/points"/>  <!-- /depth_registered/points -->   
+    <arg name="color_img_topic"         default="/camera/color/image_raw"/>    
+    <arg name="depth_img_topic"         default="/camera/depth/image_raw"/>    
+    <!-- +++++++++++++++++++ Set the params needed by the different nodes ++++++++++++++++++++++++++++++++ -->
+    <param name="object_pcd_path"         value="$(arg object_pcd_path)"        type="string" />
+    <param name="scene_pcd_path"          value="$(arg scene_pcd_path)"         type="string" />
+    <param name="object_datasets_folder"  value="$(arg object_datasets_folder)" type="string" />
+    <param name="color_img_save_path"     value="$(arg color_img_save_path)"    type="string" />
+    <param name="depth_img_save_path"     value="$(arg depth_img_save_path)"    type="string" />
+    <param name="scene_pcd_topic"         value="$(arg scene_pcd_topic)"        type="string" />
+    <param name="color_img_topic"         value="$(arg color_img_topic)"        type="string" />
+    <param name="depth_img_topic"         value="$(arg depth_img_topic)"        type="string" />   
+    <param name="/use_sim_time" value="true"/>
+
+    <!-- Gazebo scene manager -->
+    <node name="manage_gazebo_scene_node" pkg="grasp_pipeline" type="manage_gazebo_scene_server.py" output="screen"/>
+    
+    <!-- Hand controller -->
+    <node name="grasp_control_hithand_node" pkg="grasp_pipeline" type="grasp_control_sim_hithand_server.py" output="screen"/>
+    
+    <!-- Manage moveit scene -->
+    <node name="manage_moveit_scene_node" pkg="grasp_pipeline"
+        type="manage_moveit_scene_server.py" output="screen">
+        <param name="sim" type="bool" value="$(arg sim)"/>
+    </node>
+
+    <!-- Moveit planner node for panda arm -->
+    <node name="plan_arm_trajectory_server_node" pkg="grasp_pipeline" type="plan_arm_trajectory_server.py" output="screen"/>
+
+    <!-- SMOOTH THE TRAJECTORY /-->
+    <node name="get_smooth_trajectory_node" pkg="trajectory_smoothing" type="service" output="screen"/>
+    
+    <!-- Execute planned joint trajectory server-->
+    <node name="execute_joint_trajectory_server_node" pkg="grasp_pipeline" type="execute_joint_trajectory_server.py" output="screen"/>
+
+    <!-- Save visual data node -->
+    <node name="save_visual_data_node" pkg="grasp_pipeline" type="save_visual_data_server.py" output="screen"/>
+
+    <!--Launch node which advertises service to segment the table from an object -->
+    <node name="object_segmentation_node" pkg="grasp_pipeline" type="segment_object_server.py" output="screen"/>
+
+    <!-- Node to update palm and object poses-->
+    <node name="update_poses_node" pkg="grasp_pipeline" type="update_object_and_palm_tf_server.py" output="screen"/>
+
+    <!-- Node to handle the bps encoding-->
+    <node name="encode_pcd_with_bps" pkg="grasp_pipeline" type="encode_pcd_with_bps.sh" output="screen"/>
+
+</launch>
