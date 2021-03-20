@@ -39,7 +39,7 @@ add_service_files(
     GenVoxelFromPcd.srv
     GraspPreshape.srv
     GraspControl.srv
-    InferGrasps.srv
+    InferGraspPoses.srv
     ManageMoveitScene.srv
     MoveArm.srv
     PlanArmTrajectory.srv
