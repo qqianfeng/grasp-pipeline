@@ -281,6 +281,19 @@ class GraspClient():
         rospy.loginfo('Service check_pose_validity_utah is executed.')
         return res.is_valid
 
+    def encode_pcd_with_bps_client(self):
+        """ Encodes a pcd from disk (assumed static location) with bps_torch and saves the result to disk,
+        from where the infer_grasp server can load it to sample grasps.
+        """
+        wait_for_service('encode_pcd_with_bps')
+        try:
+            encode_pcd_with_bps = rospy.ServiceProxy('encode_pcd_with_bps', SetBool)
+            req = SetBoolRequest(data=True)
+            res = encode_pcd_with_bps(req)
+        except rospy.ServiceException as e:
+            rospy.loginfo('Service encode_pcd_with_bps call failed: %s' % e)
+        rospy.loginfo('Service encode_pcd_with_bps is executed.')
+
     def execute_joint_trajectory_client(self, smoothen_trajectory=True, speed='fast'):
         """ Service call to smoothen and execute a joint trajectory.
         """
@@ -456,6 +469,11 @@ class GraspClient():
         except rospy.ServiceException, e:
             rospy.loginfo('Service grasp_control_hithand call failed: %s' % e)
         rospy.loginfo('Service grasp_control_hithand is executed.')
+
+    def infer_graps_client(self):
+        """Infers grasps by sampling randomly in the latent space and decodes them to full pose via VAE. Later it will include some sort of refinement.
+        """
+        wait_for_service('infer_grasp_poses')
 
     def plan_arm_trajectory_client(
         self,
@@ -807,6 +825,9 @@ class GraspClient():
     def check_pose_validity_utah(self, grasp_pose):
         return self.check_pose_validity_utah_client(grasp_pose)
 
+    def encode_pcd_with_bps(self):
+        self.encode_pcd_with_bps_client()
+
     def label_grasp(self):
         object_pose = self.get_grasp_object_pose_client()
         object_pos_delta_z = np.abs(object_pose.position.z -
@@ -899,6 +920,10 @@ class GraspClient():
         self.save_visual_data_client(save_pcd=False)
 
     def save_visual_data_and_segment_object(self, down_sample_pcd=True, object_pcd_record_path=''):
+        if down_sample_pcd = True:
+            print("Point cloud will be down_sampled AND transformed to WORLD frame. This is not correct for testing grasp sampler!")
+        else:
+            print("Point cloud will not be down sampled BUT transformed to OBJECT CENTROID frame, which is parallel to camera frame. This is necessary for testing grasp sampler.")
         self.object_pcd_record_path = object_pcd_record_path
         self.set_visual_data_save_paths(grasp_phase='pre')
         self.save_visual_data_client()
