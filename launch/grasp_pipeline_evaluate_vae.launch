@@ -10,6 +10,7 @@
     <arg name="scene_pcd_topic"         default="/camera/depth/points"/>  <!-- /depth_registered/points -->   
     <arg name="color_img_topic"         default="/camera/color/image_raw"/>    
     <arg name="depth_img_topic"         default="/camera/depth/image_raw"/>    
+    <arg name="launch_rosbridge"        default="true"/>
     <!-- +++++++++++++++++++ Set the params needed by the different nodes ++++++++++++++++++++++++++++++++ -->
     <param name="object_pcd_path"         value="$(arg object_pcd_path)"        type="string" />
     <param name="scene_pcd_path"          value="$(arg scene_pcd_path)"         type="string" />
@@ -52,6 +53,9 @@
     <node name="update_poses_node" pkg="grasp_pipeline" type="update_object_and_palm_tf_server.py" output="screen"/>
 
     <!-- Node to handle the bps encoding-->
-    <node name="encode_pcd_with_bps" pkg="grasp_pipeline" type="encode_pcd_with_bps.sh" output="screen"/>
-
+    <group if="$(arg launch_rosbridge)">
+        <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
+        <node pkg="tf2_web_republisher" type="tf2_web_republisher" name="tf2_web_republisher"/>   
+        <node name="encode_pcd_with_bps" pkg="grasp_pipeline" type="encode_pcd_with_bps.sh" output="screen"/>
+    </group>
 </launch>

@@ -11,7 +11,7 @@ import torch
 class BPSEncoder():
     def __init__(self, client, bps_path='/home/vm/data/vae-grasp/basis_point_set.npy'):
         self.client = client
-        service = roslibpy.Service(client, '/encode_pcd_with_bps', 'std_srvs/SetBool')
+        service = rlp.Service(client, '/encode_pcd_with_bps', 'std_srvs/SetBool')
         service.advertise(self.handle_encode_pcd_with_bps)
 
         self.bps_np = np.load(bps_path)
@@ -41,7 +41,7 @@ class BPSEncoder():
 
 
 if __name__ == '__main__':
-    client = roslibpy.Ros(host='localhost', port=9090)
+    client = rlp.Ros(host='localhost', port=9090)
     bpsenc = BPSEncoder(client)
     client.run_forever()
     client.terminate()
