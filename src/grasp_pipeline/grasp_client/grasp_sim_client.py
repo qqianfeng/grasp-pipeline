@@ -920,10 +920,14 @@ class GraspClient():
         self.save_visual_data_client(save_pcd=False)
 
     def save_visual_data_and_segment_object(self, down_sample_pcd=True, object_pcd_record_path=''):
-        if down_sample_pcd = True:
-            print("Point cloud will be down_sampled AND transformed to WORLD frame. This is not correct for testing grasp sampler!")
+        if down_sample_pcd == True:
+            print(
+                "Point cloud will be down_sampled AND transformed to WORLD frame. This is not correct for testing grasp sampler!"
+            )
         else:
-            print("Point cloud will not be down sampled BUT transformed to OBJECT CENTROID frame, which is parallel to camera frame. This is necessary for testing grasp sampler.")
+            print(
+                "Point cloud will not be down sampled BUT transformed to OBJECT CENTROID frame, which is parallel to camera frame. This is necessary for testing grasp sampler."
+            )
         self.object_pcd_record_path = object_pcd_record_path
         self.set_visual_data_save_paths(grasp_phase='pre')
         self.save_visual_data_client()
