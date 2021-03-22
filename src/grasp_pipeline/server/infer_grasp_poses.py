@@ -55,7 +55,7 @@ class GraspInference():
     def handle_infer_grasp_poses(self, req):
         # reshape
         bps_object = np.load('/home/vm/pcd_enc.npy')
-        n_samples = 5
+        n_samples = req.n_poses
         results = self.grabnet.sample_grasps(bps_object, n_samples=n_samples, return_arr=True)
 
         # prepare response
