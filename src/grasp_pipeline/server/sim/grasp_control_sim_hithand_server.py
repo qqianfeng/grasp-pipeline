@@ -18,10 +18,6 @@ class HithandGraspController():
         self.rate = rospy.Rate(self.pub_freq)
         self.joint_command_pub = rospy.Publisher('/hithand/joint_cmd', JointState, queue_size=1)
         self.start_reset_cond = True
-        # self.start_reset_sub = rospy.Subscriber("/start_hithand_reset",
-        #                                         Bool,
-        #                                         callback=self.cb_start_reset_pub,
-        #                                         queue_size=1)
 
         self.curr_pos = None
         self.received_curr_pos = False
@@ -157,7 +153,7 @@ class HithandGraspController():
         res.success = True
         return res
 
-    def control_hithand(self):
+    def control_hithand(self, is_inference=False):
         target_joint_pos = np.array(self.target_joint_state.position)
 
         # Bring the thumb to its initial position first:
@@ -181,16 +177,17 @@ class HithandGraspController():
 
         for i in xrange(self.control_steps):
             print("Thumb effort" + str(self.thumb_effort))
-            if i > 5:
-                #delta[self.avg_vel < self.vel_thresh] = 0
-                if sum(delta) < 1e-3:  # or min(self.thumb_avg_vel[1:]) < -0.05:
-                    return
-                if self.thumb_effort[1] == self.thumb_0_max_torque:
-                    max_torque_cnt += 1
-                    if max_torque_cnt == self.max_torque_cnt:
+            if not is_inference:
+                if i > 5:
+                    #delta[self.avg_vel < self.vel_thresh] = 0
+                    if sum(delta) < 1e-3:  # or min(self.thumb_avg_vel[1:]) < -0.05:
                         return
-                else:
-                    max_torque_cnt = 0
+                    if self.thumb_effort[1] == self.thumb_0_max_torque:
+                        max_torque_cnt += 1
+                        if max_torque_cnt == self.max_torque_cnt:
+                            return
+                    else:
+                        max_torque_cnt = 0
 
             jc_pos += delta
             jc.position = jc_pos.tolist()
@@ -199,17 +196,18 @@ class HithandGraspController():
 
         # If code got till here the hand moved to the full config without significant contact
         # Keep sending the position deltas until significant contact is established
-        max_torque_cnt = 0
-        start = time.time()
-        while (max_torque_cnt != self.max_torque_cnt) and (time.time() - start < 5):
-            if self.thumb_effort[1] == self.thumb_0_max_torque:
-                max_torque_cnt += 1
-            else:
-                max_torque_cnt = 0
-            jc_pos += delta
-            jc.position = jc_pos.tolist()
-            self.joint_command_pub.publish(jc)
-            self.run_rate.sleep()
+        if not is_inference:
+            max_torque_cnt = 0
+            start = time.time()
+            while (max_torque_cnt != self.max_torque_cnt) and (time.time() - start < 5):
+                if self.thumb_effort[1] == self.thumb_0_max_torque:
+                    max_torque_cnt += 1
+                else:
+                    max_torque_cnt = 0
+                jc_pos += delta
+                jc.position = jc_pos.tolist()
+                self.joint_command_pub.publish(jc)
+                self.run_rate.sleep()
 
     def reach_goal(self):
         reach_gap = np.array(self.target_joint_state.position) - self.curr_pos
@@ -225,7 +223,7 @@ class HithandGraspController():
                                             tcp_nodelay=True)
         res = ControlHithandResponse()
         self.target_joint_state = req.hithand_target_joint_state
-        self.control_hithand()
+        self.control_hithand(is_inference=req.is_inference)
         res.success = self.reach_goal()
         self.init_joint_state = None
 
@@ -249,9 +247,20 @@ class HithandGraspController():
         rospy.loginfo('Ready to control hithand to speficied configurations.')
 
 
+jc = JointState()
+jc.position = [
+    -0.014, 0.009, -0.003, -0.003, 0.019, -0.009, 0.036, 0.036, 0.04, -0.004, -0.002, -0.002,
+    -0.041, 0.028, -0.065, -0.065, 0.05, 0.029, 0.026, 0.026
+]
+
 if __name__ == "__main__":
     hgc = HithandGraspController()
     hgc.create_grasp_control_hithand_server()
     hgc.create_reset_hithand_server()
     hgc.create_control_hithand_config_server()
+    # hgc.handle_reset_hithand_joints(jc)
+    # req = ControlHithandRequest()
+    # req.hithand_target_joint_state = jc
+    # req.is_inference = True
+    # hgc.handle_control_hithand(req)
     rospy.spin()
