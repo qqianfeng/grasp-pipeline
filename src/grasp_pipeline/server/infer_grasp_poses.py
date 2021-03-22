@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import numpy as np
 import rospy
 import tf.transformations as tft
@@ -18,7 +19,7 @@ class GraspInference():
         self.grabnet = GrabNet(cfg)
         self.grabnet.load_vae(epoch=10, is_train=False)
 
-    def build_pose_list(self, rot_mat, transl, frame_id='centroid_vae'):
+    def build_pose_list(self, rot_mat, transl, frame_id='object_centroid_vae'):
         assert rot_mat.shape[1:] == (3, 3), "Assumes palm rotation is 3*3 matrix."
         assert rot_mat.shape[0] == transl.shape[0], "Batch dimension of rot and trans not equal."
 
@@ -58,7 +59,7 @@ class GraspInference():
         results = self.grabnet.sample_grasps(bps_object, n_samples=n_samples, return_arr=True)
 
         # prepare response
-        res = InferGraspsResponse()
+        res = InferGraspPosesResponse()
         res.palm_poses = self.build_pose_list(results['rot_mat'], results['transl'])
         res.joint_confs = self.build_joint_conf_list(results['joint_conf'])
 
@@ -72,6 +73,6 @@ class GraspInference():
 
 if __name__ == '__main__':
     gi = GraspInference()
-    gi.handle_infer_grasp_poses(True)
+    #gi.handle_infer_grasp_poses(True)
     gi.create_infer_grasp_poses_server()
     rospy.spin()
