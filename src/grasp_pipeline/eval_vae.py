@@ -5,9 +5,9 @@ import torch
 from grasp_pipeline.grasp_client.grasp_sim_client import GraspClient
 from grasp_pipeline.utils.metadata_handler import MetadataHandler
 
-n_poses = 5
+n_poses = 300
 
-objs_list = ['kit_InstantSauce']
+objs_list = ['kit_Sprayflask', 'kit_InstantSauce']
 
 grasp_client = GraspClient(is_rec_sess=False)
 metadata_handler = MetadataHandler()
@@ -34,7 +34,8 @@ for obj_full in objs_list:
     grasp_client.encode_pcd_with_bps()
 
     # Sample N latent variables and get the poses
-    palm_poses_obj_frame, joint_confs = grasp_client.infer_grasp_poses(n_poses=n_poses)
+    palm_poses_obj_frame, joint_confs = grasp_client.infer_grasp_poses(n_poses=n_poses,
+                                                                       visualize_poses=True)
 
     # Execute the grasps and record results
     for i in range(n_poses):
