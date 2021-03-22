@@ -54,6 +54,7 @@ add_service_files(
     UpdateObjectGazebo.srv
     UpdateObjectPose.srv
     UpdatePalmPose.srv
+    VisualizeGraspPoseList.srv
 )
 
 generate_messages(

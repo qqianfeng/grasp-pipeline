@@ -18,6 +18,7 @@ class BroadcastTf:
         self.object_pose_world = None
         self.object_mesh_frame_pose = None
         self.object_mesh_frame_data_gen = None
+        self.grasp_pose_list = None
         self.tf_br = tf.TransformBroadcaster()
 
     def broadcast_tf(self):
@@ -64,35 +65,41 @@ class BroadcastTf:
                                      rospy.Time.now(), 'object_mesh_frame_data_gen',
                                      self.object_mesh_frame_data_gen.header.frame_id)
 
+        if self.grasp_pose_list is not None:
+            for i, pose in enumerate(self.grasp_pose_list):
+                self.tf_br.sendTransform(
+                    (pose.pose.position.x, pose.pose.position.y, pose.pose.position.z),
+                    (pose.pose.orientation.x,
+                     pose.pose.orientation.y, pose.pose.orientation.z, pose.pose.orientation.w),
+                    rospy.Time.now(), 'grasp_pose_' + str(i).zfill(3), pose.header.frame_id)
+
     def handle_update_palm_pose(self, req):
         '''
         Handler to update the palm pose tf.
         '''
         self.palm_pose = req.palm_pose
-        response = UpdatePalmPoseResponse()
-        response.success = True
-        return response
+        return UpdatePalmPoseResponse(success=True)
 
     def handle_update_object_pose(self, req):
         '''
         Handler to update the object pose tf.
         '''
         self.object_pose_world = req.object_pose_world
-        response = UpdateObjectPoseResponse()
-        response.success = True
-        return response
+        return UpdateObjectPoseResponse(success=True)
 
     def handle_update_object_mesh_frame_pose(self, req):
         self.object_mesh_frame_pose = req.object_pose_world
-        response = UpdateObjectPoseResponse()
-        response.success = True
-        return response
+        return UpdateObjectPoseResponse(success=True)
 
     def handle_update_object_mesh_frame_data_gen(self, req):
         self.object_mesh_frame_data_gen = req.object_pose_world
-        response = UpdateObjectPoseResponse()
-        response.success = True
-        return response
+        return UpdateObjectPoseResponse(success=True)
+
+    def handle_visualize_grasp_pose_list(self, req):
+        """ Visualize all grasp poses.
+        """
+        self.grasp_pose_list = req.grasp_pose_list
+        return VisualizeGraspPoseListResponse(success=True)
 
     def create_update_palm_pose_server(self):
         '''
@@ -128,6 +135,12 @@ class BroadcastTf:
         rospy.loginfo('Service update_object_mesh_frame_data_gen:')
         rospy.loginfo('Ready to update_object_mesh_frame_data_gen:')
 
+    def create_visualize_grasp_pose_list_server(self):
+        rospy.Service('visualize_grasp_pose_list', VisualizeGraspPoseList,
+                      self.handle_visualize_grasp_pose_list)
+        rospy.loginfo('Service visualize_grasp_pose_list')
+        rospy.loginfo('Ready to visualize_grasp_pose_list')
+
 
 if __name__ == '__main__':
     btf = BroadcastTf()
@@ -135,6 +148,7 @@ if __name__ == '__main__':
     btf.create_update_object_pose_server()
     btf.create_update_object_mesh_frame_pose_server()
     btf.create_update_object_mesh_frame_data_gen_server()
+    btf.create_visualize_grasp_pose_list_server()
     rate = rospy.Rate(100)
     while not rospy.is_shutdown():
         btf.broadcast_tf()
