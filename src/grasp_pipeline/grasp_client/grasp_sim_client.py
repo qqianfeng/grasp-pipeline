@@ -50,6 +50,7 @@ class GraspClient():
         self.base_path = '/home/vm'
         self.scene_pcd_save_path = os.path.join(self.base_path, 'scene.pcd')
         self.object_pcd_save_path = os.path.join(self.base_path, 'object.pcd')
+        self.bps_object_path = os.path.join(self.base_path, 'pcd_enc.npy')
         self.object_pcd_record_path = ''
 
         self.heuristic_preshapes = None  # This variable stores all the information on multiple heuristically sampled grasping pre shapes
@@ -254,18 +255,26 @@ class GraspClient():
             self.previous_grasp_type = self.chosen_grasp_type
 
     # ++++++++ PART II: Second part consist of all clients that interact with different nodes/services ++++++++++++
-    def control_hithand_config_client(self):
+    def control_hithand_config_client(self, joint_conf=None):
         wait_for_service('control_hithand_config')
         try:
             req = ControlHithandRequest()
             control_hithand_config = rospy.ServiceProxy('control_hithand_config', ControlHithand)
-            req.hithand_target_joint_state = self.hand_joint_states["desired_pre"]
-            print("####### THUMB 0 ANGLE: " +
-                  str(self.hand_joint_states["desired_pre"].position[16]))
+            if joint_conf == None:
+                jc = self.hand_joint_states["desired_pre"]
+                print("##### THUMB 0 ANGLE: " + str(jc.position[16]))
+            else:
+                if len(joint_conf.position) == 15:
+                    jc = utils.full_joint_conf_from_vae_joint_conf(joint_conf)
+                elif len(joint_conf.position) == 20:
+                    jc = joint_conf
+                else:
+                    raise Exception('Given joint state has wrong dimension, must be 15 or 20')
+            req.hithand_target_joint_state = jc
             res = control_hithand_config(req)
         except rospy.ServiceException as e:
             rospy.loginfo('Service control_hithand_config call failed: %s' % e)
-        rospy.loginfo('Service control_allegro_config is executed %s.' % str(res))
+        rospy.loginfo('Service control_allegro_config is executed.')
 
     def check_pose_validity_utah_client(self, grasp_pose):
         wait_for_service('check_pose_validity_utah')
@@ -470,10 +479,20 @@ class GraspClient():
             rospy.loginfo('Service grasp_control_hithand call failed: %s' % e)
         rospy.loginfo('Service grasp_control_hithand is executed.')
 
-    def infer_graps_client(self):
+    def infer_grasp_poses_client(self, n_poses, bps_object):
         """Infers grasps by sampling randomly in the latent space and decodes them to full pose via VAE. Later it will include some sort of refinement.
         """
         wait_for_service('infer_grasp_poses')
+        try:
+            infer_grasp_poses = rospy.ServiceProxy('infer_grasp_poses', InferGraspPoses)
+            req = InferGraspPosesRequest()
+            req.n_poses = n_poses
+            req.bps_object = np.squeeze(bps_object)
+            res = infer_grasp_poses(req)
+        except rospy.ServiceException, e:
+            rospy.loginfo('Service infer_grasp_poses call fialed: %s' % e)
+        rospy.loginfo('Service infer_grasp_poses is executed')
+        return res.palm_poses, res.joint_confs
 
     def plan_arm_trajectory_client(
         self,
@@ -828,6 +847,11 @@ class GraspClient():
     def encode_pcd_with_bps(self):
         self.encode_pcd_with_bps_client()
 
+    def infer_grasp_poses(self, n_poses, bps_object=None):
+        if bps_object == None:
+            bps_object = np.load(self.bps_object_path)
+        return self.infer_grasp_poses_client(n_poses=n_poses, bps_object=bps_object)
+
     def label_grasp(self):
         object_pose = self.get_grasp_object_pose_client()
         object_pos_delta_z = np.abs(object_pose.position.z -
@@ -1055,3 +1079,38 @@ class GraspClient():
         self.remove_grasp_pose()
 
         return True
+
+    def grasp_from_inferred_pose(self, pose_obj_frame, joint_conf):
+        """Try to reach the pose and joint conf and attempt grasp.
+
+        Args:
+            pose_obj_frame (PoseStamped): 6D pose of the hand wrist in the object centroid vae frame.
+            joint_conf (JointState): The desired joint position.
+        """
+        # transform the pose_obj_frame to world_frame
+        palm_pose_world = self.transform_pose(pose_obj_frame, 'object_centroid_vae', 'world')
+
+        # Update the palm pose for visualization in RVIZ
+        self.update_grasp_palm_pose_client(palm_pose_world)
+
+        # Try to find a plan
+        plan_exists = self.plan_arm_trajectory_client(palm_pose_world)
+
+        # Backup if no plan found
+        if not plan_exists:
+            plan_exists = self.plan_arm_trajectory_client(palm_pose_world)
+            if not plan_exists:
+                return False
+
+        # Execute joint trajectory
+        self.execute_joint_trajectory_client(speed='mid')
+
+        # Go into the joint conf:
+        self.control_hithand_config_client(joint_conf=joint_conf)
+
+        # Possibly apply some more control to apply more force
+
+        # Plan lift trajectory client
+        lift_pose = copy.deepcopy(palm_pose_world)
+        lift_pose.pose.position.z += self.object_lift_height
+        self.plan_arm_trajectory_client(place_goal_pose=lift_pose)
