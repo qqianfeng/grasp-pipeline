@@ -1,25 +1,28 @@
 #!/usr/bin/env python
-import rospy
+import copy
 import datetime
-import time
-from geometry_msgs.msg import PoseStamped
+from multiprocessing import Process
+import numpy as np
+import os
+import rospy
 import tf
 import tf.transformations as tft
-import tf2_ros
 import tf2_geometry_msgs
-from grasp_pipeline.srv import *
+import tf2_ros
+import time
+import sys
+
+sys.path.append('..')
+from gazebo_msgs.srv import GetModelState, GetModelStateRequest
+from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Header, Bool
 from sensor_msgs.msg import JointState
-from gazebo_msgs.srv import GetModelState, GetModelStateRequest
-import sys
-sys.path.append('..')
-from grasp_pipeline.utils.utils import wait_for_service, get_pose_stamped_from_array, get_pose_array_from_stamped, plot_voxel
-from grasp_pipeline.utils.align_object_frame import align_object
-import numpy as np
 from std_srvs.srv import SetBool, SetBoolRequest
-import os
-from multiprocessing import Process
-import copy
+
+from grasp_pipeline.utils.utils import wait_for_service, get_pose_stamped_from_array, get_pose_array_from_stamped, plot_voxel
+from grasp_pipeline.utils import utils
+from grasp_pipeline.utils.align_object_frame import align_object
+from grasp_pipeline.srv import *
 
 
 class GraspClient():
@@ -840,6 +843,19 @@ class GraspClient():
             rospy.loginfo('Service update_object_mesh_frame_pose call failed: %s' % e)
         rospy.loginfo('Service update_object_mesh_frame_pose is executed.')
 
+    def visualize_grasp_pose_list_client(self, grasp_poses):
+        wait_for_service("visualize_grasp_pose_list")
+        try:
+            visualize_grasp_pose_list = rospy.ServiceProxy('visualize_grasp_pose_list',
+                                                           VisualizeGraspPoseList)
+            req = VisualizeGraspPoseListRequest()
+            req.grasp_pose_list = grasp_poses
+            res = visualize_grasp_pose_list(req)
+        except rospy.ServiceException, e:
+            rospy.loginfo('Service visualize_grasp_poses_list failed: %s' % e)
+        rospy.loginfo('Service visualize_grasp_poses_list is executed.')
+
+    # =============================================================================================================
     # ++++++++ PART III: The third part consists of all the main logic/orchestration of Parts I and II ++++++++++++
     def check_pose_validity_utah(self, grasp_pose):
         return self.check_pose_validity_utah_client(grasp_pose)
@@ -847,10 +863,14 @@ class GraspClient():
     def encode_pcd_with_bps(self):
         self.encode_pcd_with_bps_client()
 
-    def infer_grasp_poses(self, n_poses, bps_object=None):
+    def infer_grasp_poses(self, n_poses, visualize_poses=False, bps_object=None):
         if bps_object == None:
             bps_object = np.load(self.bps_object_path)
-        return self.infer_grasp_poses_client(n_poses=n_poses, bps_object=bps_object)
+        palm_poses, joint_confs = self.infer_grasp_poses_client(n_poses=n_poses,
+                                                                bps_object=bps_object)
+        if visualize_poses:
+            self.visualize_grasp_pose_list_client(palm_poses)
+        return palm_poses, joint_confs
 
     def label_grasp(self):
         object_pose = self.get_grasp_object_pose_client()
@@ -1092,6 +1112,8 @@ class GraspClient():
 
         # Update the palm pose for visualization in RVIZ
         self.update_grasp_palm_pose_client(palm_pose_world)
+
+        return
 
         # Try to find a plan
         plan_exists = self.plan_arm_trajectory_client(palm_pose_world)
