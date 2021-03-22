@@ -1,16 +1,17 @@
-import os
-from sensor_msgs.msg import Image, PointCloud2, PointField, JointState
-import open3d as o3d
 from ctypes import *
-import sensor_msgs.point_cloud2 as pc2
-import numpy as np
-from std_msgs.msg import Header
-import rospy
-import tf.transformations as tft
-from geometry_msgs.msg import PoseStamped
 from matplotlib import pyplot
-import pylab
 from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
+import os
+import open3d as o3d
+import rospy
+import pylab
+import tf.transformations as tft
+
+from geometry_msgs.msg import PoseStamped
+from std_msgs.msg import Header
+from sensor_msgs.msg import Image, PointCloud2, PointField, JointState
+import sensor_msgs.point_cloud2 as pc2
 
 FIELDS_XYZ = [
     PointField(name='x', offset=0, datatype=PointField.FLOAT32, count=1),
@@ -66,7 +67,36 @@ def pcd_from_ros_to_o3d(ros_pcd):
     return o3d_pcd
 
 
+def full_joint_conf_from_vae_joint_conf(vae_joint_conf):
+    """Takes in the 15 dimensional joint conf output from VAE and repeats the 3*N-th dimension to turn dim 15 into dim 20.
+
+    Args:
+        vae_joint_conf (JointState): Output from vae with dim(vae_joint_conf.position) = 15
+
+    Returns:
+        full_joint_conf (JointState): Full joint state with dim(full_joint_conf.position) = 20
+    """
+    full_joint_pos = 20 * [0]
+    ix_full_joint_pos = 0
+    for i, val in enumerate(vae_joint_conf.position):
+        if (i + 1) % 3 == 0:
+            full_joint_pos[ix_full_joint_pos] = val
+            full_joint_pos[ix_full_joint_pos + 1] = val
+            ix_full_joint_pos += 2
+        else:
+            full_joint_pos[ix_full_joint_pos] = val
+            ix_full_joint_pos += 1
+
+    full_joint_conf = JointState(position=full_joint_pos)
+    return full_joint_conf
+
+
 # Convert the datatype of point pcd from o3d to ROS Pointpcd2 (XYZRGB only)
+def hom_matrix_from_rot_matrix(rot_matrix):
+    assert rot_matrix.shape == (3, 3)
+    hom_matrix = np.eye(4)
+    hom_matrix[:3, :3] = rot_matrix
+    return hom_matrix
 
 
 def pcd_from_o3d_to_ros(o3d_pcd, frame_id):
@@ -286,6 +316,6 @@ def list_of_objects_from_folder(folder_path):
 
 
 if __name__ == '__main__':
-    folder_path = '/home/vm/Documents/2021-03-07/grasp_data/recording_sessions/recording_session_0001'
+    folder_path = '/home/vm/Documents/grasp_data_generated_on_this_machine/2021-03-19/grasp_data/recording_sessions/recording_session_0001'
     l = list_of_objects_from_folder(folder_path)
     print(l)
