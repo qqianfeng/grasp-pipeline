@@ -1,4 +1,4 @@
-bool real_d435
+bool real_camera
 sensor_msgs/PointCloud2 scene_pcd
 sensor_msgs/Image depth_img
 sensor_msgs/Image color_img
