@@ -38,27 +38,7 @@
         <param name="sim" type="bool" value="$(arg sim)"/>
     </node>
 
-    <!-- num_samples_per_preshape: How many samples of slightly different poses will be generated. Always assumes the bounding box face center point + some distance outward in the object point normal direction as reference and samples the preshapes around that by adding some 3D noise specified in subsequent variables-->
-    <!-- palm_dist_to_top_face_mean: When sampling poses around the top bounding box face center points how much do you on average go outward in the normal direction-->
-    <!-- palm_dist_to_side_face_mean: When sampling poses around the side bounding box face center points how much do you on average go outward in the normal direction-->
-    <!-- palm_dist_normal_to_obj_var: Variance for previous explained "going outward in normal direction"-->
-    <!-- palm_position_3D_sample_var: Add some extra zero mean 3D position noise-->
-
-   <!-- Grasp preshape -->
-    <!-- <node name="generate_hithand_preshape_server_node" pkg="grasp_pipeline" 
-        type="generate_hithand_preshape_server.py" output="screen">
-      <param name="num_samples_per_preshape"     value="1"        type="int"/> 
-      <param name="palm_dist_to_top_face_mean"   value="0.05"     type="double"/> 
-      <param name="palm_dist_to_side_face_mean"  value="0.05"     type="double"/> 
-      <param name="palm_dist_normal_to_obj_var"  value="0.04"     type="double"/> 
-      <param name="palm_position_3D_sample_var"  value="0.02"     type="double"/> 
-      <param name="wrist_roll_orientation_var"   value="0.1"      type="double"/>
-      <param name="palm_rand_pose_sample_pos"    value="0.03"     type="double"/>
-      <param name="palm_rand_pose_sample_orient" value="0.2"      type="double"/>
-
-      <param name="min_object_height"            value="0.01"     type="double"/>
-    </node>  -->
-
+    <!-- Get preshape for each point in an object point cloud -->
     <node name="get_preshape_for_all_points_node" pkg="grasp_pipeline" type="get_preshape_for_all_points_server.py" output="screen"/>
 
     <!-- Filter palm poses based on collision with object or ground plane -->
