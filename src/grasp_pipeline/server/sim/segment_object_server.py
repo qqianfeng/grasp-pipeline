@@ -24,9 +24,8 @@ class ObjectSegmenter():
         rospy.init_node("object_segmentation_node")
         self.align_bounding_box = rospy.get_param('align_bounding_box', 'true')
         self.scene_pcd_topic = rospy.get_param('scene_pcd_topic')
-        self.VISUALIZE = rospy.get_param('visualize', False)
-        pcd_topic = rospy.get_param('scene_pcd_topic')
-        self.init_pcd_frame(pcd_topic)
+        self.VISUALIZE = rospy.get_param('visualize', True)
+        self.init_pcd_frame(self.scene_pcd_topic)
 
         self.x_threshold = 0.1  # Remove all points from pointcloud with x < 0.1, because they belong to panda base
         self.tf_buffer = tf2_ros.Buffer()
@@ -80,7 +79,7 @@ class ObjectSegmenter():
 
     # +++++++++++++++++ Part I: Helper functions ++++++++++++++++++++++++
     def init_pcd_frame(self, pcd_topic):
-        if pcd_topic == '/camera/depth/points':
+        if pcd_topic in ['/camera/depth/points', '/camera/depth/color/points']:
             self.pcd_frame = 'camera_depth_optical_frame'
         elif pcd_topic == '/depth_registered_points':
             self.pcd_frame = 'camera_color_optical_frame'
@@ -315,6 +314,13 @@ class ObjectSegmenter():
 
 if __name__ == "__main__":
     oseg = ObjectSegmenter()
+
+    req = SegmentGraspObjectRequest()
+    req.down_sample_pcd = False
+    req.scene_pcd_path = '/home/vm/scene.pcd'
+    req.object_pcd_path = '/home/vm/object.pcd'
+    oseg.handle_segment_object(req)
+
     oseg.create_segment_object_server()
 
     rate = rospy.Rate(10)
