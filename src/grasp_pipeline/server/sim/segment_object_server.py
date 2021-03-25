@@ -25,9 +25,11 @@ class ObjectSegmenter():
         self.align_bounding_box = rospy.get_param('align_bounding_box', 'true')
         self.scene_pcd_topic = rospy.get_param('scene_pcd_topic')
         self.VISUALIZE = rospy.get_param('visualize', True)
+        self.is_simulation = rospy.get_param('simulation', True)
         self.init_pcd_frame(self.scene_pcd_topic)
 
         self.x_threshold = 0.1  # Remove all points from pointcloud with x < 0.1, because they belong to panda base
+
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
         rospy.sleep(0.5)  # essential, otherwise next line crashes
@@ -77,7 +79,17 @@ class ObjectSegmenter():
 
         self.object_centroid = None
 
+        self.setup_workspace_boundaries()
+
     # +++++++++++++++++ Part I: Helper functions ++++++++++++++++++++++++
+    def setup_workspace_boundaries(self):
+        self.x_min = 0.1
+        self.x_max = 1
+        self.y_min = -0.4
+        self.y_max = 0.4
+        self.z_min = -0.03
+        self.z_max = 0.5
+
     def init_pcd_frame(self, pcd_topic):
         if pcd_topic in ['/camera/depth/points', '/camera/depth/color/points']:
             self.pcd_frame = 'camera_depth_optical_frame'
@@ -87,18 +99,7 @@ class ObjectSegmenter():
             rospy.logerr(
                 'Wrong parameter set for scene_pcd_topic in grasp_pipeline_servers.launch')
 
-    def visualize_normals(self, pcd):
-        if not self.VISUALIZE:
-            return
-        origin = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1)
-        vis = o3d.visualization.Visualizer()
-        vis.create_window()
-        vis.add_geometry(origin)
-        vis.add_geometry(pcd)
-        vis.get_render_option().load_from_json("/home/vm/hand_ws/src/grasp-pipeline/save.json")
-        vis.run()
-
-    def custom_draw_scene(self, pcd):
+    def draw_pcd_and_origin(self, pcd):
         if not self.VISUALIZE:
             return
         origin = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1)
@@ -190,44 +191,78 @@ class ObjectSegmenter():
             markerArray.markers.append(marker)
         self.bounding_box_corner_vis_pub.publish(markerArray)
 
-    def handle_segment_object(self, req):
-        print("handle_segment_object received the service call")
+    def filter_pcd_workspace_boundaries(self, pcd):
+        points, colors = np.asarray(pcd.points), np.asarray(pcd.colors)
+        if self.is_simulation == False:
+            # filter x direction
+            mask = np.logical_and(points[:, 0] > self.x_min, points[:, 0] < self.x_max)
+            points, colors = points[mask], colors[mask]
 
-        self.scene_pcd_path = req.scene_pcd_path
-        self.object_pcd_path = req.object_pcd_path
+            # filter y direction
+            mask = np.logical_and(points[:, 1] > self.y_min, points[:, 1] < self.y_max)
+            points, colors = points[mask], colors[mask]
 
-        pcd = o3d.io.read_point_cloud(self.scene_pcd_path)
+            # filter z direction
+            mask = np.logical_and(points[:, 2] > self.z_min, points[:, 2] < self.z_max)
+            points, colors = points[mask], colors[mask]
+        elif self.is_simulation == True:
+            mask = points[:, 0] > self.x_threshold
+            points, colors = points[mask], colors[mask]
 
-        # segment the panda base from point cloud
-        points = np.asarray(pcd.points)
-        colors = np.asarray(pcd.colors)
-        mask = points[:, 0] > self.x_threshold
+        # new pcd
         del pcd
         pcd = o3d.geometry.PointCloud()
-        pcd.points = o3d.utility.Vector3dVector(points[mask])
-        pcd.colors = o3d.utility.Vector3dVector(colors[mask])
+        pcd.points = o3d.utility.Vector3dVector(points)
+        pcd.colors = o3d.utility.Vector3dVector(colors)
 
-        self.custom_draw_scene(pcd)
+        return pcd
+
+    def segment_object_from_scene(self, scene_pcd):
+        # Remove table plane
+        distance_threshold = 0.01 if self.is_simulation else 0.03
+        _, inliers = scene_pcd.segment_plane(distance_threshold=distance_threshold,
+                                             ransac_n=3,
+                                             num_iterations=30)
+        object_pcd = scene_pcd.select_down_sample(inliers, invert=True)
+
+        # For real data add some radius outlier removal
+        if self.is_simulation == False:
+            object_pcd.remove_radius_outlier(nb_points=40, radius=0.03)
+
+        return object_pcd
+
+    def handle_segment_object(self, req):
+        # read pcd
+        self.scene_pcd_path = req.scene_pcd_path
+        self.object_pcd_path = req.object_pcd_path
+        pcd = o3d.io.read_point_cloud(self.scene_pcd_path)
+
+        # Transform cloud, momentary solution NEEDS TO BE CHANGED
+        if self.is_simulation == False:
+            # Transform cloud only during debugging
+            cam_T_base = tft.euler_matrix(2.3, 0.1, 0.1)
+            cam_T_base[:3, 3] = [-0.35, 0.07, 0.62]
+            pcd.transform(np.linalg.inv(cam_T_base))
+            # TODO: Replace with actual transform
+            print("Replace this with actual transform!!!!")
+
+        # Filter regions which are not in workspace
+        pcd = self.filter_pcd_workspace_boundaries(pcd)
+        self.draw_pcd_and_origin(pcd)
 
         # segment plane
-        _, inliers = pcd.segment_plane(distance_threshold=0.01, ransac_n=3, num_iterations=30)
-        object_pcd = pcd.select_down_sample(inliers, invert=True)
-
+        object_pcd = self.segment_object_from_scene(pcd)
         self.custom_draw_object(object_pcd)
 
         # compute normals of object
         object_pcd.estimate_normals(
             search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.5, max_nn=100))
+        self.draw_pcd_and_origin(object_pcd)
 
-        self.custom_draw_scene(object_pcd)
-
-        # downsample point cloud or make mean free if downsampling is not requested
+        # downsample point cloud
         if req.down_sample_pcd:
             object_pcd = object_pcd.voxel_down_sample(voxel_size=0.003)
-
-        del pcd, points, colors
-
-        self.custom_draw_scene(object_pcd)
+            self.draw_pcd_and_origin(object_pcd)
 
         # compute bounding box and object_pose
         object_bounding_box = object_pcd.get_oriented_bounding_box()
@@ -280,7 +315,7 @@ class ObjectSegmenter():
             self.object_centroid = object_pcd.get_center()
             object_pcd.transform(self.camera_T_world)
             object_pcd.translate((-1) * object_pcd.get_center())
-            self.custom_draw_scene(object_pcd)
+            self.draw_pcd_and_origin(object_pcd)
 
         o3d.io.write_point_cloud(self.object_pcd_path, object_pcd)
         if req.object_pcd_record_path != '':
