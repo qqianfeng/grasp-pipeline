@@ -29,7 +29,7 @@ class VisualDataSaver():
         rospy.sleep(0.5)  # essential, otherwise next line crashes
 
         self.scene_pcd_topic = rospy.get_param('scene_pcd_topic', default='/camera/depth/points')
-        if self.scene_pcd_topic == '/camera/depth/points':
+        if self.scene_pcd_topic in ['/camera/depth/points', '/camera/depth/color/points']:
             pcd_frame = 'camera_depth_optical_frame'
         elif self.scene_pcd_topic == '/depth_registered_points':
             pcd_frame = 'camera_color_optical_frame'
@@ -49,6 +49,7 @@ class VisualDataSaver():
                                                default='/camera/color/image_raw')
         self.depth_img_topic = rospy.get_param('depth_img_topic',
                                                default='/camera/depth/image_raw')
+        self.VISUALIZE = rospy.get_param('visualize', default=True)
 
     def draw_pcd(self, pcd):
         origin = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1)
@@ -109,7 +110,8 @@ class VisualDataSaver():
             colors = np.array([colors])
             pcd_o3d.colors = o3d.utility.Vector3dVector(np.tile(colors.T, (1, 3)))
             print("Ros numpy took: " + str(time.time() - start))
-            #self.draw_pcd(pcd_o3d)
+            if self.VISUALIZE:
+                self.draw_pcd(pcd_o3d)
             self.save_pcd(pcd_o3d, req.scene_pcd_save_path)
 
         ####### Handle depth and color ##########
@@ -148,6 +150,12 @@ class VisualDataSaver():
 
 if __name__ == "__main__":
     Saver = VisualDataSaver()
+
+    req = SaveVisualDataRequest()
+    req.color_img_save_path = "/home/vm/color.jpg"
+    req.depth_img_save_path = "/home/vm/depth.png"
+    req.scene_pcd_save_path = "/home/vm/scene.pcd"
+    Saver.handle_visual_data_saver(req)
 
     Saver.create_save_visual_data_service()
     rospy.spin()
