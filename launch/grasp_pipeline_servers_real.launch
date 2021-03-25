@@ -5,6 +5,7 @@
     <arg name="simulation"  default="false"/>
 
     <!-- +++++++++++++++++++ Set the params needed by the different nodes ++++++++++++++++++++++++++++++++ -->
+    <param name="simulation"              value="$(arg simulation)" />
     <param name="object_pcd_path"         value="/home/vm/object.pcd"                                       type="string"/>
     <param name="scene_pcd_path"          value="/home/vm/scene.pcd"                                        type="string"/>
     <param name="object_datasets_folder"  value="/home/vm/gazebo-objects"                                   type="string"/>
