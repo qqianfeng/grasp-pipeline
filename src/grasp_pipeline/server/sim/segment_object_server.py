@@ -168,11 +168,13 @@ class ObjectSegmenter():
                 (self.cam_q.x, self.cam_q.y, self.cam_q.z, self.cam_q.w), rospy.Time.now(),
                 "object_centroid_vae", "world")
 
-    def publish_box_corner_points(self, points_stamped, color=(1., 0., 0.)):
+    def publish_box_corner_points(self, object_bb, color=(1., 0., 0.)):
+        #visualization of corners in rviz
         markerArray = MarkerArray()
-        for i, pnt in enumerate(points_stamped):
+        bb_corner_points = np.asarray(object_bb.get_box_points())
+        for i, corner in enumerate(bb_corner_points):
             marker = Marker()
-            marker.header.frame_id = pnt.header.frame_id
+            marker.header.frame_id = 'world'
             marker.type = marker.SPHERE
             marker.action = marker.ADD
             marker.scale.x = 0.03
@@ -184,12 +186,17 @@ class ObjectSegmenter():
             marker.color.g = color[1]
             marker.color.b = color[2]
 
-            marker.pose.position.x = pnt.point.x
-            marker.pose.position.y = pnt.point.y
-            marker.pose.position.z = pnt.point.z
+            marker.pose.position.x = corner[0]
+            marker.pose.position.y = corner[1]
+            marker.pose.position.z = corner[2]
             marker.id = i
             markerArray.markers.append(marker)
         self.bounding_box_corner_vis_pub.publish(markerArray)
+
+        # dont remember why necessary
+        corner_msg = Float64MultiArray()
+        corner_msg.data = np.ndarray.tolist(np.ndarray.flatten(bb_corner_points))
+        self.bounding_box_corner_pub.publish(corner_msg)
 
     def filter_pcd_workspace_boundaries(self, pcd):
         points, colors = np.asarray(pcd.points), np.asarray(pcd.colors)
@@ -208,6 +215,8 @@ class ObjectSegmenter():
         elif self.is_simulation == True:
             mask = points[:, 0] > self.x_threshold
             points, colors = points[mask], colors[mask]
+        else:
+            raise Exception("is_simulation must be bool.")
 
         # new pcd
         del pcd
@@ -219,17 +228,57 @@ class ObjectSegmenter():
 
     def segment_object_from_scene(self, scene_pcd):
         # Remove table plane
-        distance_threshold = 0.01 if self.is_simulation else 0.03
+        distance_threshold = 0.01
         _, inliers = scene_pcd.segment_plane(distance_threshold=distance_threshold,
                                              ransac_n=3,
                                              num_iterations=30)
         object_pcd = scene_pcd.select_down_sample(inliers, invert=True)
+        self.display_inlier_outlier(object_pcd, scene_pcd.select_down_sample(inliers))
 
         # For real data add some radius outlier removal
         if self.is_simulation == False:
-            object_pcd.remove_radius_outlier(nb_points=40, radius=0.03)
+            _, inliers = object_pcd.remove_radius_outlier(nb_points=80, radius=0.03)
+            object_pcd_outliers = object_pcd.select_down_sample(inliers, invert=True)
+            object_pcd = object_pcd.select_down_sample(inliers)
+            self.display_inlier_outlier(object_pcd_outliers, object_pcd)
 
         return object_pcd
+
+    def display_inlier_outlier(self, outlier_cloud, inlier_cloud):
+        print("Showing outliers (red) and inliers (gray): ")
+        outlier_cloud.paint_uniform_color([1, 0, 0])
+        inlier_cloud.paint_uniform_color([0.5, 0.5, 0.5])
+        o3d.visualization.draw_geometries([inlier_cloud, outlier_cloud])
+
+    def get_object_bb_pose_and_size(self, object_pcd):
+        object_bounding_box = object_pcd.get_oriented_bounding_box()
+        object_size = object_bounding_box.extent
+        object_center = object_pcd.get_center()
+        object_R = copy.deepcopy(object_bounding_box.R)
+        object_R[:, 2] = np.cross(object_R[:, 0], object_R[:, 1])
+
+        object_T_world = np.eye(4)
+        object_T_world[:3, :3] = object_R
+        object_quat = tft.quaternion_from_matrix(object_T_world)
+
+        object_pose = Pose()
+        object_pose.position.x = object_center[0]
+        object_pose.position.y = object_center[1]
+        object_pose.position.z = object_center[2]
+        object_pose.orientation.x = object_quat[0]
+        object_pose.orientation.y = object_quat[1]
+        object_pose.orientation.z = object_quat[2]
+        object_pose.orientation.w = object_quat[3]
+
+        # Set these as attributes, they are needed only for optional visualization
+        self.object_R = object_R
+        self.object_center = object_center
+
+        return object_bounding_box, object_pose, object_size
+
+
+## ========================================================================================
+# ========================= Part III: Main Server code ====================================
 
     def handle_segment_object(self, req):
         # read pcd
@@ -264,78 +313,47 @@ class ObjectSegmenter():
             object_pcd = object_pcd.voxel_down_sample(voxel_size=0.003)
             self.draw_pcd_and_origin(object_pcd)
 
-        # compute bounding box and object_pose
-        object_bounding_box = object_pcd.get_oriented_bounding_box()
-        #object_bounding_box_aligned = object_pcd.get_axis_aligned_bounding_box()
-        self.object_size = object_bounding_box.extent
-        self.object_center = object_pcd.get_center()
-        self.object_R = copy.deepcopy(object_bounding_box.R)
-        self.object_R[:, 2] = np.cross(self.object_R[:, 0], self.object_R[:, 1])
-        object_T_world = np.eye(4)
-        object_T_world[:3, :3] = self.object_R
-        object_quat = tft.quaternion_from_matrix(object_T_world)
-        object_pose = Pose()
-        object_pose.position.x = self.object_center[0]
-        object_pose.position.y = self.object_center[1]
-        object_pose.position.z = self.object_center[2]
-        object_pose.orientation.x = object_quat[0]
-        object_pose.orientation.y = object_quat[1]
-        object_pose.orientation.z = object_quat[2]
-        object_pose.orientation.w = object_quat[3]
+        # Get pose and size of object from oriented bounding box. Stores more object information in attributes.
+        object_bb, object_pose, object_size = self.get_object_bb_pose_and_size(object_pcd)
+
+        # Make object pose an attribute for broadcasting it
         self.object_pose = object_pose
 
-        # get the 8 corner points, from these you can compute the bounding box face center points from which you can get the nearest neighbour from the point cloud
-        self.bounding_box_corner_points = np.asarray(object_bounding_box.get_box_points())
-
         # Publish the bounding box corner points for visualization in Rviz
-        box_corners_world_frame = []
-        corner_stamped_world = PointStamped()
-        corner_stamped_world.header.frame_id = 'world'
-        for corner in self.bounding_box_corner_points:
-            corner_stamped_world.point.x = corner[0]
-            corner_stamped_world.point.y = corner[1]
-            corner_stamped_world.point.z = corner[2]
-            box_corners_world_frame.append(copy.deepcopy(corner_stamped_world))
-        self.publish_box_corner_points(box_corners_world_frame)
+        self.publish_box_corner_points(object_bb)
 
         # orient normals towards camera
-        rospy.loginfo('Orienting normals towards this location:')
-        rospy.loginfo(self.world_t_cam)
         object_pcd.orient_normals_towards_camera_location(self.world_t_cam)
         print("Original scene point cloud reference frame assumed as: " + str(self.pcd_frame))
 
         # Draw object, bounding box and colored corners
-        self.custom_draw_object(object_pcd, object_bounding_box, False, True)
+        self.custom_draw_object(object_pcd, object_bb, False, True)
 
-        # Store segmented object to disk
-        if os.path.exists(self.object_pcd_path):
-            os.remove(self.object_pcd_path)
-
+        # TODO: This is dirty, make more explicit
+        # Transform back the cloud if downsample is false, which assumes VAE format
         if not req.down_sample_pcd:  # if req.down_sample is false, we assume this should be stored in VAE format, therefore transform the cloud back to camera frame
             self.object_centroid = object_pcd.get_center()
             object_pcd.transform(self.camera_T_world)
             object_pcd.translate((-1) * object_pcd.get_center())
             self.draw_pcd_and_origin(object_pcd)
 
+        # Store segmented object to disk
+        if os.path.exists(self.object_pcd_path):
+            os.remove(self.object_pcd_path)
         o3d.io.write_point_cloud(self.object_pcd_path, object_pcd)
         if req.object_pcd_record_path != '':
             o3d.io.write_point_cloud(req.object_pcd_record_path, object_pcd)
         print("Object.pcd saved successfully with normals oriented towards camera")
 
-        # Publish and latch newly computed dimensions and bounding box points
-        print("I will publish the corner points now:")
-        corner_msg = Float64MultiArray()
-        corner_msg.data = np.ndarray.tolist(np.ndarray.flatten(self.bounding_box_corner_points))
-        self.bounding_box_corner_pub.publish(corner_msg)
-
+        # Prepare response
         res = SegmentGraspObjectResponse()
         res.object.header.frame_id = 'world'
         res.object.header.stamp = rospy.Time.now()
-        res.object.pose = self.object_pose
+        res.object.pose = object_pose
         res.object.object_pcd_path = self.object_pcd_path
-        res.object.width = self.object_size[0]  # corresponds to x in oriented bb frame
-        res.object.height = self.object_size[1]  # corresponds to y in oriented bb frame
-        res.object.depth = self.object_size[2]  # corresponds to z in oriented bb frame
+        res.object.width = object_size[0]  # corresponds to x in oriented bb frame
+        res.object.height = object_size[1]  # corresponds to y in oriented bb frame
+        res.object.depth = object_size[2]  # corresponds to z in oriented bb frame
         res.success = True
 
         self.service_is_called = True
@@ -345,7 +363,6 @@ class ObjectSegmenter():
         rospy.Service('segment_object', SegmentGraspObject, self.handle_segment_object)
         rospy.loginfo('Service segment_object:')
         rospy.loginfo('Ready to segment the table from the object point cloud.')
-
 
 if __name__ == "__main__":
     oseg = ObjectSegmenter()
