@@ -49,7 +49,7 @@ class VisualDataSaver():
                                                default='/camera/color/image_raw')
         self.depth_img_topic = rospy.get_param('depth_img_topic',
                                                default='/camera/depth/image_raw')
-        self.VISUALIZE = rospy.get_param('visualize', default=True)
+        self.VISUALIZE = rospy.get_param('visualize', default=False)
 
     def draw_pcd(self, pcd):
         origin = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1)
@@ -148,14 +148,16 @@ class VisualDataSaver():
         rospy.loginfo('Ready to save your awesome visual data.')
 
 
+DEBUG = False
 if __name__ == "__main__":
     Saver = VisualDataSaver()
 
-    req = SaveVisualDataRequest()
-    req.color_img_save_path = "/home/vm/color.jpg"
-    req.depth_img_save_path = "/home/vm/depth.png"
-    req.scene_pcd_save_path = "/home/vm/scene.pcd"
-    Saver.handle_visual_data_saver(req)
+    if DEBUG:
+        req = SaveVisualDataRequest()
+        req.color_img_save_path = "/home/vm/color.jpg"
+        req.depth_img_save_path = "/home/vm/depth.png"
+        req.scene_pcd_save_path = "/home/vm/scene.pcd"
+        Saver.handle_visual_data_saver(req)
 
     Saver.create_save_visual_data_service()
     rospy.spin()
