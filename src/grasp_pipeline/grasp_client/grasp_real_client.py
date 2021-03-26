@@ -3,14 +3,15 @@ import copy
 import datetime
 from multiprocessing import Process
 import numpy as np
+import open3d as o3d
 import os
 import rospy
+import sys
 import tf
 import tf.transformations as tft
 import tf2_geometry_msgs
 import tf2_ros
 import time
-import sys
 
 sys.path.append('..')
 from gazebo_msgs.srv import GetModelState, GetModelStateRequest
@@ -114,6 +115,26 @@ class GraspClient():
         """
         self.spawn_object_x_min, self.spawn_object_x_max = 0.25, 0.65
         self.spawn_object_y_min, self.spawn_object_y_max = -0.2, 0.2
+
+    def show_grasps_o3d_viewer(self, palm_poses):
+        """Visualize the sampled grasp poses in open3d along with the object point cloud.
+
+        Args:
+            palm_poses (list of PoseStamped): Sampled poses.
+        """
+        frames = []
+        for i in range(0, len(palm_poses)):
+            palm_hom = utils.hom_matrix_from_pose_stamped(palm_poses[i])
+            frame = o3d.geometry.TriangleMesh.create_coordinate_frame(0.01).transform(palm_hom)
+            frames.append(frame)
+
+        #visualize
+        orig = o3d.geometry.TriangleMesh.create_coordinate_frame(0.01)
+        frames.append(orig)
+
+        obj = o3d.io.read_point_cloud(self.object_pcd_save_path)
+        frames.append(obj)
+        o3d.visualization.draw_geometries(frames)
 
     # ++++++++ PART II: Second part consist of all clients that interact with different nodes/services ++++++++++++
     def control_hithand_config_client(self, joint_conf=None):
@@ -577,9 +598,9 @@ class GraspClient():
             print(
                 "Point cloud will not be down sampled BUT transformed to OBJECT CENTROID frame, which is parallel to camera frame. This is necessary for testing grasp sampler."
             )
-        self.object_pcd_record_path = object_pcd_record_path
-        self.set_visual_data_save_paths(grasp_phase='pre')
-        self.save_visual_data_client()
+        #self.object_pcd_record_path = object_pcd_record_path
+        #self.set_visual_data_save_paths(grasp_phase='pre')
+        #self.save_visual_data_client()
         self.segment_object_client(down_sample_pcd=down_sample_pcd)
 
     def filter_preshapes(self):
