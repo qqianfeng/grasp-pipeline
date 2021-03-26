@@ -111,7 +111,7 @@ class ObjectSegmenter():
         boxes = []
         for i in range(8):
             box = o3d.geometry.TriangleMesh.create_box(width=0.01, height=0.01, depth=0.01)
-            box.translate(self.bounding_box_corner_points[i, :])
+            box.translate(self.bb_corner_points[i, :])
             box.paint_uniform_color(self.colors[i, :])
             boxes.append(box)
         return boxes
@@ -197,6 +197,8 @@ class ObjectSegmenter():
         corner_msg = Float64MultiArray()
         corner_msg.data = np.ndarray.tolist(np.ndarray.flatten(bb_corner_points))
         self.bounding_box_corner_pub.publish(corner_msg)
+
+        self.bb_corner_points = bb_corner_points
 
     def filter_pcd_workspace_boundaries(self, pcd):
         points, colors = np.asarray(pcd.points), np.asarray(pcd.colors)
@@ -364,14 +366,17 @@ class ObjectSegmenter():
         rospy.loginfo('Service segment_object:')
         rospy.loginfo('Ready to segment the table from the object point cloud.')
 
+DEBUG = True
+
 if __name__ == "__main__":
     oseg = ObjectSegmenter()
 
-    req = SegmentGraspObjectRequest()
-    req.down_sample_pcd = False
-    req.scene_pcd_path = '/home/vm/scene.pcd'
-    req.object_pcd_path = '/home/vm/object.pcd'
-    oseg.handle_segment_object(req)
+    if DEBUG == True:
+        req = SegmentGraspObjectRequest()
+        req.down_sample_pcd = False
+        req.scene_pcd_path = '/home/vm/scene.pcd'
+        req.object_pcd_path = '/home/vm/object.pcd'
+        oseg.handle_segment_object(req)
 
     oseg.create_segment_object_server()
 
