@@ -366,12 +366,12 @@ class ObjectSegmenter():
         rospy.loginfo('Service segment_object:')
         rospy.loginfo('Ready to segment the table from the object point cloud.')
 
-DEBUG = True
+DEBUG = False
 
 if __name__ == "__main__":
     oseg = ObjectSegmenter()
 
-    if DEBUG == True:
+    if DEBUG:
         req = SegmentGraspObjectRequest()
         req.down_sample_pcd = False
         req.scene_pcd_path = '/home/vm/scene.pcd'
