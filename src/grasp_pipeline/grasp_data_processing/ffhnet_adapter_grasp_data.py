@@ -92,6 +92,7 @@ def log_grasp(src_grasp_gp, dest_grasp_gp, is_coll=False):
             true_palm_mesh_frame = src_grasp_gp["true_preshape_palm_mesh_frame"][()]
             des_palm_mesh_frame = src_grasp_gp["desired_preshape_palm_mesh_frame"][()]
         elif "true_preshape_palm_world_pose" in src_grasp_gp.keys():
+            # Here I just had a naming issue. The preshape palm is not in world but in
             true_palm_mesh_frame = src_grasp_gp["true_preshape_palm_world_pose"][()]
             des_palm_mesh_frame = src_grasp_gp["desired_preshape_palm_world_pose"][()]
         else:
@@ -124,7 +125,7 @@ def log_idxs(path, obj, pos, neg, coll):
         string = ''
     else:
         string = 'obj_name \t \t \t pos \t neg \t coll \n'
-    with open(path, 'a') as f:
+    with open(path, 'w') as f:
         for i, txt in enumerate(l):
             string += str(txt) + '\t'
             if i == 0:
@@ -137,7 +138,7 @@ def log_idxs(path, obj, pos, neg, coll):
 if __name__ == "__main__":
 
     base_path = '/home/vm/data/exp_data'
-    dst_path = '/home/vm/data/ffhnet-grasp.h5'
+    dst_path = '/home/vm/data/ffhnet-data/ffhnet-grasp.h5'
     hdf_dst = h5py.File(dst_path, 'a')
 
     # go through all the dirs, each dir contains one grasp_data.h5
@@ -164,11 +165,11 @@ if __name__ == "__main__":
                 else:
                     dst_obj_gp = hdf_dst[obj]
                     if dst_obj_gp[P].keys():
-                        pos_idx = int(dst_obj_gp[P].keys()[-1].split('_')[-1]) + 1
+                        pos_idx = int(sorted(dst_obj_gp[P].keys())[-1].split('_')[-1]) + 1
                     if dst_obj_gp[N].keys():
-                        neg_idx = int(dst_obj_gp[N].keys()[-1].split('_')[-1]) + 1
+                        neg_idx = int(sorted(dst_obj_gp[N].keys())[-1].split('_')[-1]) + 1
                     if dst_obj_gp[C].keys():
-                        coll_idx = int(dst_obj_gp[C].keys()[-1].split('_')[-1]) + 1
+                        coll_idx = int(sorted(dst_obj_gp[C].keys())[-1].split('_')[-1]) + 1
 
                 # Get the grasps from no collision gp from src_file
                 no_coll_gp = src_objs_gp[obj][G][NC]
@@ -192,8 +193,7 @@ if __name__ == "__main__":
                     log_grasp(src_grasp_gp, dst_grasp_gp, is_coll=True)
 
                 # Finally log the pos, neg coll idx to a txt file
-                path = os.path.join(
-                    os.path.split(base_path)[0], 'ffhnet-grasp', 'obj_metadata.txt')
+                path = os.path.join(os.path.split(base_path)[0], 'ffhnet-data', 'obj_metadata.txt')
                 log_idxs(path, obj, pos_idx, neg_idx, coll_idx)
 
     # Create pandas dataframe and log
