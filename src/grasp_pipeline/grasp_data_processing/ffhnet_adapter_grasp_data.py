@@ -74,8 +74,19 @@ def log_to_csv(src_file, save_path):
 
 
 def log_grasp(src_grasp_gp, dest_grasp_gp, is_coll=False):
+    """Logs a grasp to the new h5 file. NOTE: Now takes the joint state closed as true joint state, as desired joint
+    state is always zero
+
+    Args:
+        src_grasp_gp (hdf group): Grasp group of a source file.
+        dest_grasp_gp (hdf group): Grasp group of the destiation file
+        is_coll (bool, optional): Indicated whether the grasp would. Defaults to False.
+
+    Raises:
+        Exception: If the grasp pose is not in the mesh frame.
+    """
     if not is_coll:
-        true_joint_conf = src_grasp_gp["true_preshape_joint_state"][()]
+        true_joint_conf = src_grasp_gp["closed_joint_state"][()]
         des_joint_conf = src_grasp_gp["desired_preshape_joint_state"][()]
         if "true_preshape_palm_mesh_frame" in src_grasp_gp.keys():
             true_palm_mesh_frame = src_grasp_gp["true_preshape_palm_mesh_frame"][()]
@@ -126,8 +137,7 @@ def log_idxs(path, obj, pos, neg, coll):
 if __name__ == "__main__":
 
     base_path = '/home/vm/data/exp_data'
-    #dst_path = os.path.join(os.path.split(base_path)[0], 'vae-grasp', 'grasp_data_vae.h5')
-    dst_path = '/home/vm/data/vae-grasp.h5'
+    dst_path = '/home/vm/data/ffhnet-grasp.h5'
     hdf_dst = h5py.File(dst_path, 'a')
 
     # go through all the dirs, each dir contains one grasp_data.h5
@@ -135,54 +145,56 @@ if __name__ == "__main__":
         src_path = os.path.join(base_path, dir, 'grasp_data.h5')
         hdf_src = h5py.File(src_path, 'r')
 
-        src_objs_gp = hdf_src[RC][RC1][GT]
-        print 'All objects: ', src_objs_gp.keys()
-        for obj in src_objs_gp.keys():
-            print('Processing object:', obj)
-            # Grasp idxs
-            pos_idx = 0
-            neg_idx = 0
-            coll_idx = 0
+        for rc_n in hdf_src[RC].keys():
+            src_objs_gp = hdf_src[RC][rc_n][GT]
+            print 'All objects: ', src_objs_gp.keys()
+            for obj in src_objs_gp.keys():
+                print('Processing object:', obj)
+                # Grasp idxs
+                pos_idx = 0
+                neg_idx = 0
+                coll_idx = 0
 
-            # Get the object_group in dest file
-            if obj not in hdf_dst.keys():
-                dst_obj_gp = hdf_dst.create_group(obj)
-                dst_obj_gp.create_group('positive')
-                dst_obj_gp.create_group('negative')
-                dst_obj_gp.create_group('collision')
-            else:
-                dst_obj_gp = hdf_dst[obj]
-                if dst_obj_gp[P].keys():
-                    pos_idx = int(dst_obj_gp[P].keys()[-1].split('_')[-1]) + 1
-                if dst_obj_gp[N].keys():
-                    neg_idx = int(dst_obj_gp[N].keys()[-1].split('_')[-1]) + 1
-                if dst_obj_gp[C].keys():
-                    coll_idx = int(dst_obj_gp[C].keys()[-1].split('_')[-1]) + 1
-
-            # Get the grasps from no collision gp from src_file
-            no_coll_gp = src_objs_gp[obj][G][NC]
-            for grasp in no_coll_gp.keys():
-                src_grasp_gp = no_coll_gp[grasp]
-                label = src_grasp_gp["grasp_success_label"][()]
-                if label:
-                    dst_grasp_gp = create_grasp_group(dst_obj_gp['positive'], pos_idx)
-                    pos_idx += 1
+                # Get the object_group in dest file
+                if obj not in hdf_dst.keys():
+                    dst_obj_gp = hdf_dst.create_group(obj)
+                    dst_obj_gp.create_group('positive')
+                    dst_obj_gp.create_group('negative')
+                    dst_obj_gp.create_group('collision')
                 else:
-                    dst_grasp_gp = create_grasp_group(dst_obj_gp['negative'], neg_idx)
-                    neg_idx += 1
-                log_grasp(src_grasp_gp, dst_grasp_gp)
+                    dst_obj_gp = hdf_dst[obj]
+                    if dst_obj_gp[P].keys():
+                        pos_idx = int(dst_obj_gp[P].keys()[-1].split('_')[-1]) + 1
+                    if dst_obj_gp[N].keys():
+                        neg_idx = int(dst_obj_gp[N].keys()[-1].split('_')[-1]) + 1
+                    if dst_obj_gp[C].keys():
+                        coll_idx = int(dst_obj_gp[C].keys()[-1].split('_')[-1]) + 1
 
-            # Get the grasps from collision gp from src file
-            src_coll_gp = src_objs_gp[obj][G][C]
-            for grasp in src_coll_gp.keys():
-                src_grasp_gp = src_coll_gp[grasp]
-                dst_grasp_gp = create_grasp_group(dst_obj_gp['collision'], coll_idx)
-                coll_idx += 1
-                log_grasp(src_grasp_gp, dst_grasp_gp, is_coll=True)
+                # Get the grasps from no collision gp from src_file
+                no_coll_gp = src_objs_gp[obj][G][NC]
+                for grasp in no_coll_gp.keys():
+                    src_grasp_gp = no_coll_gp[grasp]
+                    label = src_grasp_gp["grasp_success_label"][()]
+                    if label:
+                        dst_grasp_gp = create_grasp_group(dst_obj_gp['positive'], pos_idx)
+                        pos_idx += 1
+                    else:
+                        dst_grasp_gp = create_grasp_group(dst_obj_gp['negative'], neg_idx)
+                        neg_idx += 1
+                    log_grasp(src_grasp_gp, dst_grasp_gp)
 
-            # Finally log the pos, neg coll idx to a txt file
-            path = os.path.join(os.path.split(base_path)[0], 'vae-grasp', 'obj_metadata.txt')
-            log_idxs(path, obj, pos_idx, neg_idx, coll_idx)
+                # Get the grasps from collision gp from src file
+                src_coll_gp = src_objs_gp[obj][G][C]
+                for grasp in src_coll_gp.keys():
+                    src_grasp_gp = src_coll_gp[grasp]
+                    dst_grasp_gp = create_grasp_group(dst_obj_gp['collision'], coll_idx)
+                    coll_idx += 1
+                    log_grasp(src_grasp_gp, dst_grasp_gp, is_coll=True)
+
+                # Finally log the pos, neg coll idx to a txt file
+                path = os.path.join(
+                    os.path.split(base_path)[0], 'ffhnet-grasp', 'obj_metadata.txt')
+                log_idxs(path, obj, pos_idx, neg_idx, coll_idx)
 
     # Create pandas dataframe and log
     save_path = os.path.join(os.path.split(dst_path)[0], 'metadata.csv')
