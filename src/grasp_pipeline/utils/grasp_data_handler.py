@@ -63,7 +63,7 @@ class GraspDataHandlerVae:
         return num_success_per_object
 
     def get_single_successful_grasp(self, obj_name, random=True, idx=None):
-        self.get_single_grasp_of_outcome(obj_name, 'positive', random=random, idx=idx)
+        return self.get_single_grasp_of_outcome(obj_name, 'positive', random=random, idx=idx)
 
     def get_single_grasp_of_outcome(self, obj_name, outcome, random=True, idx=None):
         with h5py.File(self.file_path, 'r') as hdf:
