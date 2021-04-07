@@ -92,7 +92,7 @@ def log_grasp(src_grasp_gp, dest_grasp_gp, is_coll=False):
             true_palm_mesh_frame = src_grasp_gp["true_preshape_palm_mesh_frame"][()]
             des_palm_mesh_frame = src_grasp_gp["desired_preshape_palm_mesh_frame"][()]
         elif "true_preshape_palm_world_pose" in src_grasp_gp.keys():
-            # Here I just had a naming issue. The preshape palm is not in world but in
+            # Here I just had a naming issue. The preshape palm is not in world but in mesh frame
             true_palm_mesh_frame = src_grasp_gp["true_preshape_palm_world_pose"][()]
             des_palm_mesh_frame = src_grasp_gp["desired_preshape_palm_world_pose"][()]
         else:
@@ -146,17 +146,22 @@ if __name__ == "__main__":
         src_path = os.path.join(base_path, dir, 'grasp_data.h5')
         hdf_src = h5py.File(src_path, 'r')
 
+        # Loop over all recording sessions, there might be multiple ones in one file
         for rc_n in hdf_src[RC].keys():
             src_objs_gp = hdf_src[RC][rc_n][GT]
             print 'All objects: ', src_objs_gp.keys()
             for obj in src_objs_gp.keys():
+                # do not process ycb objects
+                if obj.split('_')[0] == 'ycb':
+                    print('Skipping object:', obj)
+                    continue
                 print('Processing object:', obj)
                 # Grasp idxs
                 pos_idx = 0
                 neg_idx = 0
                 coll_idx = 0
 
-                # Get the object_group in dest file
+                # Get the object_group in dest file, create if does not exist
                 if obj not in hdf_dst.keys():
                     dst_obj_gp = hdf_dst.create_group(obj)
                     dst_obj_gp.create_group('positive')
