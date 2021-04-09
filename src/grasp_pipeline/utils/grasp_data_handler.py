@@ -194,13 +194,13 @@ class GraspDataHandler():
 
 
 if __name__ == '__main__':
-    file_path = os.path.join('/home/vm/Documents/2021-03-05', 'grasp_data.h5')
+    file_path = os.path.join('/home/vm/', 'grasp_data.h5')
     gdh = GraspDataHandler(file_path=file_path)
     gdh.set_sess_name(sess_name='-1')
 
     gdh.print_metadata()
     objs = gdh.print_objects()
-    grasp_data = gdh.get_single_successful_grasp(objs[-1], random=True)
-    for key, val in grasp_data.items():
-        print(key)
-        print(val)
+    # grasp_data = gdh.get_single_successful_grasp(objs[-1], random=True)
+    # for key, val in grasp_data.items():
+    #     print(key)
+    #     print(val)

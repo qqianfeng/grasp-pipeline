@@ -45,6 +45,31 @@ YCB_OBJECTS = [
 ]
 
 BIGBIRD_OBJECTS = [
+    'quaker_chewy_peanut_butter_chocolate_chip', 'quaker_chewy_smores', 'red_bull',
+    'softsoap_gold', 'spam', 'spongebob_squarepants_fruit_snaks',
+    'sunkist_fruit_snacks_mixed_fruit', 'tapatio_hot_sauce', 'v8_fusion_peach_mango',
+    'vo5_extra_body_volumizing_shampoo', 'white_rain_sensations_apple_blossom_hydrating_body_wash'
+]
+
+BIGBIRD_OBJECTS_PROBLEMS = [
+    'cholula_chipotle_hot_sauce',
+    'gushers_tropical_flavours',
+    'mom_to_mom_butternut_squash_pear',
+]
+
+BIGBIRD_OBJECTS_DATA_GENERATED = [
+    '3m_high_tack_spray_adhesive', 'advil_liqui_gels'
+    'aunt_jemima_original_syrup', 'chewy_dipps_peanut_butter', 'coffee_mate_french_vanilla',
+    'colgate_cool_mint', 'crayola_24_crayons', 'crest_complete_minty_fresh', 'crystal_hot_sauce',
+    'detergent', 'dove_go_fresh_burst', 'eating_right_for_healthy_living_raspberry',
+    'fruit_by_the_foot', 'hunts_paste', 'hunts_sauce', 'krylon_crystal_clear', 'krylon_short_cuts',
+    'nature_valley_crunchy_oats_n_honey', 'nutrigrain_apple_cinnamon',
+    'nutrigrain_fruit_crunch_apple_cobbler', 'pepto_bismol', 'pop_secret_butter',
+    'pop_secret_light_butter', 'pringles_bbq'
+]
+
+# This should be BIGBIRD_OBJECTS + BIGBIRD_OBJECT_DATA_GENERATED
+BIGBIRD_OBJECTS_BEFORE_REMOVING_DATA_GEN = [
     '3m_high_tack_spray_adhesive', 'advil_liqui_gels', 'aunt_jemima_original_syrup',
     'chewy_dipps_peanut_butter', 'cholula_chipotle_hot_sauce', 'coffee_mate_french_vanilla',
     'colgate_cool_mint', 'crayola_24_crayons', 'crest_complete_minty_fresh', 'crystal_hot_sauce',
