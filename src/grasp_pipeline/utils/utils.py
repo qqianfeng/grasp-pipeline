@@ -1,100 +1,62 @@
-import os
-from sensor_msgs.msg import Image, PointCloud2, PointField, JointState
-import open3d as o3d
 from ctypes import *
-import sensor_msgs.point_cloud2 as pc2
-import numpy as np
-from std_msgs.msg import Header
-import rospy
-import tf.transformations as tft
-from geometry_msgs.msg import PoseStamped
 from matplotlib import pyplot
-import pylab
 from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
+import os
+import open3d as o3d
+import rospy
+import pandas as pd
+import pylab
+import tf.transformations as tft
 
-FIELDS_XYZ = [
-    PointField(name='x', offset=0, datatype=PointField.FLOAT32, count=1),
-    PointField(name='y', offset=4, datatype=PointField.FLOAT32, count=1),
-    PointField(name='z', offset=8, datatype=PointField.FLOAT32, count=1),
-]
-FIELDS_XYZRGB = FIELDS_XYZ + \
-    [PointField(name='rgb', offset=12, datatype=PointField.UINT32, count=1)]
-
-# Bit operations
-BIT_MOVE_16 = 2**16
-BIT_MOVE_8 = 2**8
-
-
-def convert_rgbUint32_to_tuple(rgb_uint32):
-    return ((rgb_uint32 & 0x00ff0000) >> 16, (rgb_uint32 & 0x0000ff00) >> 8,
-            (rgb_uint32 & 0x000000ff))
+from geometry_msgs.msg import PoseStamped
+from std_msgs.msg import Header
+from sensor_msgs.msg import Image, PointCloud2, PointField, JointState
+import sensor_msgs.point_cloud2 as pc2
 
 
-def convert_rgbFloat_to_tuple(rgb_float):
-    return convert_rgbUint32_to_tuple(
-        int(cast(pointer(c_float(rgb_float)), POINTER(c_uint32)).contents.value))
+def convert_to_full_voxel_grid(sparse_grid):
+    full_grid = np.zeros([32, 32, 32])
+    for i in xrange(len(sparse_grid)):
+        ix1, ix2, ix3 = sparse_grid[i]
+        full_grid[ix1, ix2, ix3] = 1
+
+    return full_grid
 
 
-def pcd_from_ros_to_o3d(ros_pcd):
-    # Get pcd data from ros_pcd
-    field_names = [field.name for field in ros_pcd.fields]
-    pcd_data = list(pc2.read_points(ros_pcd, skip_nans=True, field_names=field_names))
-    # Check empty
-    o3d_pcd = o3d.geometry.PointCloud()
-    if len(pcd_data) == 0:
-        print("Converting an empty pcd")
-        return None
-    # Set o3d_pcd
-    if "rgb" in field_names:
-        IDX_RGB_IN_FIELD = 3  # x, y, z, rgb
-        # Get xyz
-        # (why cannot put this line below rgb?)
-        xyz = [(x, y, z) for x, y, z, rgb in pcd_data]
-        # Get rgb
-        # Check whether int or float
-        # if float (from pcl::toROSMsg)
-        if type(pcd_data[0][IDX_RGB_IN_FIELD]) == float:
-            rgb = [convert_rgbFloat_to_tuple(rgb) for x, y, z, rgb in pcd_data]
+def convert_to_sparse_voxel_grid(voxel_grid, threshold=0.5):
+    sparse_voxel_grid = []
+    voxel_dim = voxel_grid.shape
+    for i in xrange(voxel_dim[0]):
+        for j in xrange(voxel_dim[1]):
+            for k in xrange(voxel_dim[2]):
+                if voxel_grid[i, j, k] > threshold:
+                    sparse_voxel_grid.append([i, j, k])
+    return np.asarray(sparse_voxel_grid)
+
+
+def full_joint_conf_from_vae_joint_conf(vae_joint_conf):
+    """Takes in the 15 dimensional joint conf output from VAE and repeats the 3*N-th dimension to turn dim 15 into dim 20.
+
+    Args:
+        vae_joint_conf (JointState): Output from vae with dim(vae_joint_conf.position) = 15
+
+    Returns:
+        full_joint_conf (JointState): Full joint state with dim(full_joint_conf.position) = 20
+    """
+    full_joint_pos = 20 * [0]
+    ix_full_joint_pos = 0
+    for i, val in enumerate(vae_joint_conf.position):
+        if (i + 1) % 3 == 0:
+            full_joint_pos[ix_full_joint_pos] = val
+            full_joint_pos[ix_full_joint_pos + 1] = val
+            ix_full_joint_pos += 2
         else:
-            rgb = [convert_rgbUint32_to_tuple(rgb) for x, y, z, rgb in pcd_data]
-        # combine
-        o3d_pcd.points = o3d.utility.Vector3dVector(np.array(xyz))
-        o3d_pcd.colors = o3d.utility.Vector3dVector(np.array(rgb) / 255.0)
-    else:
-        xyz = [(x, y, z) for x, y, z in pcd_data]  # get xyz
-        o3d_pcd.points = o3d.utility.Vector3dVector(np.array(xyz))
-    return o3d_pcd
+            full_joint_pos[ix_full_joint_pos] = val
+            ix_full_joint_pos += 1
 
-
-# Convert the datatype of point pcd from o3d to ROS Pointpcd2 (XYZRGB only)
-
-
-def pcd_from_o3d_to_ros(o3d_pcd, frame_id):
-    # Set "header"
-    header = Header()
-    header.stamp = rospy.Time.now()
-    header.frame_id = frame_id
-    # Set "fields" and "pcd_data"
-    points = np.asarray(o3d_pcd.points)
-    if not o3d_pcd.colors:  # XYZ only
-        fields = FIELDS_XYZ
-        pcd_data = points
-    else:  # XYZ + RGB
-        fields = FIELDS_XYZRGB
-        # -- Change rgb color from "three float" to "one 24-byte int"
-        # 0x00FFFFFF is white, 0x00000000 is black.
-        colors = np.floor(np.asarray(o3d_pcd.colors) * 255)  # nx3 matrix
-        colors = colors[:, 0] * BIT_MOVE_16 + \
-            colors[:, 1] * BIT_MOVE_8 + colors[:, 2]
-        pcd_data = np.c_[points, colors]
-    # create ros_pcd
-    return pc2.create_cloud(header, fields, pcd_data)
-
-
-def wait_for_service(service_name):
-    rospy.loginfo('Waiting for service ' + service_name)
-    rospy.wait_for_service(service_name)
-    rospy.loginfo('Calling service ' + service_name)
+    full_joint_conf = JointState(position=full_joint_pos)
+    return full_joint_conf
 
 
 def get_pose_stamped_from_array(pose_array, frame_id='/world'):
@@ -153,14 +115,31 @@ def get_pose_array_from_stamped(pose_stamped):
     return pose_array
 
 
-def hom_matrix_from_ros_transform(transform_ros):
-    """ Transform a ROS transform to a 4x4 homogenous numpy array
-    """
-    q = transform_ros.transform.rotation
-    t = transform_ros.transform.translation
-    hom_matrix = tft.quaternion_matrix([q.x, q.y, q.z, q.w])
-    hom_matrix[:, 3] = [t.x, t.y, t.z, 1]
-    return hom_matrix
+def get_utah_grasp_config_from_pose_and_joints(palm_pose, joint_pos):
+    # Get pos and quat
+    pos = palm_pose.pose.position
+    q = palm_pose.pose.orientation
+    quat = [q.x, q.y, q.z, q.w]
+    # "allocate" memory for full pose 6D and 10 joints
+    pose_array = np.zeros(6 + 10)
+
+    # Bring ori from quaternion to euler
+    r, p, y = tft.euler_from_quaternion(quat)
+
+    # Insert pos and euler in right places
+    pose_array[:3] = [pos.x, pos.y, pos.z]
+    pose_array[3:6] = [r, p, y]
+
+    # Insert joint angles in the right place
+    # Index, Little, Middle, Ring, Thumb
+    des_joints = []
+    for i in range(0, len(joint_pos), 4):
+        des_joints.append(joint_pos[i])
+        des_joints.append(joint_pos[i + 1])
+    assert len(des_joints) == 10
+    pose_array[6:] = des_joints
+
+    return pose_array
 
 
 def hom_matrix_from_pos_quat_list(rot_quat_list):
@@ -179,10 +158,32 @@ def hom_matrix_from_pose_stamped(pose_stamped):
     return hom_matrix
 
 
-def trans_rot_list_from_ros_transform(ros_transform):
-    t = ros_transform.transform.translation
-    q = ros_transform.transform.rotation
-    return [t.x, t.y, t.z, q.x, q.y, q.z, q.w]
+def hom_matrix_from_ros_transform(transform_ros):
+    """ Transform a ROS transform to a 4x4 homogenous numpy array
+    """
+    q = transform_ros.transform.rotation
+    t = transform_ros.transform.translation
+    hom_matrix = tft.quaternion_matrix([q.x, q.y, q.z, q.w])
+    hom_matrix[:, 3] = [t.x, t.y, t.z, 1]
+    return hom_matrix
+
+
+# Convert the datatype of point pcd from o3d to ROS Pointpcd2 (XYZRGB only)
+def hom_matrix_from_rot_matrix(rot_matrix):
+    assert rot_matrix.shape == (3, 3)
+    hom_matrix = np.eye(4)
+    hom_matrix[:3, :3] = rot_matrix
+    return hom_matrix
+
+
+def list_of_objects_from_folder(folder_path):
+    dirs = os.listdir(folder_path)
+    objects = []
+    for dir in dirs:
+        obj_name = '_'.join(dir.split('_')[1:])
+        if obj_name not in objects:
+            objects.append(obj_name)
+    return sorted(objects)
 
 
 def pose_stamped_from_hom_matrix(hom_matrix, frame_id):
@@ -228,64 +229,38 @@ def plot_voxel(voxel, img_path=None, voxel_res=None, centroid=None, pca_axes=Non
         pyplot.savefig(img_path)
 
 
-def convert_to_full_voxel_grid(sparse_grid):
-    full_grid = np.zeros([32, 32, 32])
-    for i in xrange(len(sparse_grid)):
-        ix1, ix2, ix3 = sparse_grid[i]
-        full_grid[ix1, ix2, ix3] = 1
-
-    return full_grid
+def trans_rot_list_from_ros_transform(ros_transform):
+    t = ros_transform.transform.translation
+    q = ros_transform.transform.rotation
+    return [t.x, t.y, t.z, q.x, q.y, q.z, q.w]
 
 
-def convert_to_sparse_voxel_grid(voxel_grid, threshold=0.5):
-    sparse_voxel_grid = []
-    voxel_dim = voxel_grid.shape
-    for i in xrange(voxel_dim[0]):
-        for j in xrange(voxel_dim[1]):
-            for k in xrange(voxel_dim[2]):
-                if voxel_grid[i, j, k] > threshold:
-                    sparse_voxel_grid.append([i, j, k])
-    return np.asarray(sparse_voxel_grid)
+def wait_for_service(service_name):
+    rospy.loginfo('Waiting for service ' + service_name)
+    rospy.wait_for_service(service_name)
+    rospy.loginfo('Calling service ' + service_name)
 
 
-def get_utah_grasp_config_from_pose_and_joints(palm_pose, joint_pos):
-    # Get pos and quat
-    pos = palm_pose.pose.position
-    q = palm_pose.pose.orientation
-    quat = [q.x, q.y, q.z, q.w]
-    # "allocate" memory for full pose 6D and 10 joints
-    pose_array = np.zeros(6 + 10)
-
-    # Bring ori from quaternion to euler
-    r, p, y = tft.euler_from_quaternion(quat)
-
-    # Insert pos and euler in right places
-    pose_array[:3] = [pos.x, pos.y, pos.z]
-    pose_array[3:6] = [r, p, y]
-
-    # Insert joint angles in the right place
-    # Index, Little, Middle, Ring, Thumb
-    des_joints = []
-    for i in range(0, len(joint_pos), 4):
-        des_joints.append(joint_pos[i])
-        des_joints.append(joint_pos[i + 1])
-    assert len(des_joints) == 10
-    pose_array[6:] = des_joints
-
-    return pose_array
-
-
-def list_of_objects_from_folder(folder_path):
-    dirs = os.listdir(folder_path)
-    objects = []
-    for dir in dirs:
-        obj_name = '_'.join(dir.split('_')[1:])
-        if obj_name not in objects:
-            objects.append(obj_name)
-    return sorted(objects)
+def get_objects_few_grasps(n_min, base_path='/home/vm/data/ffhnet-data'):
+    """Get a list of objects with less positive grasps than threshold
+    
+    Args:
+        n_min (int): Minimum number of successful grasps an object should have 
+        base_path (str): Base path to where the metadata.csv file lies
+    """
+    file_path = os.path.join(base_path, 'metadata.csv')
+    df = pd.read_csv(file_path)
+    objs = df[df['remove positive'] == 'X'].loc[:, 'Unnamed: 0']
+    for obj in objs:
+        print("'" + obj + "',")
 
 
 if __name__ == '__main__':
-    folder_path = '/home/vm/Documents/2021-03-07/grasp_data/recording_sessions/recording_session_0001'
-    l = list_of_objects_from_folder(folder_path)
-    print(l)
+    # folder_path = '/home/vm/Documents/grasp_data_generated_on_this_machine/2021-04-09_02/grasp_data/recording_sessions/recording_session_0001'
+    # l = list_of_objects_from_folder(folder_path)
+    # print(l)
+    l = get_objects_few_grasps(150)
+
+    #mesh = o3d.io.read_triangle_mesh()
+    #pcd = o3d.io.read_point_cloud()
+    #o3d.visualization.draw_geometries([mesh, pcd])

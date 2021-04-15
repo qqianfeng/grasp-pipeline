@@ -45,6 +45,31 @@ YCB_OBJECTS = [
 ]
 
 BIGBIRD_OBJECTS = [
+    'red_bull', 'softsoap_gold', 'spam', 'spongebob_squarepants_fruit_snaks',
+    'sunkist_fruit_snacks_mixed_fruit', 'tapatio_hot_sauce', 'v8_fusion_peach_mango',
+    'vo5_extra_body_volumizing_shampoo', 'white_rain_sensations_apple_blossom_hydrating_body_wash'
+]
+
+BIGBIRD_OBJECTS_PROBLEMS = [
+    'cholula_chipotle_hot_sauce',
+    'gushers_tropical_flavours',
+    'mom_to_mom_butternut_squash_pear',
+]
+
+BIGBIRD_OBJECTS_DATA_GENERATED = [
+    '3m_high_tack_spray_adhesive', 'advil_liqui_gels'
+    'aunt_jemima_original_syrup', 'chewy_dipps_peanut_butter', 'coffee_mate_french_vanilla',
+    'colgate_cool_mint', 'crayola_24_crayons', 'crest_complete_minty_fresh', 'crystal_hot_sauce',
+    'detergent', 'dove_go_fresh_burst', 'eating_right_for_healthy_living_raspberry',
+    'fruit_by_the_foot', 'hunts_paste', 'hunts_sauce', 'krylon_crystal_clear', 'krylon_short_cuts',
+    'nature_valley_crunchy_oats_n_honey', 'nutrigrain_apple_cinnamon',
+    'nutrigrain_fruit_crunch_apple_cobbler', 'pepto_bismol', 'pop_secret_butter',
+    'pop_secret_light_butter', 'pringles_bbq', 'quaker_chewy_peanut_butter_chocolate_chip',
+    'quaker_chewy_smores'
+]
+
+# This should be BIGBIRD_OBJECTS + BIGBIRD_OBJECT_DATA_GENERATED
+BIGBIRD_OBJECTS_BEFORE_REMOVING_DATA_GEN = [
     '3m_high_tack_spray_adhesive', 'advil_liqui_gels', 'aunt_jemima_original_syrup',
     'chewy_dipps_peanut_butter', 'cholula_chipotle_hot_sauce', 'coffee_mate_french_vanilla',
     'colgate_cool_mint', 'crayola_24_crayons', 'crest_complete_minty_fresh', 'crystal_hot_sauce',
@@ -192,7 +217,7 @@ YCB_TEST_OBJECTS = [
     "010_potted_meat_can", "011_banana"
 ]
 
-print(len(YCB_OBJECTS + KIT_OBJECTS + BIGBIRD_OBJECTS))
+### OBJECTS WITH SOME SPECIAL NEEDS
 
 SPAWN_HIGH_Z = [
     'MelforBottle', 'SmacksCereals', 'Sprayflask', 'Sprudelflasche', 'VitalisCereals',
@@ -201,18 +226,43 @@ SPAWN_HIGH_Z = [
     'eating_right_for_healthy_living_raspberry', 'sunkist_fruit_snacks_mixed_fruit'
 ]
 
-KIT_OBJECTS_DATA_GENERATED = [
-    "BakingSoda", "BakingVanilla", "BathDetergent", "BlueSaltCube", "BroccoliSoup", "CeylonTea",
-    "ChickenSoup", "ChocSticks", "ChocolateBars", "ChoppedTomatoes", "CleaningCloths",
-    "CoffeeCookies", "CoffeeFilters2", "CoffeeFilters", "CokePlasticSmallGrasp", 'CondensedMilk',
-    'CoughDropsBerries', 'CoughDropsHoney', 'CoughDropsLemon', 'Curry', 'Deodorant', 'DropsCherry',
-    'DropsOrange', 'FennelTea', 'FizzyTabletsCalcium', 'FizzyTablets', 'FlowerCup', 'FruitBars',
-    'FruitDrink', 'FruitTea', 'GreenCup', 'GreenSaltCylinder', 'HamburgerSauce', 'HerbSalt',
-    'HeringTin', 'HotPot', 'HotPot2', 'HygieneSpray', 'InstantDumplings', 'InstantMousse',
-    'InstantSauce', 'InstantSauce2', 'InstantSoup', 'InstantTomatoSoup', 'JamSugar', 'Knaeckebrot',
-    'LivioClassicOil', 'MashedPotatoes', 'MelforBottle', 'MilkDrinkVanilla', 'MilkRice',
-    'MuesliBars', 'NutCandy', 'NutellaGo', 'OrangeMarmelade', 'OrgFruitTea', 'Paprika', 'Patches',
-    'Peanuts', 'Peanuts2', 'Peas', 'PineappleSlices', 'Pitcher', 'PotatoeDumplings',
-    'PotatoeStarch', 'PowderedSugar', 'PowderedSugarMill', 'RedCup', 'Rice', 'SardinesCan',
-    'SauceThickener', 'Shampoo', 'ShowerGel'
+KIT_OBJECTS_DATA_GENERATED = []
+
+# OBJECTS FOR WHICH GRASPING PARTLY FAILED (E.G. DUE TO BAD MESHES) OR SHOULD BE CONSIDERED AGAIN
+
+OBJECTS_TO_GENERATE_DATA_FOR_AFTER_15_04_Desktop = [
+    'bigbird_3m_high_tack_spray_adhesive', 'bigbird_advil_liqui_gels',
+    'bigbird_chewy_dipps_chocolate_chip', 'bigbird_chewy_dipps_peanut_butter',
+    'bigbird_cholula_chipotle_hot_sauce', 'bigbird_coffee_mate_french_vanilla',
+    'bigbird_colgate_cool_mint', 'bigbird_crayola_24_crayons',
+    'bigbird_crest_complete_minty_fresh', 'bigbird_detergent', 'bigbird_dove_go_fresh_burst',
+    'bigbird_fruit_by_the_foot', 'bigbird_gushers_tropical_flavors', 'bigbird_hunts_paste',
+    'bigbird_hunts_sauce', 'bigbird_krylon_crystal_clear', 'bigbird_krylon_short_cuts',
+    'bigbird_mom_to_mom_butternut_squash_pear', 'bigbird_nature_valley_crunchy_oats_n_honey',
+    'bigbird_nutrigrain_fruit_crunch_apple_cobbler', 'bigbird_pop_secret_butter',
+    'bigbird_pop_secret_light_butter', 'bigbird_pringles_bbq',
+    'bigbird_quaker_chewy_peanut_butter_chocolate_chip', 'bigbird_quaker_chewy_smores',
+    'bigbird_red_bull', 'bigbird_softsoap_gold', 'bigbird_spam',
+    'bigbird_spongebob_squarepants_fruit_snaks', 'bigbird_sunkist_fruit_snacks_mixed_fruit',
+    'bigbird_tapatio_hot_sauce'
+]
+OBJECTS_TO_GENERATE_DATA_FOR_AFTER_15_04_Laptop = [
+    'bigbird_v8_fusion_peach_mango', 'bigbird_vo5_extra_body_volumizing_shampoo',
+    'bigbird_white_rain_sensations_apple_blossom_hydrating_body_wash', 'kit_InstantDumplings',
+    'kit_LivioClassicOil', 'kit_MilkDrinkVanilla', 'kit_Peanuts', 'kit_PineappleSlices',
+    'kit_SmallGlass', 'kit_SoftCakeOrange', 'kit_TomatoSoup', 'kit_Toothpaste', 'kit_Waterglass',
+    'kit_Wineglass'
+]
+
+DO_NOT_CONSIDER_ANY_GRASPS_BEFORE_15_04 = [
+    'bigbird_chewy_dipps_chocolate_chip',
+    'bigbird_chewy_dipps_peanut_butter',
+    'bigbird_nature_valley_crunchy_oats_n_honey',
+]
+DO_NOT_CONSIDER_NEGATIVE_GRASPS_BEFORE_15_04 = [
+    'bigbird_3m_high_tack_spray_adhesive', 'bigbird_canon_ack_e10_box',
+    'bigbird_chewy_dipps_chocolate_chip', 'bigbird_chewy_dipps_peanut_butter',
+    'bigbird_crayola_24_crayons', 'bigbird_detergent', 'bigbird_fruit_by_the_foot',
+    'bigbird_krylon_crystal_clear', 'bigbird_nature_valley_crunchy_oats_n_honey',
+    'bigbird_pop_secret_butter'
 ]

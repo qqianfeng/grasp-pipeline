@@ -39,6 +39,7 @@ add_service_files(
     GenVoxelFromPcd.srv
     GraspPreshape.srv
     GraspControl.srv
+    InferGraspPoses.srv
     ManageMoveitScene.srv
     MoveArm.srv
     PlanArmTrajectory.srv
@@ -53,6 +54,7 @@ add_service_files(
     UpdateObjectGazebo.srv
     UpdateObjectPose.srv
     UpdatePalmPose.srv
+    VisualizeGraspPoseList.srv
 )
 
 generate_messages(

@@ -1,4 +1,5 @@
 sensor_msgs/JointState hithand_target_joint_state
+bool is_inference
 bool close_hand
 bool go_home
 ---

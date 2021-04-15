@@ -1,0 +1,5 @@
+int32 n_poses
+float32[] bps_object
+---
+geometry_msgs/PoseStamped[] palm_poses
+sensor_msgs/JointState[] joint_confs

@@ -1,6 +1,8 @@
 <?xml version="1.0"?>
 
 <launch>
+    <!-- This is a more basic version of grasp_pipeline_servers to work with the data adapter between data generated in simulation 
+    and data used to train VAE or UTAH baseline  -->
     <!-- +++++++NOTE: The different paths in the args must be modified for your machine. ++++++++ -->
     <arg name="sim"                     default="true"/>
     <arg name="object_datasets_folder"  default="/home/vm/gazebo-objects"/>

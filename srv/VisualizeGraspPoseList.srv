@@ -1,0 +1,3 @@
+geometry_msgs/PoseStamped[] grasp_pose_list
+---
+bool success

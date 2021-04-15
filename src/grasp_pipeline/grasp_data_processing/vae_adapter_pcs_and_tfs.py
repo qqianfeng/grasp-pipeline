@@ -91,20 +91,24 @@ def test_grasp_pose_transform(dset_obj_name, grasp_client):
 
 def create_object_group_in_h5_file(full_obj_name, full_save_path):
     with h5py.File(full_save_path, 'a') as hdf:
-        hdf.create_group(full_obj_name)
+        if full_obj_name not in hdf.keys():
+            hdf.create_group(full_obj_name)
+        else:
+            print("Name %s already existed in file." % full_obj_name)
 
 
-def save_mesh_frame_centroid_tf(full_save_path, obj_full_pcd, tf_list):
-    obj_name = '_'.join(obj_full_pcd.split('_')[:2])
+def save_mesh_frame_centroid_tf(obj_full, full_save_path, obj_full_pcd, tf_list):
     with h5py.File(full_save_path, 'r+') as hdf:
-        hdf[obj_name].create_dataset(obj_full_pcd + '_mesh_to_centroid', data=tf_list)
+        hdf[obj_full].create_dataset(obj_full_pcd + '_mesh_to_centroid', data=tf_list)
 
 
 if __name__ == '__main__':
     # Some "hyperparameters"
-    n_pcds_per_obj = 5
+    n_pcds_per_obj = 50
+    input_grasp_data_file = '/home/vm/data/vae-grasp/vae-grasp.h5'
+
     # Get all available objects and choose one
-    with h5py.File('/home/vm/data/vae-grasp/grasp_data_vae.h5', 'r') as hdf:
+    with h5py.File(input_grasp_data_file, 'r') as hdf:
         objects = hdf.keys()
 
     # Make the base directory
@@ -158,4 +162,4 @@ if __name__ == '__main__':
             trans_cent_mf_list = utils.trans_rot_list_from_ros_transform(transform_cent_mf)
 
             # Save the transform to file
-            save_mesh_frame_centroid_tf(pcd_tfs_path, obj_full_pcd, trans_cent_mf_list)
+            save_mesh_frame_centroid_tf(obj_full, pcd_tfs_path, obj_full_pcd, trans_cent_mf_list)
