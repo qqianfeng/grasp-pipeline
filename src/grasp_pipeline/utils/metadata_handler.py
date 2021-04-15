@@ -96,7 +96,7 @@ class MetadataHandlerFinalDataGen():
     """ Simple class to help iterate through objects and 
     """
     def __init__(self, gazebo_objects_path='/home/vm/gazebo-objects/objects_gazebo'):
-        self.dset_obj_names = [OBJECTS_TO_GENERATE_DATA_FOR_AFTER_15_04_Laptop]
+        self.dset_obj_names = OBJECTS_TO_GENERATE_DATA_FOR_AFTER_15_04_Laptop
 
         self.object_ix = -1
         self.gazebo_objects_path = gazebo_objects_path
@@ -168,17 +168,7 @@ class MetadataHandlerFinalDataGen():
 
 
 if __name__ == '__main__':
-    import open3d as o3d
-    import numpy as np
-    mesh = o3d.io.read_triangle_mesh(
-        '/home/vm/gazebo-objects/objects_gazebo/kit/NutCandy/NutCandy_25k_tex.obj')
-
-    pc = mesh.sample_points_uniformly(number_of_points=2000)
-    pc.colors = o3d.utility.Vector3dVector(np.zeros(np.asarray(pc.colors).shape) + 0.2)
-
-    for i in range(20):
-        grasp = o3d.geometry.TriangleMesh.create_coordinate_frame(0.01)
-
-    #visualize
-    orig = o3d.geometry.TriangleMesh.create_coordinate_frame(0.01)
-    o3d.visualization.draw_geometries([pc, orig])
+    a = MetadataHandlerFinalDataGen()
+    for i in range(0, a.get_total_num_objects()):
+        obj = a.choose_next_grasp_object()
+        print(i)
