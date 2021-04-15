@@ -226,18 +226,7 @@ SPAWN_HIGH_Z = [
     'eating_right_for_healthy_living_raspberry', 'sunkist_fruit_snacks_mixed_fruit'
 ]
 
-KIT_OBJECTS_DATA_GENERATED = [
-    "BakingSoda", "BakingVanilla", "BathDetergent", "BlueSaltCube", "BroccoliSoup", "CeylonTea",
-    "ChickenSoup", "ChocSticks", "ChocolateBars", "ChoppedTomatoes", "CleaningCloths",
-    "CoffeeCookies", "CoffeeFilters2", "CoffeeFilters", "CokePlasticSmallGrasp", 'CondensedMilk',
-    'CoughDropsBerries', 'CoughDropsHoney', 'CoughDropsLemon', 'Curry', 'Deodorant', 'DropsCherry',
-    'DropsOrange', 'FennelTea', 'FizzyTabletsCalcium', 'FizzyTablets', 'FlowerCup', 'FruitBars',
-    'FruitDrink', 'FruitTea', 'GreenCup', 'GreenSaltCylinder', 'HamburgerSauce', 'HerbSalt',
-    'HeringTin', 'HotPot', 'HotPot2', 'HygieneSpray', 'InstantDumplings', 'InstantMousse',
-    'InstantSauce', 'InstantSauce2', 'InstantSoup', 'InstantTomatoSoup', 'JamSugar', 'Knaeckebrot',
-    'LivioClassicOil', 'MashedPotatoes', 'MelforBottle', 'MilkDrinkVanilla', 'MilkRice',
-    'MuesliBars', 'NutCandy', 'NutellaGo', 'OrangeMarmelade', 'OrgFruitTea'
-]
+KIT_OBJECTS_DATA_GENERATED = []
 
 # OBJECTS FOR WHICH GRASPING PARTLY FAILED (E.G. DUE TO BAD MESHES) OR SHOULD BE CONSIDERED AGAIN
 
