@@ -114,7 +114,7 @@ class MetadataHandlerFinalDataGen():
                 self.object_ix += 1
 
                 # Set some relevant variables
-                dset_obj_name = self.dset_obj_names[i]
+                dset_obj_name = self.dset_obj_names[self.object_ix]
                 split_name = dset_obj_name.split('_')
                 object_name = '_'.join(split_name[1:])
                 dataset_name = split_name[0]
