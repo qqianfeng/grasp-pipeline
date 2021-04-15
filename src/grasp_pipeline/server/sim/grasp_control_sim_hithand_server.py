@@ -156,8 +156,12 @@ class HithandGraspController():
     def control_hithand(self, is_inference=False):
         target_joint_pos = np.array(self.target_joint_state.position)
 
-        # Bring the thumb to its initial position first:
+        # Bring all the zero joints to their initial positions first:
         pos = np.zeros(20)
+        pos[0] = target_joint_pos[0]
+        pos[4] = target_joint_pos[4]
+        pos[8] = target_joint_pos[8]
+        pos[12] = target_joint_pos[12]
         pos[16] = target_joint_pos[16]
         js = JointState(position=pos)
         for i in xrange(3):
