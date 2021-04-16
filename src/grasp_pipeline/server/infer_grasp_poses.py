@@ -19,14 +19,15 @@ class GraspInference():
         self.grabnet = GrabNet(cfg)
         self.grabnet.load_vae(epoch=10, is_train=False)
 
-    def build_pose_list(self, rot_mat, transl, frame_id='object_centroid_vae'):
-        assert rot_mat.shape[1:] == (3, 3), "Assumes palm rotation is 3*3 matrix."
-        assert rot_mat.shape[0] == transl.shape[0], "Batch dimension of rot and trans not equal."
+    def build_pose_list(self, rot_matrix, transl, frame_id='object_centroid_vae'):
+        assert rot_matrix.shape[1:] == (3, 3), "Assumes palm rotation is 3*3 matrix."
+        assert rot_matrix.shape[0] == transl.shape[
+            0], "Batch dimension of rot and trans not equal."
 
         poses = []
 
-        for i in range(rot_mat.shape[0]):
-            rot_hom = utils.hom_matrix_from_rot_matrix(rot_mat[i, :, :])
+        for i in range(rot_matrix.shape[0]):
+            rot_hom = utils.hom_matrix_from_rot_matrixrix(rot_matrix[i, :, :])
             quat = tft.quaternion_from_matrix(rot_hom)
             t = transl[i, :]
 
@@ -56,11 +57,11 @@ class GraspInference():
         # reshape
         bps_object = np.load('/home/vm/pcd_enc.npy')
         n_samples = req.n_poses
-        results = self.grabnet.sample_grasps(bps_object, n_samples=n_samples, return_arr=True)
+        results = self.grabnet.generate_grasps(bps_object, n_samples=n_samples, return_arr=True)
 
         # prepare response
         res = InferGraspPosesResponse()
-        res.palm_poses = self.build_pose_list(results['rot_mat'], results['transl'])
+        res.palm_poses = self.build_pose_list(results['rot_matrix'], results['transl'])
         res.joint_confs = self.build_joint_conf_list(results['joint_conf'])
 
         return res
