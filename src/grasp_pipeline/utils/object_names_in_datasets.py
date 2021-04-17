@@ -231,13 +231,10 @@ KIT_OBJECTS_DATA_GENERATED = []
 # OBJECTS FOR WHICH GRASPING PARTLY FAILED (E.G. DUE TO BAD MESHES) OR SHOULD BE CONSIDERED AGAIN
 
 OBJECTS_TO_GENERATE_DATA_FOR_AFTER_15_04_Desktop = [
-    'bigbird_3m_high_tack_spray_adhesive', 'bigbird_advil_liqui_gels',
-    'bigbird_chewy_dipps_chocolate_chip', 'bigbird_chewy_dipps_peanut_butter',
-    'bigbird_cholula_chipotle_hot_sauce', 'bigbird_coffee_mate_french_vanilla',
-    'bigbird_colgate_cool_mint', 'bigbird_crayola_24_crayons',
-    'bigbird_crest_complete_minty_fresh', 'bigbird_detergent', 'bigbird_dove_go_fresh_burst',
-    'bigbird_fruit_by_the_foot', 'bigbird_gushers_tropical_flavors', 'bigbird_hunts_paste',
-    'bigbird_hunts_sauce', 'bigbird_krylon_crystal_clear', 'bigbird_krylon_short_cuts',
+    'bigbird_coffee_mate_french_vanilla', 'bigbird_chewy_dipps_chocolate_chip',
+    'bigbird_chewy_dipps_peanut_butter', 'bigbird_fruit_by_the_foot',
+    'bigbird_gushers_tropical_flavors', 'bigbird_hunts_paste', 'bigbird_hunts_sauce',
+    'bigbird_krylon_crystal_clear', 'bigbird_krylon_short_cuts',
     'bigbird_mom_to_mom_butternut_squash_pear', 'bigbird_nature_valley_crunchy_oats_n_honey',
     'bigbird_nutrigrain_fruit_crunch_apple_cobbler', 'bigbird_pop_secret_butter',
     'bigbird_pop_secret_light_butter', 'bigbird_pringles_bbq',

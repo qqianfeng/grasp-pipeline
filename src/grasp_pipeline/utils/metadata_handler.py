@@ -96,13 +96,13 @@ class MetadataHandlerFinalDataGen():
     """ Simple class to help iterate through objects and 
     """
     def __init__(self, gazebo_objects_path='/home/vm/gazebo-objects/objects_gazebo'):
-        self.dset_obj_names = OBJECTS_TO_GENERATE_DATA_FOR_AFTER_15_04_Laptop
+        self.dset_obj_names = OBJECTS_TO_GENERATE_DATA_FOR_AFTER_15_04_Desktop
 
         self.object_ix = -1
         self.gazebo_objects_path = gazebo_objects_path
 
     def get_total_num_objects(self):
-        return len(OBJECTS_TO_GENERATE_DATA_FOR_AFTER_15_04_Laptop)
+        return len(OBJECTS_TO_GENERATE_DATA_FOR_AFTER_15_04_Desktop)
 
     def choose_next_grasp_object(self):
         """ Iterates through all objects in all datasets and returns object_metadata. Gives a new object each time it is called.
