@@ -247,11 +247,9 @@ OBJECTS_TO_GENERATE_DATA_FOR_AFTER_15_04_Desktop = [
     'bigbird_tapatio_hot_sauce'
 ]
 OBJECTS_TO_GENERATE_DATA_FOR_AFTER_15_04_Laptop = [
-    'bigbird_v8_fusion_peach_mango', 'bigbird_vo5_extra_body_volumizing_shampoo',
-    'bigbird_white_rain_sensations_apple_blossom_hydrating_body_wash', 'kit_InstantDumplings',
-    'kit_LivioClassicOil', 'kit_MilkDrinkVanilla', 'kit_Peanuts', 'kit_PineappleSlices',
-    'kit_SmallGlass', 'kit_SoftCakeOrange', 'kit_TomatoSoup', 'kit_Toothpaste', 'kit_Waterglass',
-    'kit_Wineglass'
+    'kit_InstantDumplings', 'kit_LivioClassicOil', 'kit_MilkDrinkVanilla', 'kit_Peanuts',
+    'kit_PineappleSlices', 'kit_SmallGlass', 'kit_SoftCakeOrange', 'kit_TomatoSoup',
+    'kit_Toothpaste', 'kit_Waterglass', 'kit_Wineglass'
 ]
 
 DO_NOT_CONSIDER_ANY_GRASPS_BEFORE_15_04 = [
