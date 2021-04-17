@@ -1,9 +1,11 @@
+import cv2
 import h5py
 import os
 import numpy as np
 
 MD = 'metadata'
 RS = 'recording_sessions'
+RS1 = 'recording_session_0001'
 GT = 'grasp_trials'
 G = 'grasps'
 GSL = 'grasp_success_label'
@@ -108,7 +110,7 @@ class GraspDataHandler():
 
             print("")
 
-    def print_object_metadata(self, obj_name, count=False):
+    def print_object_metadata(self, obj_name, count=False, show_grasp=False):
         with h5py.File(self.file_path, "r") as hdf:
             obj_metadata_gp = hdf[RS][self.sess_name][GT][obj_name][MD]
 
@@ -122,15 +124,27 @@ class GraspDataHandler():
                 obj_grasp_gp = hdf[RS][self.sess_name][GT][obj_name][G][NC]
                 num_pos = 0
                 num_neg = 0
-                for key in obj_grasp_gp.keys():
+                pos_idxs = []
+                for i, key in enumerate(obj_grasp_gp.keys()):
                     label = obj_grasp_gp[key]['grasp_success_label'][()]
                     if label == 1:
                         num_pos += 1
+                        pos_idxs.append(i + 1)
+                        if show_grasp:
+                            name = '_'.join(obj_name.split('_')[1:])
+                            path = os.path.join(
+                                os.path.split(self.file_path)[0], 'grasp_data', RS, RS1, obj_name,
+                                'grasp_' + str(i + 1).zfill(4), 'post_grasp', name + '_depth.png')
+                            img = cv2.imread(path)
+                            cv2.imshow('grasp_' + str(i + 1).zfill(4), img)
+                            cv2.waitKey(0)
+                            cv2.destroyAllWindows()
                     elif label == 0:
                         num_neg += 1
                 print("Number of negative and positive grasps")
                 print("{:<20} {}".format('negatives', num_neg))
                 print("{:<20} {}".format('positives', num_pos))
+                print("Indexes of positive grasps: ", pos_idxs)
 
     def print_objects(self):
         with h5py.File(self.file_path, "r") as grasp_file:
@@ -147,6 +161,15 @@ class GraspDataHandler():
             return grasps_gp.keys()
 
     ### +++++ Part II: Access Dataset +++++ ###
+    def delete_object(self, obj_name):
+        with h5py.File(self.file_path, "r+") as f:
+            self.check_sess_name(f)
+            objs_gp = f[RS][self.sess_name][GT]
+            if obj_name in objs_gp.keys():
+                del objs_gp[obj_name]
+            else:
+                print("Object does not exist.")
+
     def get_objects_list(self):
         with h5py.File(self.file_path, "r") as grasp_file:
             self.check_sess_name(grasp_file)
@@ -194,13 +217,21 @@ class GraspDataHandler():
 
 
 if __name__ == '__main__':
-    file_path = os.path.join('/home/vm/', 'grasp_data.h5')
+    # file_path = os.path.join('/home/vm/', 'grasp_data.h5')
+    file_path = os.path.join('/home/vm/Documents/2021-04-13', 'grasp_data.h5')
     gdh = GraspDataHandler(file_path=file_path)
     gdh.set_sess_name(sess_name='-1')
-
     gdh.print_metadata()
     objs = gdh.print_objects()
-    # grasp_data = gdh.get_single_successful_grasp(objs[-1], random=True)
-    # for key, val in grasp_data.items():
-    #     print(key)
-    #     print(val)
+    for obj in objs:
+        gdh.print_object_metadata(obj, count=True, show_grasp=True)
+        print('Object: ', obj)
+        raw_input('Wait for enter: ')
+
+    # objs = [
+    #     'bigbird_coffee_mate_french_vanilla',
+    #     'bigbird_chewy_dipps_chocolate_chip',
+    #     'bigbird_chewy_dipps_peanut_butter',
+    # ]
+    # for obj in objs:
+    #     gdh.delete_object(obj)
