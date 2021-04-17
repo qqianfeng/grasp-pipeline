@@ -65,16 +65,24 @@ class GraspDataHandlerVae:
         return num_success_per_object
 
     def get_single_successful_grasp(self, obj_name, random=True, idx=None):
+        return self.get_single_grasp_of_outcome(obj_name, 'positive', random=random, idx=idx)
+
+    def get_single_grasp_of_outcome(self, obj_name, outcome, random=True, idx=None):
         with h5py.File(self.file_path, 'r') as hdf:
-            pos_gp = hdf[obj_name]['positive']
-            grasp_ids = pos_gp.keys()
+            grasp_gp = hdf[obj_name][outcome]
+            grasp_ids = grasp_gp.keys()
             if random:
                 idx = np.random.randint(0, len(grasp_ids))
             else:
                 idx = idx
 
-            palm_pose = pos_gp[grasp_ids[idx]]["desired_preshape_palm_mesh_frame"][()]
-            joint_conf = pos_gp[grasp_ids[idx]]["true_preshape_joint_state"][()]
+            if outcome == 'collision':
+                joint_preshape_name = "desired_preshape_joint_state"
+            else:
+                joint_preshape_name = "true_preshape_joint_state"
+
+            palm_pose = grasp_gp[grasp_ids[idx]]["desired_preshape_palm_mesh_frame"][()]
+            joint_conf = grasp_gp[grasp_ids[idx]][joint_preshape_name][()]
 
         return palm_pose, joint_conf
 
