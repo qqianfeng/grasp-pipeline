@@ -85,10 +85,10 @@ class ObjectSegmenter():
     def setup_workspace_boundaries(self):
         self.x_min = 0.1
         self.x_max = 1
-        self.y_min = -0.4
+        self.y_min = 0.1
         self.y_max = 0.4
-        self.z_min = -0.03
-        self.z_max = 0.5
+        self.z_min = -0.02
+        self.z_max = 0.3
 
     def init_pcd_frame(self, pcd_topic):
         if pcd_topic in ['/camera/depth/points', '/camera/depth/color/points']:
@@ -291,13 +291,17 @@ class ObjectSegmenter():
         # Transform cloud, momentary solution NEEDS TO BE CHANGED
         if self.is_simulation == False:
             # Transform cloud only during debugging
-            cam_T_base = tft.euler_matrix(2.3, 0.1, 0.1)
-            cam_T_base[:3, 3] = [-0.35, 0.07, 0.62]
-            pcd.transform(np.linalg.inv(cam_T_base))
+            #cam_T_base = tft.euler_matrix(2.0, 0.1, 0.1)
+            cam_T_base = tft.euler_matrix(
+                -2.0, -0.1, -0.1)  # ATTENTION: camera coordinate system not same as in simulation
+            cam_T_base[:3, 3] = [0.4, -0.35, 0.4]
+            #pcd.transform(np.linalg.inv(cam_T_base))
+            pcd.transform(cam_T_base)
             # TODO: Replace with actual transform
             print("Replace this with actual transform!!!!")
 
         # Filter regions which are not in workspace
+        self.draw_pcd_and_origin(pcd)
         pcd = self.filter_pcd_workspace_boundaries(pcd)
         self.draw_pcd_and_origin(pcd)
 
@@ -335,8 +339,13 @@ class ObjectSegmenter():
         # Transform back the cloud if downsample is false, which assumes VAE format
         if not req.down_sample_pcd:  # if req.down_sample is false, we assume this should be stored in VAE format, therefore transform the cloud back to camera frame
             self.object_centroid = object_pcd.get_center()
-            object_pcd.transform(self.camera_T_world)
-            object_pcd.translate((-1) * object_pcd.get_center())
+            if self.is_simulation:
+                object_pcd.transform(self.camera_T_world)
+                object_pcd.translate((-1) * object_pcd.get_center())
+            else:
+                object_pcd.translate(((-1) * object_pcd.get_center()))
+                cam_T_base[:3, 3] = 0
+                object_pcd.transform(np.linalg.inv(cam_T_base))
             self.draw_pcd_and_origin(object_pcd)
 
         # Store segmented object to disk

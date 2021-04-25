@@ -49,7 +49,7 @@ class VisualDataSaver():
                                                default='/camera/color/image_raw')
         self.depth_img_topic = rospy.get_param('depth_img_topic',
                                                default='/camera/depth/image_raw')
-        self.VISUALIZE = rospy.get_param('visualize', default=False)
+        self.VISUALIZE = rospy.get_param('visualize', default=True)
 
     def draw_pcd(self, pcd):
         origin = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1)

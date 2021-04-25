@@ -49,9 +49,9 @@ class GraspClient():
         self.pcd = None
 
         # These variables get changed dynamically during execution to store relevant data under correct folder
-        self.color_img_save_path = None
-        self.depth_img_save_path = None
         self.base_path = '/home/vm'
+        self.color_img_save_path = os.path.join(self.base_path, 'color.jpg')
+        self.depth_img_save_path = os.path.join(self.base_path, 'depth.png')
         self.scene_pcd_save_path = os.path.join(self.base_path, 'scene.pcd')
         self.object_pcd_save_path = os.path.join(self.base_path, 'object.pcd')
         self.bps_object_path = os.path.join(self.base_path, 'pcd_enc.npy')
@@ -600,7 +600,7 @@ class GraspClient():
             )
         #self.object_pcd_record_path = object_pcd_record_path
         #self.set_visual_data_save_paths(grasp_phase='pre')
-        #self.save_visual_data_client()
+        self.save_visual_data_client()
         self.segment_object_client(down_sample_pcd=down_sample_pcd)
 
     def filter_preshapes(self):
