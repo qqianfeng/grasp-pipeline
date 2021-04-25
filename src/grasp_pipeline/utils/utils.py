@@ -176,6 +176,12 @@ def hom_matrix_from_rot_matrix(rot_matrix):
     return hom_matrix
 
 
+def hom_matrix_from_6D_pose(pos, ori):
+    hom = tft.euler_matrix(ori[0], ori[1], ori[2])
+    hom[:3, 3] = pos
+    return hom
+
+
 def list_of_objects_from_folder(folder_path):
     dirs = os.listdir(folder_path)
     objects = []

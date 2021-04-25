@@ -31,7 +31,6 @@ class GraspDataHandlerVae:
             palm_poses = []
             joint_confs = []
             with h5py.File(file_path, 'r') as hdf:
-                print hdf.keys()
                 outcomes_gp = hdf[obj_name][outcome]
                 for i, grasp in enumerate(outcomes_gp.keys()):
                     grasp_gp = outcomes_gp[grasp]
@@ -226,7 +225,8 @@ class GraspDataHandler():
 
 if __name__ == '__main__':
     # file_path = os.path.join('/home/vm/', 'grasp_data.h5')
-    file_path = os.path.join('/home/vm/Documents/2021-04-13', 'grasp_data.h5')
+    file_path = os.path.join(
+        '/home/vm/Documents/grasp_data_generated_on_this_machine/2021-04-15_02', 'grasp_data.h5')
     gdh = GraspDataHandler(file_path=file_path)
     gdh.set_sess_name(sess_name='-1')
     gdh.print_metadata()

@@ -14,6 +14,7 @@ import numpy as np
 import copy
 import open3d as o3d
 
+from grasp_pipeline.utils import utils
 from grasp_pipeline.utils.eigengrasps_hithand import *
 from grasp_pipeline.utils.utils import get_pose_stamped_from_trans_and_quat
 
@@ -472,6 +473,8 @@ class GetPreshapeForAllPoints():
         joint_states = []
         face_ids = []
 
+        ob = o3d.io.read_point_cloud('/home/vm/object.pcd')
+
         # Sample 6D pose for each point
         for i, (point, normal) in enumerate(zip(self.object_points, self.object_normals)):
             # Get the face closest to point
@@ -493,6 +496,11 @@ class GetPreshapeForAllPoints():
             # Finally also sample a hithand joint state
             max_weight = -0.08 * face.get_shorter_side_size() + 1.16
             joint_state = self.sample_hithand_joint_state(max_weight=max_weight)
+
+            frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.03)
+            hom = utils.hom_matrix_from_pose_stamped(palm_pose)
+            frame.transform(hom)
+            o3d.visualization.draw_geometries([frame, ob])
 
             # Append
             self.palm_goal_poses.append(palm_pose)
