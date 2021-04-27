@@ -1,27 +1,21 @@
 <?xml version="1.0"?>
 
 <launch>
-    <arg name="sim"                     default="true"/>
-    <arg name="object_datasets_folder"  default="/home/vm/gazebo-objects"/>
-    <arg name="object_pcd_path"         default="/home/vm/object.pcd"/>
-    <arg name="scene_pcd_path"          default="/home/vm/scene.pcd"/>
-    <arg name="color_img_save_path"     default="/home/vm/scene.ppm"/>
-    <arg name="depth_img_save_path"     default="/home/vm/depth.pgm"/>
-    <arg name="scene_pcd_topic"         default="/camera/depth/points"/>  <!-- /depth_registered/points -->   
-    <arg name="color_img_topic"         default="/camera/color/image_raw"/>    
-    <arg name="depth_img_topic"         default="/camera/depth/image_raw"/>    
+    <arg name="sim"                     default="true"/>           
     <arg name="launch_rosbridge"        default="true"/>
     <!-- +++++++++++++++++++ Set the params needed by the different nodes ++++++++++++++++++++++++++++++++ -->
-    <param name="object_pcd_path"         value="$(arg object_pcd_path)"        type="string" />
-    <param name="scene_pcd_path"          value="$(arg scene_pcd_path)"         type="string" />
-    <param name="object_datasets_folder"  value="$(arg object_datasets_folder)" type="string" />
-    <param name="color_img_save_path"     value="$(arg color_img_save_path)"    type="string" />
-    <param name="depth_img_save_path"     value="$(arg depth_img_save_path)"    type="string" />
-    <param name="scene_pcd_topic"         value="$(arg scene_pcd_topic)"        type="string" />
-    <param name="color_img_topic"         value="$(arg color_img_topic)"        type="string" />
-    <param name="depth_img_topic"         value="$(arg depth_img_topic)"        type="string" />   
-    <param name="/use_sim_time" value="true"/>
-
+    <param name="object_pcd_path"         value="/home/vm/object.pcd"       type="string" />
+    <param name="scene_pcd_path"          value="/home/vm/scene.pcd"        type="string" />
+    <param name="object_datasets_folder"  value="/home/vm/gazebo-objects"   type="string" />
+    <param name="color_img_save_path"     value="/home/vm/scene.jpg"        type="string" />
+    <param name="depth_img_save_path"     value="/home/vm/depth.pgm"        type="string" />
+    <param name="scene_pcd_topic"         value="/camera/depth/points"      type="string" />
+    <param name="color_img_topic"         value="/camera/color/image_raw"   type="string" />
+    <param name="depth_img_topic"         value="/camera/depth/image_raw"   type="string" />   
+    <param name="/use_sim_time"           value="true"                      type="bool"   />
+    <param name="ffhnet_load_epoch"       value="10"                        type="int" />
+    <param name="ffhnet_load_path"        value="/home/vm/hand_ws/src/FFHNet/checkpoints/2021-04-09T15_15_03" type="string" />
+    
     <!-- Gazebo scene manager -->
     <node name="manage_gazebo_scene_node" pkg="grasp_pipeline" type="manage_gazebo_scene_server.py" output="screen"/>
     

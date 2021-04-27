@@ -5,9 +5,14 @@ import torch
 from grasp_pipeline.grasp_client.grasp_sim_client import GraspClient
 from grasp_pipeline.utils.metadata_handler import MetadataHandler
 
-n_poses = 300
+n_poses = 5
 
-objs_list = ['kit_Sprayflask', 'kit_InstantSauce']
+objs_list = [
+    'kit_Sprayflask', 'kit_InstantSauce'
+    'kit_BakingSoda', 'kit_BroccoliSoup', 'kit_CoughDropsLemon', 'kit_Curry',
+    'kit_FizzyTabletsCalcium', 'kit_NutCandy', 'kit_Peanuts', 'kit_PotatoeDumplings',
+    'kit_TomatoSoup', 'kit_YellowSaltCube2'
+]
 
 grasp_client = GraspClient(is_rec_sess=False)
 metadata_handler = MetadataHandler()
@@ -46,3 +51,5 @@ for obj_full in objs_list:
 
         grasp_arm_plan = grasp_client.grasp_from_inferred_pose(palm_poses_obj_frame[i],
                                                                joint_confs[i])
+
+        grasp_client.record_grasp_trial_data_client()

@@ -4,8 +4,8 @@ import rospy
 import tf.transformations as tft
 import torch
 
-from hithand_grabnet.models.grabnet import GrabNet
-from hithand_grabnet.config.eval_config import EvalConfig
+from FFHNet.models.ffhnet import FFHNet
+from FFHNet.config.eval_config import EvalConfig
 from geometry_msgs.msg import PoseStamped
 from grasp_pipeline.srv import *
 from grasp_pipeline.utils import utils
@@ -16,8 +16,10 @@ class GraspInference():
     def __init__(self):
         rospy.init_node('grasp_inference_node')
         cfg = EvalConfig().parse()
-        self.grabnet = GrabNet(cfg)
-        self.grabnet.load_vae(epoch=10, is_train=False)
+        self.load_path = rospy.get_param('ffhnet_load_path')
+        self.load_epoch = rospy.get_param('ffhnet_load_epoch')
+        self.FFHNet = FFHNet(cfg)
+        self.FFHNet.load_ffhnet(epoch=self.load_epoch, is_train=False, load_path=self.load_path)
 
     def build_pose_list(self, rot_matrix, transl, frame_id='object_centroid_vae'):
         assert rot_matrix.shape[1:] == (3, 3), "Assumes palm rotation is 3*3 matrix."
@@ -57,7 +59,7 @@ class GraspInference():
         # reshape
         bps_object = np.load('/home/vm/pcd_enc.npy')
         n_samples = req.n_poses
-        results = self.grabnet.generate_grasps(bps_object, n_samples=n_samples, return_arr=True)
+        results = self.FFHNet.generate_grasps(bps_object, n_samples=n_samples, return_arr=True)
 
         # prepare response
         res = InferGraspPosesResponse()
@@ -69,7 +71,7 @@ class GraspInference():
     def create_infer_grasp_poses_server(self):
         rospy.Service('infer_grasp_poses', InferGraspPoses, self.handle_infer_grasp_poses)
         rospy.loginfo('Service infer_grasp_poses')
-        rospy.loginfo('Ready to sample grasps from VAE model.')
+        rospy.loginfo('Ready to sample grasps from FFHGenerator.')
 
 
 if __name__ == '__main__':
