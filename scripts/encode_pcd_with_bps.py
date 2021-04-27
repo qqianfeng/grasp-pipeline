@@ -9,7 +9,7 @@ import torch
 
 
 class BPSEncoder():
-    def __init__(self, client, bps_path='/home/vm/data/vae-grasp/basis_point_set.npy'):
+    def __init__(self, client, bps_path='/home/vm/data/ffhnet-data/basis_point_set.npy'):
         self.client = client
         service = rlp.Service(client, '/encode_pcd_with_bps', 'std_srvs/SetBool')
         service.advertise(self.handle_encode_pcd_with_bps)
