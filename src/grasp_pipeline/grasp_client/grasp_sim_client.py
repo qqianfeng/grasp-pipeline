@@ -28,7 +28,7 @@ from grasp_pipeline.srv import *
 class GraspClient():
     """ This class is a wrapper around all the individual functionality involved in grasping experiments.
     """
-    def __init__(self, is_rec_sess, grasp_data_recording_path=''):
+    def __init__(self, is_rec_sess, grasp_data_recording_path='', is_eval_sess=False):
         rospy.init_node('grasp_client')
         self.grasp_data_recording_path = grasp_data_recording_path
         if grasp_data_recording_path is not '':
@@ -58,7 +58,7 @@ class GraspClient():
 
         self.heuristic_preshapes = None  # This variable stores all the information on multiple heuristically sampled grasping pre shapes
         # The chosen variables store one specific preshape (palm_pose, hithand_joint_state, is_top_grasp)
-        self.chosen_is_top_grasp = None
+        self.chosen_is_top_grasp = True  # Default True
 
         self.panda_planned_joint_trajectory = None
         self.num_of_replanning_attempts = 2
@@ -80,6 +80,7 @@ class GraspClient():
         self.voxel_translation_dim = (self.voxel_grid_dim_full - self.voxel_grid_dim) // 2
 
         self.is_rec_sess = is_rec_sess
+        self.is_eval_sess = is_eval_sess
 
     # +++++++ PART I: First part are all the "helper functions" w/o interface to any other nodes/services ++++++++++
     def log_object_cycle_time(self, cycle_time):
@@ -167,7 +168,7 @@ class GraspClient():
         """ Sets the boundaries in which an object can be spawned and placed.
         Gets called 
         """
-        self.spawn_object_x_min, self.spawn_object_x_max = 0.25, 0.65
+        self.spawn_object_x_min, self.spawn_object_x_max = 0.45, 0.65
         self.spawn_object_y_min, self.spawn_object_y_max = -0.2, 0.2
 
     def generate_random_object_pose_for_experiment(self):
@@ -258,6 +259,28 @@ class GraspClient():
             self.previous_grasp_type = self.chosen_grasp_type
 
     # ++++++++ PART II: Second part consist of all clients that interact with different nodes/services ++++++++++++
+    def create_moveit_scene_client(self):
+        wait_for_service('create_moveit_scene')
+        try:
+            req = ManageMoveitSceneRequest()
+            create_moveit_scene = rospy.ServiceProxy('create_moveit_scene', ManageMoveitScene)
+            req.object_mesh_path = self.object_metadata["collision_mesh_path"]
+            req.object_pose_world = self.object_metadata["mesh_frame_pose"]
+            create_scene_response = create_moveit_scene(req)
+        except rospy.ServiceException, e:
+            rospy.loginfo('Service create_moveit_scene call failed: %s' % e)
+        rospy.loginfo('Service create_moveit_scene is executed.')
+
+    def clean_moveit_scene_client(self):
+        wait_for_service('clean_moveit_scene')
+        try:
+            req = ManageMoveitSceneRequest()
+            clean_moveit_scene = rospy.ServiceProxy('clean_moveit_scene', ManageMoveitScene)
+            create_scene_response = clean_moveit_scene(req)
+        except rospy.ServiceException, e:
+            rospy.loginfo('Service clean_moveit_scene call failed: %s' % e)
+        rospy.loginfo('Service clean_moveit_scene is executed.')
+
     def control_hithand_config_client(self, joint_conf=None):
         wait_for_service('control_hithand_config')
         try:
@@ -857,6 +880,41 @@ class GraspClient():
 
     # =============================================================================================================
     # ++++++++ PART III: The third part consists of all the main logic/orchestration of Parts I and II ++++++++++++
+    def add_position_noise(self, pose):
+        pose.pose.position.x += np.random.uniform(-0.02, 0.02)
+        pose.pose.position.y += np.random.uniform(-0.02, 0.02)
+        pose.pose.position.z += np.random.uniform(0, 0.3)
+        return pose
+
+    def approach_pose_from_palm_pose(self, palm_pose):
+        """Compute an appraoch pose from a desired palm pose, by subtracting a vector parallel to x-direction
+        of palm pose (x-direction points towards object, therefore we can get further away from the object with this.)
+
+        Args:
+            palm_pose (PoseStamped): The desired pose of the palm
+            
+        Returns:
+            approach_pose (PoseStamped): An approach pose further away from the object
+        """
+        dist_factor = 0.1
+
+        # Extract info from palm pose
+        t = palm_pose.pose.position
+        q = palm_pose.pose.orientation
+        R = tft.quaternion_matrix([q.x, q.y, q.z, q.w])
+        x_dir = R[:3, 0]
+        curr_pos = [t.x, t.y, t.z]
+
+        # Compute new position
+        approach_pos = curr_pos - 0.1 * x_dir
+
+        # build approach pose
+        approach_pose = copy.deepcopy(palm_pose)
+        approach_pose.pose.position.x = approach_pos[0]
+        approach_pose.pose.position.y = approach_pos[1]
+        approach_pose.pose.position.z = approach_pos[2]
+        return approach_pose
+
     def check_pose_validity_utah(self, grasp_pose):
         return self.check_pose_validity_utah_client(grasp_pose)
 
@@ -930,7 +988,7 @@ class GraspClient():
                                                                   pose=object_pose)
 
         # Update moveit scene object
-        if self.is_rec_sess:
+        if not self.is_eval_sess:
             self.update_moveit_scene_client()
 
         # Update the true mesh pose
@@ -1110,29 +1168,75 @@ class GraspClient():
         # transform the pose_obj_frame to world_frame
         palm_pose_world = self.transform_pose(pose_obj_frame, 'object_centroid_vae', 'world')
 
+        # save the desired pre of the palm and joints (given to function call) in an instance variable
+        self.palm_poses['desired_pre'] = palm_pose_world
+        self.hand_joint_states['desired_pre'] = joint_conf
+
         # Update the palm pose for visualization in RVIZ
         self.update_grasp_palm_pose_client(palm_pose_world)
 
-        return
+        # Compute an approach pose and try to reach it. Add object mesh to moveit to avoid hitting it with the approach plan. Delete it after
+        self.create_moveit_scene_client()
+        approach_pose = self.approach_pose_from_palm_pose(palm_pose_world)
+        approach_plan_exists = self.plan_arm_trajectory_client(approach_pose)
+        if not approach_plan_exists:
+            count = 0
+            while not approach_plan_exists and count < 3:
+                approach_pose = self.add_position_noise(approach_pose)
+                approach_plan_exists = self.plan_arm_trajectory_client(approach_pose)
+                count += 1
+        self.clean_moveit_scene_client()
 
-        # Try to find a plan
+        # Execute to approach pose
+        self.execute_joint_trajectory_client(speed='mid')
+
+        # Try to find a plan to the final destination
         plan_exists = self.plan_arm_trajectory_client(palm_pose_world)
 
         # Backup if no plan found
         if not plan_exists:
             plan_exists = self.plan_arm_trajectory_client(palm_pose_world)
             if not plan_exists:
+                self.grasp_label = -1
                 return False
 
         # Execute joint trajectory
         self.execute_joint_trajectory_client(speed='mid')
+
+        # Get the current actual joint position and palm pose
+        self.palm_poses["true_pre"], self.hand_joint_states[
+            "true_pre"] = self.get_hand_palm_pose_and_joint_state()
 
         # Go into the joint conf:
         self.control_hithand_config_client(joint_conf=joint_conf)
 
         # Possibly apply some more control to apply more force
 
+        # Get the current actual joint position and palm pose
+        self.palm_poses["closed"], self.hand_joint_states[
+            "closed"] = self.get_hand_palm_pose_and_joint_state()
+
         # Plan lift trajectory client
-        lift_pose = copy.deepcopy(palm_pose_world)
+        lift_pose = copy.deepcopy(self.palm_poses["desired_pre"])
         lift_pose.pose.position.z += self.object_lift_height
-        self.plan_arm_trajectory_client(place_goal_pose=lift_pose)
+        start = time.time()
+        execution_success = False
+        while not execution_success:
+            if time.time() - start > 60:
+                rospy.loginfo('Could not find a lift pose')
+                break
+            plan_exists = self.plan_arm_trajectory_client(place_goal_pose=lift_pose)
+            if plan_exists:
+                execution_success = self.execute_joint_trajectory_client(speed='slow')
+            lift_pose.pose.position.x += np.random.uniform(-0.05, 0.05)
+            lift_pose.pose.position.y += np.random.uniform(-0.05, 0.05)
+            lift_pose.pose.position.z += np.random.uniform(0, 0.1)
+
+        # Get the joint position and palm pose after lifting
+        self.palm_poses["lifted"], self.hand_joint_states[
+            "lifted"] = self.get_hand_palm_pose_and_joint_state()
+
+        # Evaluate success
+        self.label_grasp()
+
+        raw_input('Continue?')

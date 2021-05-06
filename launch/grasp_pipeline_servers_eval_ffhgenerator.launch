@@ -14,7 +14,7 @@
     <param name="depth_img_topic"         value="/camera/depth/image_raw"   type="string" />   
     <param name="/use_sim_time"           value="true"                      type="bool"   />
     <param name="ffhnet_load_epoch"       value="10"                        type="int" />
-    <param name="ffhnet_load_path"        value="/home/vm/hand_ws/src/FFHNet/checkpoints/2021-04-09T15_15_03" type="string" />
+    <param name="ffhnet_load_path"        value="/home/vm/hand_ws/src/FFHNet/checkpoints/2021-04-09T15_15_03-gen_01" type="string" />
     
     <!-- Gazebo scene manager -->
     <node name="manage_gazebo_scene_node" pkg="grasp_pipeline" type="manage_gazebo_scene_server.py" output="screen"/>
@@ -55,4 +55,8 @@
         <node pkg="tf2_web_republisher" type="tf2_web_republisher" name="tf2_web_republisher"/>   
         <node name="encode_pcd_with_bps" pkg="grasp_pipeline" type="encode_pcd_with_bps.sh" output="screen"/>
     </group>
+
+    <!-- Record grasping data -->
+    <node name="record_grasp_and_collision_data_node" pkg="grasp_pipeline" type="record_grasp_and_collision_data_server.py" output="screen"/>
+
 </launch>
