@@ -19,7 +19,9 @@ class GraspInference():
         self.load_path = rospy.get_param('ffhnet_load_path')
         self.load_epoch = rospy.get_param('ffhnet_load_epoch')
         self.FFHNet = FFHNet(cfg)
-        self.FFHNet.load_ffhnet(epoch=self.load_epoch, is_train=False, load_path=self.load_path)
+        self.FFHNet.load_ffhgenerator(epoch=self.load_epoch,
+                                      is_train=False,
+                                      load_path=self.load_path)
 
     def build_pose_list(self, rot_matrix, transl, frame_id='object_centroid_vae'):
         assert rot_matrix.shape[1:] == (3, 3), "Assumes palm rotation is 3*3 matrix."
@@ -29,7 +31,7 @@ class GraspInference():
         poses = []
 
         for i in range(rot_matrix.shape[0]):
-            rot_hom = utils.hom_matrix_from_rot_matrixrix(rot_matrix[i, :, :])
+            rot_hom = utils.hom_matrix_from_rot_matrix(rot_matrix[i, :, :])
             quat = tft.quaternion_from_matrix(rot_hom)
             t = transl[i, :]
 
