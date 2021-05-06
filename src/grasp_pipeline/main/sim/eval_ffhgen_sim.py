@@ -7,7 +7,7 @@ from grasp_pipeline.grasp_client.grasp_sim_client import GraspClient
 from grasp_pipeline.utils.metadata_handler import MetadataHandler
 from grasp_pipeline.utils.object_names_in_datasets import OBJECTS_FOR_EVAL
 
-n_poses = 50
+n_poses = 200
 
 shutil.rmtree('/home/vm/grasp_data', ignore_errors=True)
 
@@ -51,7 +51,7 @@ for obj_full in OBJECTS_FOR_EVAL:
 
             grasp_client.spawn_object(pose_type='same')
 
-        grasp_arm_plan = grasp_client.grasp_from_inferred_pose(palm_poses_obj_frame[i],
+        grasp_executed = grasp_client.grasp_from_inferred_pose(palm_poses_obj_frame[i],
                                                                joint_confs[i])
-
-        grasp_client.record_grasp_trial_data_client()
+        if grasp_executed:
+            grasp_client.record_grasp_trial_data_client()
