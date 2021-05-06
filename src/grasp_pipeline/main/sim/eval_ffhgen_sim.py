@@ -1,23 +1,22 @@
 """ This file is used to evaluate the model and sample grasps. 
 """
+import shutil
 import torch
 
 from grasp_pipeline.grasp_client.grasp_sim_client import GraspClient
 from grasp_pipeline.utils.metadata_handler import MetadataHandler
+from grasp_pipeline.utils.object_names_in_datasets import OBJECTS_FOR_EVAL
 
-n_poses = 5
+n_poses = 50
 
-objs_list = [
-    'kit_Sprayflask', 'kit_InstantSauce'
-    'kit_BakingSoda', 'kit_BroccoliSoup', 'kit_CoughDropsLemon', 'kit_Curry',
-    'kit_FizzyTabletsCalcium', 'kit_NutCandy', 'kit_Peanuts', 'kit_PotatoeDumplings',
-    'kit_TomatoSoup', 'kit_YellowSaltCube2'
-]
+shutil.rmtree('/home/vm/grasp_data', ignore_errors=True)
 
-grasp_client = GraspClient(is_rec_sess=False)
+grasp_client = GraspClient(grasp_data_recording_path='/home/vm/',
+                           is_rec_sess=True,
+                           is_eval_sess=True)
 metadata_handler = MetadataHandler()
 
-for obj_full in objs_list:
+for obj_full in OBJECTS_FOR_EVAL:
     split = obj_full.split('_')
     dset = split[0]
     obj_name = '_'.join(split[1:])
@@ -25,6 +24,9 @@ for obj_full in objs_list:
     # get metadata on object
     metadata = metadata_handler.get_object_metadata(dset, obj_name)
     grasp_client.update_object_metadata(metadata)
+
+    # create new folder
+    grasp_client.create_dirs_new_grasp_trial(is_new_pose_or_object=True)
 
     # Reset
     grasp_client.reset_hithand_and_panda()
