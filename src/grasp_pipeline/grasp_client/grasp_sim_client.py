@@ -1185,7 +1185,9 @@ class GraspClient():
                 approach_pose = self.add_position_noise(approach_pose)
                 approach_plan_exists = self.plan_arm_trajectory_client(approach_pose)
                 count += 1
-        self.clean_moveit_scene_client()
+
+        if approach_plan_exists:
+            self.clean_moveit_scene_client()
 
         # Execute to approach pose
         self.execute_joint_trajectory_client(speed='mid')
@@ -1239,4 +1241,5 @@ class GraspClient():
         # Evaluate success
         self.label_grasp()
 
-        raw_input('Continue?')
+        #raw_input('Continue?')
+        return True
