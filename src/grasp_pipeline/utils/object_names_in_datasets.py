@@ -261,3 +261,10 @@ DO_NOT_CONSIDER_NEGATIVE_GRASPS_BEFORE_15_04 = [
     'bigbird_krylon_crystal_clear', 'bigbird_nature_valley_crunchy_oats_n_honey',
     'bigbird_pop_secret_butter'
 ]
+
+# Objects used for evaluation
+OBJECTS_FOR_EVAL = [
+    'kit_BathDetergent', 'kit_Sprayflask', 'kit_InstantSauce', 'kit_BakingSoda',
+    'kit_BroccoliSoup', 'kit_CoughDropsLemon', 'kit_Curry', 'kit_FizzyTabletsCalcium',
+    'kit_NutCandy', 'kit_PotatoeDumplings', 'kit_TomatoSoup', 'kit_YellowSaltCube2'
+]

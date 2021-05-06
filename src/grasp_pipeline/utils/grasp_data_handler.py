@@ -1,3 +1,4 @@
+from __future__ import division
 import cv2
 import h5py
 import os
@@ -117,15 +118,15 @@ class GraspDataHandler():
 
             print("")
 
-    def print_object_metadata(self, obj_name, count=False, show_grasp=False):
+    def print_object_metadata(self, obj_name, count=False, show_grasp=False, print_idxs=False):
         with h5py.File(self.file_path, "r") as hdf:
             obj_metadata_gp = hdf[RS][self.sess_name][GT][obj_name][MD]
 
-            print("\n***** All object metadata ******")
-            for key in obj_metadata_gp.keys():
-                print("{:<25} {}".format(key, obj_metadata_gp[key][()]))
+            # print("\n***** All object metadata ******")
+            # for key in obj_metadata_gp.keys():
+            #     print("{:<25} {}".format(key, obj_metadata_gp[key][()]))
 
-            print("")
+            # print("")
 
             if count:
                 obj_grasp_gp = hdf[RS][self.sess_name][GT][obj_name][G][NC]
@@ -148,10 +149,13 @@ class GraspDataHandler():
                             cv2.destroyAllWindows()
                     elif label == 0:
                         num_neg += 1
-                print("Number of negative and positive grasps")
+                print("Number of negative and positive grasps for object: %s" % obj_name)
                 print("{:<20} {}".format('negatives', num_neg))
                 print("{:<20} {}".format('positives', num_pos))
-                print("Indexes of positive grasps: ", pos_idxs)
+                print("Success ratio ", num_pos / (num_pos + num_neg))
+                if print_idxs:
+                    print("Indexes of positive grasps: ", pos_idxs)
+                print("\n\n")
 
     def print_objects(self):
         with h5py.File(self.file_path, "r") as grasp_file:
@@ -225,21 +229,10 @@ class GraspDataHandler():
 
 if __name__ == '__main__':
     # file_path = os.path.join('/home/vm/', 'grasp_data.h5')
-    file_path = os.path.join(
-        '/home/vm/Documents/grasp_data_generated_on_this_machine/2021-04-15_02', 'grasp_data.h5')
+    file_path = os.path.join('/home/vm/', 'grasp_data.h5')
     gdh = GraspDataHandler(file_path=file_path)
     gdh.set_sess_name(sess_name='-1')
     gdh.print_metadata()
     objs = gdh.print_objects()
     for obj in objs:
-        gdh.print_object_metadata(obj, count=True, show_grasp=True)
-        print('Object: ', obj)
-        raw_input('Wait for enter: ')
-
-    # objs = [
-    #     'bigbird_coffee_mate_french_vanilla',
-    #     'bigbird_chewy_dipps_chocolate_chip',
-    #     'bigbird_chewy_dipps_peanut_butter',
-    # ]
-    # for obj in objs:
-    #     gdh.delete_object(obj)
+        gdh.print_object_metadata(obj, count=True, show_grasp=False)
