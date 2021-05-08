@@ -1,8 +1,9 @@
 from __future__ import division
 import cv2
 import h5py
-import os
 import numpy as np
+import os
+import pandas as pd
 
 MD = 'metadata'
 RS = 'recording_sessions'
@@ -118,44 +119,38 @@ class GraspDataHandler():
 
             print("")
 
-    def print_object_metadata(self, obj_name, count=False, show_grasp=False, print_idxs=False):
+    def print_object_metadata(self, obj_name, show_grasp=False, print_idxs=False):
         with h5py.File(self.file_path, "r") as hdf:
-            obj_metadata_gp = hdf[RS][self.sess_name][GT][obj_name][MD]
+            obj_grasp_gp = hdf[RS][self.sess_name][GT][obj_name][G][NC]
+            num_pos = 0
+            num_neg = 0
+            pos_idxs = []
+            for i, key in enumerate(obj_grasp_gp.keys()):
+                label = obj_grasp_gp[key]['grasp_success_label'][()]
+                if label == 1:
+                    num_pos += 1
+                    pos_idxs.append(i + 1)
+                    if show_grasp:
+                        name = '_'.join(obj_name.split('_')[1:])
+                        path = os.path.join(
+                            os.path.split(self.file_path)[0], 'grasp_data', RS, RS1, obj_name,
+                            'grasp_' + str(i + 1).zfill(4), 'post_grasp', name + '_depth.png')
+                        img = cv2.imread(path)
+                        cv2.imshow('grasp_' + str(i + 1).zfill(4), img)
+                        cv2.waitKey(0)
+                        cv2.destroyAllWindows()
+                elif label == 0:
+                    num_neg += 1
+            print("Number of negative and positive grasps for object: %s" % obj_name)
+            print("{:<20} {}".format('negatives', num_neg))
+            print("{:<20} {}".format('positives', num_pos))
+            succ_ratio = num_pos / (num_pos + num_neg)
+            print("Success ratio ", succ_ratio)
+            if print_idxs:
+                print("Indexes of positive grasps: ", pos_idxs)
+            print("\n\n")
 
-            # print("\n***** All object metadata ******")
-            # for key in obj_metadata_gp.keys():
-            #     print("{:<25} {}".format(key, obj_metadata_gp[key][()]))
-
-            # print("")
-
-            if count:
-                obj_grasp_gp = hdf[RS][self.sess_name][GT][obj_name][G][NC]
-                num_pos = 0
-                num_neg = 0
-                pos_idxs = []
-                for i, key in enumerate(obj_grasp_gp.keys()):
-                    label = obj_grasp_gp[key]['grasp_success_label'][()]
-                    if label == 1:
-                        num_pos += 1
-                        pos_idxs.append(i + 1)
-                        if show_grasp:
-                            name = '_'.join(obj_name.split('_')[1:])
-                            path = os.path.join(
-                                os.path.split(self.file_path)[0], 'grasp_data', RS, RS1, obj_name,
-                                'grasp_' + str(i + 1).zfill(4), 'post_grasp', name + '_depth.png')
-                            img = cv2.imread(path)
-                            cv2.imshow('grasp_' + str(i + 1).zfill(4), img)
-                            cv2.waitKey(0)
-                            cv2.destroyAllWindows()
-                    elif label == 0:
-                        num_neg += 1
-                print("Number of negative and positive grasps for object: %s" % obj_name)
-                print("{:<20} {}".format('negatives', num_neg))
-                print("{:<20} {}".format('positives', num_pos))
-                print("Success ratio ", num_pos / (num_pos + num_neg))
-                if print_idxs:
-                    print("Indexes of positive grasps: ", pos_idxs)
-                print("\n\n")
+        return num_pos, num_neg, succ_ratio
 
     def print_objects(self):
         with h5py.File(self.file_path, "r") as grasp_file:
@@ -229,10 +224,20 @@ class GraspDataHandler():
 
 if __name__ == '__main__':
     # file_path = os.path.join('/home/vm/', 'grasp_data.h5')
-    file_path = os.path.join('/home/vm/', 'grasp_data.h5')
-    gdh = GraspDataHandler(file_path=file_path)
-    gdh.set_sess_name(sess_name='-1')
-    gdh.print_metadata()
-    objs = gdh.print_objects()
-    for obj in objs:
-        gdh.print_object_metadata(obj, count=True, show_grasp=False)
+    # file_path = os.path.join('/home/vm/', 'grasp_data.h5')
+    # gdh = GraspDataHandler(file_path=file_path)
+    # gdh.set_sess_name(sess_name='-1')
+    # gdh.print_metadata()
+    # objs = gdh.print_objects()
+    # d = []
+    # for obj in objs:
+    #     p, n, succ = gdh.print_object_metadata(obj, show_grasp=False)
+    #     d.append((obj, p, n, succ))
+
+    # df = pd.DataFrame(d, columns=('object', 'n_pos', 'n_neg', 'succ_r'))
+    # df.to_csv('results.csv')
+
+    df_2 = pd.DataFrame().from_csv('results.csv')
+    print(df_2)
+    print(df_2.columns)
+    print(df_2.iloc[:, 1])
