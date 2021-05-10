@@ -90,6 +90,12 @@ class GraspClient():
             timing_file.writelines(self.object_metadata["name_rec_path"] + ': ' + str(cycle_time) +
                                    '\n')
 
+    def log_num_grasps_removed(self, n_grasps_before, n_grasps_after, thresh):
+        file_path = os.path.join(self.base_path, 'num_grasps_removed.txt')
+        with open(file_path, 'a') as f:
+            f.writelines(self.object_metadata["name"] + ', ' + str(thresh) + ', ' +
+                         str(n_grasps_before) + ', ' + str(n_grasps_after) + '\n')
+
     def transform_pose(self, pose, from_frame, to_frame):
         assert pose.header.frame_id == from_frame
 
@@ -953,6 +959,7 @@ class GraspClient():
         n_after = len(joint_confs_f)
         print("Remaining grasps after filtering: %.2f" % (n_after / n_before))
         print("This means %d grasps were removed." % (n_before - n_after))
+        self.log_num_grasps_removed(n_before, n_after, thresh)
         return palm_poses_f, joint_confs_f
 
     def infer_grasp_poses(self, n_poses, visualize_poses=False, bps_object=None):
