@@ -1,0 +1,6 @@
+geometry_msgs/PoseStamped[] palm_poses
+sensor_msgs/JointState[] joint_confs
+float64 thresh
+---
+geometry_msgs/PoseStamped[] palm_poses
+sensor_msgs/JointState[] joint_confs
