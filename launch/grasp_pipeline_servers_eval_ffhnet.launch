@@ -47,7 +47,7 @@
     <node name="update_poses_node" pkg="grasp_pipeline" type="update_object_and_palm_tf_server.py" output="screen"/>
 
     <!-- Node to infer grasp poses -->
-    <node name="infer_grasp_poses" pkg="grasp_pipeline" type="infer_grasp_poses.py" output="screen"/>
+    <node name="infer_grasp_poses" pkg="grasp_pipeline" type="infer_grasp_poses_server.py" output="screen"/>
 
     <!-- Node to handle the bps encoding-->
     <group if="$(arg launch_rosbridge)">
