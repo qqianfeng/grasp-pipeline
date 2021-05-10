@@ -93,18 +93,18 @@ class GraspInference():
 
         # convert
         for i, (palm_pose, joint_conf) in enumerate(zip(palm_poses, joint_confs)):
-            q = palm_poses.pose.orientation
-            t = palm_poses.pose.position
+            q = palm_pose.pose.orientation
+            t = palm_pose.pose.position
 
-            rot_matrix_arr[i, :, :] = tft.quaternion_matrix(q.x, q.y, q.z, q.w)[:3, :3]
+            rot_matrix_arr[i, :, :] = tft.quaternion_matrix([q.x, q.y, q.z, q.w])[:3, :3]
             transl_arr[i, :] = [t.x, t.y, t.z]
-            joint_arr[i, :] = utils.reduce_joint_conf(joint_conf.position)
+            joint_arr[i, :] = np.array(joint_conf.position)
 
         # Build grasp dict
         grasp_dict = {}
         grasp_dict['rot_matrix'] = rot_matrix_arr
         grasp_dict['transl'] = transl_arr
-        grasp_dict['joint_conf'] = joint_conf
+        grasp_dict['joint_conf'] = joint_arr
 
         return grasp_dict
 

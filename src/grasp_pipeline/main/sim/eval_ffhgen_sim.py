@@ -17,7 +17,7 @@ grasp_client = GraspClient(grasp_data_recording_path='/home/vm/',
 metadata_handler = MetadataHandler()
 
 for obj_full in OBJECTS_FOR_EVAL:
-    dset, obj_name = metadata_handler.split_obj_name_full(obj_full)
+    dset, obj_name = metadata_handler.split_full_name(obj_full)
 
     # get metadata on object
     metadata = metadata_handler.get_object_metadata(dset, obj_name)
@@ -44,7 +44,7 @@ for obj_full in OBJECTS_FOR_EVAL:
 
     # Evaluate the generated poses according to the FFHEvaluator
     palm_poses_obj_frame, joint_confs = grasp_client.evaluate_and_remove_grasps(
-        palm_poses_obj_frame, joint_confs, thresh=FILTER_THRESH)
+        palm_poses_obj_frame, joint_confs, thresh=FILTER_THRESH, visualize_poses=True)
 
     # Execute the grasps and record results
     for i in range(len(joint_confs)):

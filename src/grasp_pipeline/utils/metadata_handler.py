@@ -91,7 +91,7 @@ class MetadataHandler():
 
         return object_metadata
 
-    def split_full_name(obj_full):
+    def split_full_name(self, obj_full):
         """Takes a full name in the format dataset_objectname and returns seperated dataset and objectname strings.
         """
         split_name = obj_full.split('_')

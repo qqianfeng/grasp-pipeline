@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import division
 import copy
 import datetime
 from multiprocessing import Process
@@ -943,8 +944,16 @@ class GraspClient():
     def encode_pcd_with_bps(self):
         self.encode_pcd_with_bps_client()
 
-    def evaluate_and_filter_grasps(palm_poses, joint_confs, thresh):
-        return self.evaluate_and_filter_grasp_poses_client(palm_poses, joint_confs, thresh)
+    def evaluate_and_remove_grasps(self, palm_poses, joint_confs, thresh, visualize_poses=True):
+        n_before = len(joint_confs)
+        palm_poses_f, joint_confs_f = self.evaluate_and_filter_grasp_poses_client(
+            palm_poses, joint_confs, thresh)
+        if visualize_poses:
+            self.visualize_grasp_pose_list_client(palm_poses_f)
+        n_after = len(joint_confs_f)
+        print("Remaining grasps after filtering: %.2f" % (n_after / n_before))
+        print("This means %d grasps were removed." % (n_before - n_after))
+        return palm_poses_f, joint_confs_f
 
     def infer_grasp_poses(self, n_poses, visualize_poses=False, bps_object=None):
         if bps_object == None:
