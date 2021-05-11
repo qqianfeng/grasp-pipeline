@@ -223,21 +223,20 @@ class GraspDataHandler():
 
 
 if __name__ == '__main__':
-    # file_path = os.path.join('/home/vm/', 'grasp_data.h5')
-    # file_path = os.path.join('/home/vm/', 'grasp_data.h5')
-    # gdh = GraspDataHandler(file_path=file_path)
-    # gdh.set_sess_name(sess_name='-1')
-    # gdh.print_metadata()
-    # objs = gdh.print_objects()
-    # d = []
-    # for obj in objs:
-    #     p, n, succ = gdh.print_object_metadata(obj, show_grasp=False)
-    #     d.append((obj, p, n, succ))
+    file_path = os.path.join('/home/vm/Documents/2021-05-09_ffhgen_400', 'grasp_data.h5')
+    gdh = GraspDataHandler(file_path=file_path)
+    gdh.set_sess_name(sess_name='-1')
+    gdh.print_metadata()
+    objs = gdh.print_objects()
+    d = []
+    for obj in objs:
+        p, n, succ = gdh.print_object_metadata(obj, show_grasp=False)
+        d.append((obj, p, n, succ))
 
-    # df = pd.DataFrame(d, columns=('object', 'n_pos', 'n_neg', 'succ_r'))
-    # df.to_csv('results.csv')
+    df = pd.DataFrame(d, columns=('object', 'n_pos', 'n_neg', 'succ_r'))
+    df.to_csv('results_400_1.csv')
 
-    df_2 = pd.DataFrame().from_csv('results.csv')
+    df_2 = pd.DataFrame().from_csv('results_400_1.csv')
     print(df_2)
     print(df_2.columns)
     print(df_2.iloc[:, 1])
