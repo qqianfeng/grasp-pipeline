@@ -7,7 +7,7 @@ from grasp_pipeline.grasp_client.grasp_sim_client import GraspClient
 from grasp_pipeline.utils.metadata_handler import MetadataHandler
 from grasp_pipeline.utils.object_names_in_datasets import OBJECTS_FOR_EVAL
 
-N_POSES = 200
+N_POSES = 400
 FILTER_THRESH = 0.5  # set to -1 if no filtering desired
 
 shutil.rmtree('/home/vm/grasp_data', ignore_errors=True)
