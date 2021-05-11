@@ -7,19 +7,17 @@ from grasp_pipeline.grasp_client.grasp_sim_client import GraspClient
 from grasp_pipeline.utils.metadata_handler import MetadataHandler
 from grasp_pipeline.utils.object_names_in_datasets import OBJECTS_FOR_EVAL
 
-n_poses = 400
+N_POSES = 400
+FILTER_THRESH = 0.5  # set to -1 if no filtering desired
 
 shutil.rmtree('/home/vm/grasp_data', ignore_errors=True)
-
 grasp_client = GraspClient(grasp_data_recording_path='/home/vm/',
                            is_rec_sess=True,
                            is_eval_sess=True)
 metadata_handler = MetadataHandler()
 
 for obj_full in OBJECTS_FOR_EVAL:
-    split = obj_full.split('_')
-    dset = split[0]
-    obj_name = '_'.join(split[1:])
+    dset, obj_name = metadata_handler.split_full_name(obj_full)
 
     # get metadata on object
     metadata = metadata_handler.get_object_metadata(dset, obj_name)
@@ -41,11 +39,15 @@ for obj_full in OBJECTS_FOR_EVAL:
     grasp_client.encode_pcd_with_bps()
 
     # Sample N latent variables and get the poses
-    palm_poses_obj_frame, joint_confs = grasp_client.infer_grasp_poses(n_poses=n_poses,
+    palm_poses_obj_frame, joint_confs = grasp_client.infer_grasp_poses(n_poses=N_POSES,
                                                                        visualize_poses=True)
 
+    # Evaluate the generated poses according to the FFHEvaluator
+    palm_poses_obj_frame, joint_confs = grasp_client.evaluate_and_remove_grasps(
+        palm_poses_obj_frame, joint_confs, thresh=FILTER_THRESH, visualize_poses=True)
+
     # Execute the grasps and record results
-    for i in range(n_poses):
+    for i in range(len(joint_confs)):
         if i != 0:
             grasp_client.reset_hithand_and_panda()
 

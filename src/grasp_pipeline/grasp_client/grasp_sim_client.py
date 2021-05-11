@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import division
 import copy
 import datetime
 from multiprocessing import Process
@@ -88,6 +89,12 @@ class GraspClient():
         with open(file_path, 'a') as timing_file:
             timing_file.writelines(self.object_metadata["name_rec_path"] + ': ' + str(cycle_time) +
                                    '\n')
+
+    def log_num_grasps_removed(self, n_grasps_before, n_grasps_after, thresh):
+        file_path = os.path.join(self.base_path, 'num_grasps_removed.txt')
+        with open(file_path, 'a') as f:
+            f.writelines(self.object_metadata["name"] + ', ' + str(thresh) + ', ' +
+                         str(n_grasps_before) + ', ' + str(n_grasps_after) + '\n')
 
     def transform_pose(self, pose, from_frame, to_frame):
         assert pose.header.frame_id == from_frame
@@ -328,6 +335,28 @@ class GraspClient():
         except rospy.ServiceException as e:
             rospy.loginfo('Service encode_pcd_with_bps call failed: %s' % e)
         rospy.loginfo('Service encode_pcd_with_bps is executed.')
+
+    def evaluate_and_filter_grasp_poses_client(self, palm_poses, joint_confs, thresh):
+        """Filter out all the grasp poses for which the FFHEvaluator predicts a success probability of less than thresh
+
+        Args:
+            palm_poses ([type]): [description]
+            joint_confs ([type]): [description]
+            thresh (float): Minimum probability of success. Between 0 and 1
+        """
+        wait_for_service('evaluate_and_filter_grasp_poses')
+        try:
+            evaluate_and_filter_grasp_poses = rospy.ServiceProxy('evaluate_and_filter_grasp_poses',
+                                                                 EvaluateAndFilterGraspPoses)
+            req = EvaluateAndFilterGraspPosesRequest()
+            req.thresh = thresh
+            req.palm_poses = palm_poses
+            req.joint_confs = joint_confs
+            res = evaluate_and_filter_grasp_poses(req)
+        except rospy.ServiceException, e:
+            rospy.loginfo('Service evaluate_and_filter_grasp_poses call failed: %s' % e)
+        rospy.loginfo('Service evaluate_and_filter_grasp_poses.')
+        return res.palm_poses, res.joint_confs
 
     def execute_joint_trajectory_client(self, smoothen_trajectory=True, speed='fast'):
         """ Service call to smoothen and execute a joint trajectory.
@@ -921,6 +950,18 @@ class GraspClient():
     def encode_pcd_with_bps(self):
         self.encode_pcd_with_bps_client()
 
+    def evaluate_and_remove_grasps(self, palm_poses, joint_confs, thresh, visualize_poses=True):
+        n_before = len(joint_confs)
+        palm_poses_f, joint_confs_f = self.evaluate_and_filter_grasp_poses_client(
+            palm_poses, joint_confs, thresh)
+        if visualize_poses:
+            self.visualize_grasp_pose_list_client(palm_poses_f)
+        n_after = len(joint_confs_f)
+        print("Remaining grasps after filtering: %.2f" % (n_after / n_before))
+        print("This means %d grasps were removed." % (n_before - n_after))
+        self.log_num_grasps_removed(n_before, n_after, thresh)
+        return palm_poses_f, joint_confs_f
+
     def infer_grasp_poses(self, n_poses, visualize_poses=False, bps_object=None):
         if bps_object == None:
             bps_object = np.load(self.bps_object_path)
@@ -1022,6 +1063,14 @@ class GraspClient():
         self.save_visual_data_client(save_pcd=False)
 
     def save_visual_data_and_segment_object(self, down_sample_pcd=True, object_pcd_record_path=''):
+        """Does what it says.
+
+        Args:
+            down_sample_pcd (bool, optional): If this is True the pcd will be down sampled. It is
+            necessary to down_sample during data gen, because for each point of the pcd one pose will be computed.
+            During inference it should not be down sampled. Defaults to True.
+            object_pcd_record_path (str, optional): [description]. Defaults to ''.
+        """
         if down_sample_pcd == True:
             print(
                 "Point cloud will be down_sampled AND transformed to WORLD frame. This is not correct for testing grasp sampler!"

@@ -261,6 +261,30 @@ def get_objects_few_grasps(n_min, base_path='/home/vm/data/ffhnet-data'):
         print("'" + obj + "',")
 
 
+def reduce_joint_conf(jc_full):
+    """Turn the 20 DoF input joint array into 15 DoF by either dropping each 3rd or 4th joint value, depending on which is smaller.
+
+    Args:
+        jc_full (np array): 20 dimensional array of hand joint values
+
+    Returns:
+        jc_red (np array): 15 dimensional array of reduced hand joint values
+    """
+    idx = 0
+    jc_red = np.zeros((15, ))
+    for i, _ in enumerate(jc_red):
+        if (i + 1) % 3 == 0:
+            if jc_full[idx + 1] > jc_full[idx]:
+                jc_red[i] = jc_full[idx + 1]
+            else:
+                jc_red[i] = jc_full[idx]
+            idx += 2
+        else:
+            jc_red[i] = jc_full[idx]
+            idx += 1
+    return jc_red
+
+
 if __name__ == '__main__':
     # folder_path = '/home/vm/Documents/grasp_data_generated_on_this_machine/2021-04-09_02/grasp_data/recording_sessions/recording_session_0001'
     # l = list_of_objects_from_folder(folder_path)

@@ -34,6 +34,7 @@ add_service_files(
     FILES
     CheckPoseValidity.srv
     ControlHithand.srv
+    EvaluateAndFilterGraspPoses.srv
     ExecuteJointTrajectory.srv
     FilterPalmPoses.srv
     GenVoxelFromPcd.srv
