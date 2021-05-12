@@ -223,7 +223,8 @@ class GraspDataHandler():
 
 
 if __name__ == '__main__':
-    file_path = os.path.join('/home/vm/Documents/2021-05-09_ffhgen_400', 'grasp_data.h5')
+    # file_path = os.path.join('/home/vm/Documents/2021-05-09_ffhgen_400', 'grasp_data.h5')
+    file_path = os.path.join('/home/vm', 'grasp_data.h5')
     gdh = GraspDataHandler(file_path=file_path)
     gdh.set_sess_name(sess_name='-1')
     gdh.print_metadata()
@@ -234,9 +235,9 @@ if __name__ == '__main__':
         d.append((obj, p, n, succ))
 
     df = pd.DataFrame(d, columns=('object', 'n_pos', 'n_neg', 'succ_r'))
-    df.to_csv('results_400_1.csv')
+    df.to_csv('results_400_thresh_70.csv')
 
-    df_2 = pd.DataFrame().from_csv('results_400_1.csv')
+    df_2 = pd.DataFrame().from_csv('results_400_thresh_70.csv')
     print(df_2)
     print(df_2.columns)
     print(df_2.iloc[:, 1])
