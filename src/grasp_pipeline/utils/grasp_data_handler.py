@@ -235,9 +235,9 @@ if __name__ == '__main__':
         d.append((obj, p, n, succ))
 
     df = pd.DataFrame(d, columns=('object', 'n_pos', 'n_neg', 'succ_r'))
-    df.to_csv('results_400_thresh_70.csv')
+    df.to_csv('results_400_thresh_90.csv')
 
-    df_2 = pd.DataFrame().from_csv('results_400_thresh_70.csv')
+    df_2 = pd.DataFrame().from_csv('results_400_thresh_90.csv')
     print(df_2)
     print(df_2.columns)
     print(df_2.iloc[:, 1])
