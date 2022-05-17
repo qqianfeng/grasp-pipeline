@@ -247,6 +247,8 @@ class GetPreshapeForAllPoints():
             self.bounding_box_face_centers_pub.publish(markerArray)
 
     def visualize(self, points):
+        if not self.VISUALIZE:
+            return
         pcd_vis = o3d.geometry.PointCloud()
         pcd_vis.points = o3d.utility.Vector3dVector(points)
         pcd_vis.paint_uniform_color([1, 0, 0])
@@ -496,11 +498,6 @@ class GetPreshapeForAllPoints():
             # Finally also sample a hithand joint state
             max_weight = -0.08 * face.get_shorter_side_size() + 1.16
             joint_state = self.sample_hithand_joint_state(max_weight=max_weight)
-
-            frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.03)
-            hom = utils.hom_matrix_from_pose_stamped(palm_pose)
-            frame.transform(hom)
-            o3d.visualization.draw_geometries([frame, ob])
 
             # Append
             self.palm_goal_poses.append(palm_pose)

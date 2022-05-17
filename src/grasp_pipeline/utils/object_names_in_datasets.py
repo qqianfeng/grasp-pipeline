@@ -1,4 +1,5 @@
 YCB_OBJECTS = [
+    "006_mustard_bottle",
     "003_cracker_box",
     "005_tomato_soup_can",
     "008_pudding_box",
@@ -262,9 +263,28 @@ DO_NOT_CONSIDER_NEGATIVE_GRASPS_BEFORE_15_04 = [
     'bigbird_pop_secret_butter'
 ]
 
-# Objects used for evaluation
+# Objects used for evaluation 'ycb_006_mustard_bottle',
 OBJECTS_FOR_EVAL = [
     'kit_BathDetergent', 'kit_Sprayflask', 'kit_InstantSauce', 'kit_BakingSoda',
     'kit_BroccoliSoup', 'kit_CoughDropsLemon', 'kit_Curry', 'kit_FizzyTabletsCalcium',
     'kit_NutCandy', 'kit_PotatoeDumplings', 'kit_TomatoSoup', 'kit_YellowSaltCube2'
+]
+# OBJECTS_FOR_EVAL = ["ycb_006_mustard_bottle"]
+
+OBJECTS_DATA_GEN_PAPER_VIDEO = [
+    "bigbird_red_bull",
+    'bigbird_pringles_bbq',
+    'bigbird_v8_fusion_peach_mango',
+    'bigbird_softsoap_gold',
+    "kit_CokePlasticSmallGrasp",
+    "kit_InstantMousse",
+    "kit_KoalaCandy",
+    "kit_PotatoeSticks"
+    "kit_Shampoo",
+    "kit_Sprudelflasche",
+    "kit_PowderedSugar",
+    "kit_PowderedSugarMill",
+    "kit_Peanuts",
+    "kit_Deodorant",
+    "kit_DropsOrange",
 ]
