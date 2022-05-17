@@ -22,6 +22,7 @@ def mkdir(base_folder, folder_name=None):
 
 def test_grasp_pose_transform(dset_obj_name, grasp_client):
     # Create data and metadata handler
+    # TODO: Where is this data???????????????
     file_path = os.path.join("/home/vm/data", "grasp_data.h5")
     data_handler = GraspDataHandler(file_path=file_path, sess_name='recording_session_0001')
 

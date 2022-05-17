@@ -11,10 +11,10 @@ class MetadataHandler():
     """
     def __init__(self, gazebo_objects_path='/home/vm/gazebo-objects/objects_gazebo'):
         #self.datasets = [BIGBIRD_OBJECTS]
-        self.datasets = [BIGBIRD_OBJECTS, KIT_OBJECTS, YCB_OBJECTS]
+        self.datasets = [YCB_OBJECTS, BIGBIRD_OBJECTS, KIT_OBJECTS]
 
         #self.datasets_name = ['bigbird']
-        self.datasets_name = ['bigbird', 'kit', 'ycb']
+        self.datasets_name = ['ycb', 'bigbird', 'kit']
 
         self.object_ix = -1
         self.dataset_ix = 0

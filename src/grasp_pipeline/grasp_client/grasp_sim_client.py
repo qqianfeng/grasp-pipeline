@@ -1073,7 +1073,7 @@ class GraspClient():
         """
         if down_sample_pcd == True:
             print(
-                "Point cloud will be down_sampled AND transformed to WORLD frame. This is not correct for testing grasp sampler!"
+                "Point cloud will be down sampled AND transformed to WORLD frame. This is not correct for testing grasp sampler!"
             )
         else:
             print(

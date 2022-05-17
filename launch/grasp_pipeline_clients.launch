@@ -4,9 +4,9 @@
     <arg name="sim" default="true"/>
     <arg name="utah_planner" value="false"/>
     <!-- +++++++++++++++++++++++++++++++++++++++++++++++++ -->
+    <!-- No this file found: voxel_plan_sim_client.py-->
     <group if="$(arg voxel_planner)">
-        <node name="grasp_client_node" pkg="grasp_pipeline" type="voxel_plan_sim_client.py" 
-            output="screen" if="$(arg simulation)">
+        <node name="grasp_client_node" pkg="grasp_pipeline" type="voxel_plan_sim_client.py" output="screen" if="$(arg simulation)">
         </node>
     </group>
 </launch>
