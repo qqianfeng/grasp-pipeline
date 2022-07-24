@@ -6,12 +6,14 @@ import torch
 
 from FFHNet.models.ffhnet import FFHNet
 from FFHNet.config.eval_config import EvalConfig
+from FFHNet.utils import visualization
+
 from geometry_msgs.msg import PoseStamped
 from grasp_pipeline.srv import *
 from grasp_pipeline.utils import utils
 from sensor_msgs.msg import JointState
 
-
+# TODO: add visualization to the inference step with module from FFHNet
 class GraspInference():
     def __init__(self):
         rospy.init_node('grasp_inference_node')

@@ -80,7 +80,9 @@ class ObjectSegmenter():
 
     # +++++++++++++++++ Part I: Helper functions ++++++++++++++++++++++++
     def init_pcd_frame(self, pcd_topic):
-        if pcd_topic == '/camera/depth/points':
+        # as stated in grasp-pipeline/launch/grasp_pipeline_servers_real.launch, the pcd_topic for
+        # realsense is either /camera/depth/points from simulation or the other one in real world
+        if pcd_topic == '/camera/depth/points' or pcd_topic == '/camera/depth/color/points':
             self.pcd_frame = 'camera_depth_optical_frame'
         elif pcd_topic == '/depth_registered_points':
             self.pcd_frame = 'camera_color_optical_frame'

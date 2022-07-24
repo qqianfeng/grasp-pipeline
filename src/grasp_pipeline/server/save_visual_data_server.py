@@ -29,7 +29,9 @@ class VisualDataSaver():
         rospy.sleep(0.5)  # essential, otherwise next line crashes
 
         self.scene_pcd_topic = rospy.get_param('scene_pcd_topic', default='/camera/depth/points')
-        if self.scene_pcd_topic == '/camera/depth/points':
+        # as stated in grasp-pipeline/launch/grasp_pipeline_servers_real.launch, the pcd_topic for
+        # realsense is either /camera/depth/points from simulation or the other one in real world    
+        if self.scene_pcd_topic == '/camera/depth/points' or self.scene_pcd_topic == '/camera/depth/color/points':
             pcd_frame = 'camera_depth_optical_frame'
         elif self.scene_pcd_topic == '/depth_registered_points':
             pcd_frame = 'camera_color_optical_frame'

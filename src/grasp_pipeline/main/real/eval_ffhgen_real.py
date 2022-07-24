@@ -10,7 +10,8 @@ n_poses = 10
 grasp_client = GraspClient(is_rec_sess=False)
 metadata_handler = MetadataHandler()
 
-while True:
+i = 1
+while i<= 1:
     # Reset
     grasp_client.reset_hithand_and_panda()
 
@@ -24,6 +25,7 @@ while True:
     palm_poses_obj_frame, joint_confs = grasp_client.infer_grasp_poses(n_poses=n_poses,
                                                                        visualize_poses=True)
 
+    # TODO: Why we can execute grasps for real world experiemnts with unknown objects?
     # Execute the grasps and record results
     for i in range(n_poses):
         if i != 0:
@@ -33,3 +35,4 @@ while True:
 
         grasp_arm_plan = grasp_client.grasp_from_inferred_pose(palm_poses_obj_frame[i],
                                                                joint_confs[i])
+    i += 1
