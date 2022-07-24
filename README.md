@@ -11,7 +11,7 @@ the (base) environment must hold the pip-installed packages listed in `misc/cond
 The script `scripts/encode_pcd_with_bps.sh` can be started from a ros launch file, creates an additional xterm terminal, sources
 the conda python 3.8 (base) environment and starts the server `encode_pcd_with_bps.py` from there. The server uses roslibpy to handle communication between ROS/python 2.7 and python 3.8.
 
-## Run evaluation of model in simulation
+## Run evaluation of model
 
 Start the panda_simulator\
 `roslaunch panda_gazebo panda_hithand.launch`
@@ -22,6 +22,10 @@ Start the panda_hithand_moveit_config\
 Start the grasp_pipeline. This exposes the the grasping servers.\
 `roslaunch grasp_pipeline grasp_pipeline_servers_eval_ffhnet.launch`
 
-Open another terminal and activate conda base environment\
+Open another terminal and activate conda base environment, to run in simulation\
 `cd /hand_ws/src/grasp-pipeline/src/grasp_pipeline/main/sim`\
 `python2 eval_ffhgen_sim.py`
+
+Altenatively, to run in real world
+`cd /hand_ws/src/grasp-pipeline/src/grasp_pipeline/main/real`\
+`python2 eval_ffhgen_real.py`
