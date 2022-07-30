@@ -19,13 +19,27 @@ Start the panda_simulator\
 Start the panda_hithand_moveit_config\
 `roslaunch panda_hithand_moveit_config panda_hithand_moveit.launch`
 
+1. To run in simulation
 Start the grasp_pipeline. This exposes the the grasping servers.\
 `roslaunch grasp_pipeline grasp_pipeline_servers_eval_ffhnet.launch`
 
-Open another terminal and activate conda base environment, to run in simulation\
-`cd /hand_ws/src/grasp-pipeline/src/grasp_pipeline/main/sim`\
+Open another terminal and activate conda base environment\
+`cd ~/hand_ws/src/grasp-pipeline/src/grasp_pipeline/main/sim`\
 `python2 eval_ffhgen_sim.py`
 
-Altenatively, to run in real world
-`cd /hand_ws/src/grasp-pipeline/src/grasp_pipeline/main/real`\
+2. To run in real world
+`roslaunch grasp_pipeline grasp_pipeline_servers_real.launch`
+
+Tune distance threshold parameter to exclude background\
+`~/hand_ws/src/grasp-pipeline/src/grasp_pipeline/server/sim/segment_object_server.py`
+
+`cd ~/hand_ws/src/grasp-pipeline/src/grasp_pipeline/main/real`\
 `python2 eval_ffhgen_real.py`
+
+TODO:
+-> grasp-pipeline/src/grasp_pipeline/server/infer_grasp_poses_server.py
+add visualizations
+
+## Issue
+
+Current segmentation method use plane segmentation. Every point cloud except the estimated plane will be treated as objects for bbox calculation. Removing noises from background is neccesary.
