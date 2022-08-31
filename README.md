@@ -28,17 +28,13 @@ Open another terminal and activate conda base environment\
 `python2 eval_ffhgen_sim.py`
 
 2. To run in real world
-`roslaunch grasp_pipeline grasp_pipeline_servers_real.launch`
+`roslaunch grasp_pipeline grasp_pipeline_servers_real_vision_only.launch`
 
 Tune distance threshold parameter to exclude background\
 `~/hand_ws/src/grasp-pipeline/src/grasp_pipeline/server/sim/segment_object_server.py`
 
 `cd ~/hand_ws/src/grasp-pipeline/src/grasp_pipeline/main/real`\
 `python2 eval_ffhgen_real.py`
-
-TODO:
--> grasp-pipeline/src/grasp_pipeline/server/infer_grasp_poses_server.py
-add visualizations
 
 ## Issue
 

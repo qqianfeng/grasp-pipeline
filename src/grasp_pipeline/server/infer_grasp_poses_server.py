@@ -125,9 +125,11 @@ class GraspInference():
         results = self.FFHNet.filter_grasps(
             bps_object, grasp_dict, thresh=req.thresh)
 
+        # Visualization
         n_grasps_filt = results['rot_matrix'].shape[0]
 
-        n_samples = req.n_poses
+        palm_poses = req.palm_poses
+        n_samples = len(palm_poses)
         print("n_grasps after filtering: %d" % n_grasps_filt)
         print("This means %.2f of grasps pass the filtering" %
               (n_grasps_filt / n_samples))

@@ -3,6 +3,7 @@
 <launch>
     <!-- +++++++NOTE: The different paths in the args must be modified for your machine. ++++++++ -->
     <arg name="launch_rosbridge" default="true"/>
+    <arg name="simulation" default="false"/>
 
     <!-- +++++++++++++++++++ Set the params needed by the different nodes ++++++++++++++++++++++++++++++++ -->
     <param name="object_pcd_path" value="/home/vm/object.pcd" type="string"/>
