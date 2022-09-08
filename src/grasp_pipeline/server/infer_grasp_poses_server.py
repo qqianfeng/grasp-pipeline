@@ -3,6 +3,11 @@ import numpy as np
 import rospy
 import tf.transformations as tft
 import torch
+import os
+import sys
+
+# Add FFHNet to the path
+sys.path.append(rospy.get_param('ffhnet_path'))
 
 from FFHNet.models.ffhnet import FFHNet
 from FFHNet.config.eval_config import EvalConfig
@@ -15,7 +20,6 @@ from sensor_msgs.msg import JointState
 
 # TODO: add visualization to the inference step with module from FFHNet
 
-
 class GraspInference():
     def __init__(self):
         rospy.init_node('grasp_inference_node')
@@ -24,11 +28,11 @@ class GraspInference():
         self.pcd_path = rospy.get_param('object_pcd_path')
 
         self.FFHNet = FFHNet(cfg)
-        self.FFHNet.load_ffhgenerator(epoch=10, load_path='/home/vm/hand_ws/src/ffhnet/models/ffhgenerator'
-                                      )
+        ffhnet_path = rospy.get_param('ffhnet_path')
+        self.FFHNet.load_ffhgenerator(epoch=10, load_path=os.path.join(ffhnet_path, 'models/ffhgenerator'))
         self.FFHNet.load_ffhevaluator(
             epoch=30,
-            load_path='/home/vm/hand_ws/src/ffhnet/models/ffhevaluator')
+            load_path=os.path.join(ffhnet_path, 'models/ffhevaluator'))
 
     def build_pose_list(self, rot_matrix, transl, frame_id='object_centroid_vae'):
         assert rot_matrix.shape[1:] == (
@@ -67,7 +71,7 @@ class GraspInference():
 
     def handle_infer_grasp_poses(self, req):
         # reshape
-        bps_object = np.load('/home/vm/pcd_enc.npy')
+        bps_object = np.load(rospy.get_param('object_pcd_enc_path'))
         n_samples = req.n_poses
         results = self.FFHNet.generate_grasps(
             bps_object, n_samples=n_samples, return_arr=True)
@@ -120,12 +124,11 @@ class GraspInference():
         return grasp_dict
 
     def handle_evaluate_and_filter_grasp_poses(self, req):
-        bps_object = np.load('/home/vm/pcd_enc.npy')
+        bps_object = np.load(rospy.get_param('object_pcd_enc_path'))        
         grasp_dict = self.to_grasp_dict(req.palm_poses, req.joint_confs)
         results = self.FFHNet.filter_grasps(
             bps_object, grasp_dict, thresh=req.thresh)
 
-        # Visualization
         n_grasps_filt = results['rot_matrix'].shape[0]
 
         palm_poses = req.palm_poses
@@ -147,7 +150,7 @@ class GraspInference():
         return res
 
     def handle_evaluate_grasp_poses(self, req):
-        bps_object = np.load('/home/vm/pcd_enc.npy')
+        bps_object = np.load(rospy.get_param('object_pcd_enc_path'))
         # Build a dict with all the grasps
         p_success = self.FFHNet.evaluate_grasps(
             bps_object, grasps, return_arr=True)

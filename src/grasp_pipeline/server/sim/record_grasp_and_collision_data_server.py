@@ -15,9 +15,7 @@ class RecordGraspData():
     def __init__(self):
         if not DEBUG:
             rospy.init_node('record_grasp_and_collision_data_node')
-            self.data_recording_path = rospy.get_param('data_recording_path', '/home/vm')
-        else:
-            self.data_recording_path = '/home/vm'
+        self.data_recording_path = rospy.get_param('data_recording_path')
 
         # if os.path.exists('/home/vm/grasp_data.h5'):
         #     os.remove('/home/vm/grasp_data.h5')

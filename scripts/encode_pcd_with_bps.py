@@ -4,12 +4,14 @@ When it is called it will compute the BPS encoding of the object.
 import bps_torch.bps as b_torch
 import numpy as np
 import roslibpy as rlp
+import rospy
 import open3d as o3d
 import torch
+import os
 
 
 class BPSEncoder():
-    def __init__(self, client, bps_path='/home/vm/data/ffhnet-data/basis_point_set.npy'):
+    def __init__(self, client, bps_path=os.path.join(rospy.get_param('ffhnet_path'), 'models/basis_point_set.npy')):
         self.client = client
         service = rlp.Service(client, '/encode_pcd_with_bps', 'std_srvs/SetBool')
         service.advertise(self.handle_encode_pcd_with_bps)
@@ -17,16 +19,19 @@ class BPSEncoder():
         self.bps_np = np.load(bps_path)
         self.bps = b_torch.bps_torch(custom_basis=self.bps_np)
 
-        self.pcd_path = '/home/vm/object.pcd'
-        self.enc_path = '/home/vm/pcd_enc.npy'
+        self.pcd_path = rospy.get_param('object_pcd_path')
+        self.enc_path = rospy.get_param('object_pcd_enc_path')
+
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         self.VISUALIZE = False
 
     def handle_encode_pcd_with_bps(self, req, res):
         obj_pcd = o3d.io.read_point_cloud(self.pcd_path)
-        obj_np = np.asarray(obj_pcd.points)
+        obj_tensor = torch.from_numpy(np.asarray(obj_pcd.points))
+        obj_tensor.to(self.device)
 
-        enc_dict = self.bps.encode(obj_np)
+        enc_dict = self.bps.encode(obj_tensor)
         enc_np = enc_dict['dists'].cpu().detach().numpy()
         np.save(self.enc_path, enc_np)
 
