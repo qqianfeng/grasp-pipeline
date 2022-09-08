@@ -104,8 +104,8 @@ class ObjectSegmenter():
         vis.create_window()
         vis.add_geometry(origin)
         vis.add_geometry(pcd)
-        vis.get_render_option().load_from_json(
-            "/home/vm/hand_ws/src/grasp-pipeline/save.json")
+        vis.get_render_option().load_from_json(os.path.join(
+            ros.get_param('hithand_ws_path'), "src/grasp-pipeline/save.json"))
         vis.run()
 
     def custom_draw_scene(self, pcd):
