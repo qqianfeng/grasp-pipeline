@@ -59,18 +59,16 @@
     <!-- ========================================= Independent of SIM vs. REAL ============================================= -->
 
     <!-- Launch node which advertises service to segment the table from an object -->
-    <node name="object_segmentation_node" pkg="grasp_pipeline" type="segment_object_server.py" output="screen"/>
+    <!-- <node name="object_segmentation_node" pkg="grasp_pipeline" type="segment_object_server.py" output="screen"/> -->
 
     <!-- Manage moveit scene -->
     <!-- <node name="manage_moveit_scene_node" pkg="grasp_pipeline" type="manage_moveit_scene_server.py" output="screen">
         <param name="sim" type="bool" value="$(arg simulation)"/>
     </node> -->
 
-    <!-- Generate a preshape for each point  -->
-    <node name="get_preshape_for_all_points_node" pkg="grasp_pipeline" type="get_preshape_for_all_points_server.py" output="screen"/>
-
+    <!-- TODO: Collision checking with point cloud -->
     <!-- Filter palm poses based on collision with object or ground plane -->
-    <node name="filter_palm_goal_poses_node" pkg="grasp_pipeline" type="filter_palm_goal_poses_server.py" output="screen"/>
+    <!-- <node name="filter_palm_goal_poses_node" pkg="grasp_pipeline" type="filter_palm_goal_poses_server.py" output="screen"/> -->
 
     <!-- Moveit planner node for panda arm -->
     <!-- <node name="plan_arm_trajectory_server_node" pkg="grasp_pipeline" type="plan_arm_trajectory_server.py" output="screen"/> -->
