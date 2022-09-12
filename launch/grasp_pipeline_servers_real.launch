@@ -97,6 +97,6 @@
     </group>
 
     <!-- Record grasping data -->
-    <node name="record_grasp_and_collision_data_node" pkg="grasp_pipeline" type="record_grasp_and_collision_data_server.py" output="screen"/>
+    <!-- <node name="record_grasp_and_collision_data_node" pkg="grasp_pipeline" type="record_grasp_and_collision_data_server.py" output="screen"/> -->
 
 </launch>
