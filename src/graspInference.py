@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 import numpy as np
-import rospy
 import tf.transformations as tft
 import torch
 import os
 import sys
+import copy
 
 # Add FFHNet to the path
 sys.path.append(os.environ['FFHNET_PATH'])
@@ -15,10 +15,8 @@ from FFHNet.models.ffhnet import FFHNet
 from FFHNet.config.eval_config import EvalConfig
 from FFHNet.utils import visualization
 
-from geometry_msgs.msg import PoseStamped
-#from grasp_pipeline.srv import *
 from grasp_pipeline.utils import utils
-from sensor_msgs.msg import JointState
+from data_types import *
 
 # TODO: add visualization to the inference step with module from FFHNet
 
@@ -58,7 +56,7 @@ class GraspInference():
             pose_st.pose.orientation.z = quat[2]
             pose_st.pose.orientation.w = quat[3]
 
-            poses.append(pose_st)
+            poses.append(copy.deepcopy(pose_st))
 
         return poses
 
@@ -131,11 +129,10 @@ class GraspInference():
 
         n_grasps_filt = results['rot_matrix'].shape[0]
 
-        palm_poses = palm_poses
         n_samples = len(palm_poses)
         print("n_grasps after filtering: %d" % n_grasps_filt)
         print("This means %.2f of grasps pass the filtering" %
-              (n_grasps_filt / n_samples))
+              (float(n_grasps_filt) / float(n_samples)))
 
         if self.VISUALIZE:
             visualization.show_generated_grasp_distribution(
