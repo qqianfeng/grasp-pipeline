@@ -1,0 +1,9 @@
+# Adjust user-specific paths
+
+export OBJECT_PCD_PATH=/home/yb/object.pcd
+export OBJECT_PCD_ENC_PATH=/home/yb/pcd_enc.npy
+export SCENE_PCD_PATH=/home/yb/scene.pcd
+export FFHNET_PATH=/home/yb/Projects/FFHNet
+export SIAMMASK_PATH=/home/yb/Projects/siammask
+export DATA_RECORDING_PATH=/home/yb
+export HITHAND_WS_PATH=/home/yb/Projects/hithand_ws
