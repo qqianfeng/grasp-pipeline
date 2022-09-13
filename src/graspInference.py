@@ -15,7 +15,6 @@ from FFHNet.models.ffhnet import FFHNet
 from FFHNet.config.eval_config import EvalConfig
 from FFHNet.utils import visualization
 
-from grasp_pipeline.utils import utils
 from data_types import *
 
 # TODO: add visualization to the inference step with module from FFHNet
