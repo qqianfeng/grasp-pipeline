@@ -4,15 +4,15 @@ from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import os
 import open3d as o3d
-import rospy
+#import rospy
 import pandas as pd
 import pylab
-import tf.transformations as tft
+#import tf.transformations as tft
 
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Header
-from sensor_msgs.msg import Image, PointCloud2, PointField, JointState
-import sensor_msgs.point_cloud2 as pc2
+#from sensor_msgs.msg import Image, PointCloud2, PointField, JointState
+#import sensor_msgs.point_cloud2 as pc2
 
 
 def convert_to_full_voxel_grid(sparse_grid):

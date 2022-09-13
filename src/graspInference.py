@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import numpy as np
-import tf.transformations as tft
+from scipy.spatial.transform import Rotation as R
 import torch
 import os
 import sys
@@ -42,8 +42,8 @@ class GraspInference():
         poses = []
 
         for i in range(rot_matrix.shape[0]):
-            rot_hom = utils.hom_matrix_from_rot_matrix(rot_matrix[i, :, :])
-            quat = tft.quaternion_from_matrix(rot_hom)
+            r = R.from_matrix(rot_matrix[i, :, :])
+            quat = r.as_quat()
             t = transl[i, :]
 
             pose_st = PoseStamped()
@@ -108,8 +108,8 @@ class GraspInference():
             q = palm_pose.pose.orientation
             t = palm_pose.pose.position
 
-            rot_matrix_arr[i, :, :] = tft.quaternion_matrix(
-                [q.x, q.y, q.z, q.w])[:3, :3]
+            r = R.from_quat(np.array([q.x, q.y, q.z, q.w]))
+            rot_matrix_arr[i, :, :] = r.as_matrix()
             transl_arr[i, :] = [t.x, t.y, t.z]
             joint_arr[i, :] = np.array(joint_conf.position)
 
@@ -151,16 +151,3 @@ class GraspInference():
         # Build a dict with all the grasps
         p_success = self.FFHNet.evaluate_grasps(
             bps_object, grasps, return_arr=True)
-
-
-"""if __name__ == '__main__':
-    gi = GraspInference()
-    palm_poses, joint_confs = gi.handle_infer_grasp_poses(10)
-    print(palm_poses)
-    print("AAANNNNDDDDD...")
-    print(joint_confs)
-    palm_poses, joint_confs = gi.handle_evaluate_and_filter_grasp_poses(palm_poses, joint_confs, thresh=0.8)
-    print("------------------------------------------------------------------------------------")
-    print(palm_poses)
-    print("AAANNNNDDDDD...")
-    print(joint_confs)"""
