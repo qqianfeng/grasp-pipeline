@@ -11,7 +11,7 @@
     <param name="scene_pcd_path" value="/home/yb/scene.pcd" type="string"/>
     <param name="object_datasets_folder" value="/home/yb/Projects/gazebo-objects" type="string"/>
     <param name="color_img_save_path" value="/home/yb/scene.jpg" type="string"/>
-    <param name="depth_img_save_path" value="/home/yb/depth.pgn" type="string"/>
+    <param name="depth_img_save_path" value="/home/yb/depth.png" type="string"/>
     <param name="ffhnet_path" value="/home/yb/Projects/FFHNet" type="string"/>
     <param name="data_recording_path" value="/home/yb" type="string"/>
     <param name="hithand_ws_path" value="/home/yb/Projects/hithand_ws" type="string"/>

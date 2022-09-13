@@ -4,6 +4,7 @@ import datetime
 from multiprocessing import Process
 import numpy as np
 import os
+import open3d as o3d
 import rospy
 import tf
 import tf.transformations as tft
@@ -48,8 +49,7 @@ class GraspClient():
         self.pcd = None
 
         # These variables get changed dynamically during execution to store relevant data under correct folder
-        self.color_img_save_path = None
-        self.depth_img_save_path = None
+
         self.base_path = '/home/vm'
         self.scene_pcd_save_path = os.path.join(self.base_path, 'scene.pcd')
         self.object_pcd_save_path = os.path.join(self.base_path, 'object.pcd')
@@ -114,6 +114,26 @@ class GraspClient():
         """
         self.spawn_object_x_min, self.spawn_object_x_max = 0.25, 0.65
         self.spawn_object_y_min, self.spawn_object_y_max = -0.2, 0.2
+
+    def show_grasps_o3d_viewer(self, palm_poses):
+        """Visualize the sampled grasp poses in open3d along with the object point cloud.
+
+        Args:
+            palm_poses (list of PoseStamped): Sampled poses.
+        """
+        frames = []
+        for i in range(0, len(palm_poses)):
+            palm_hom = utils.hom_matrix_from_pose_stamped(palm_poses[i])
+            frame = o3d.geometry.TriangleMesh.create_coordinate_frame(0.01).transform(palm_hom)
+            frames.append(frame)
+
+        #visualize
+        orig = o3d.geometry.TriangleMesh.create_coordinate_frame(0.01)
+        frames.append(orig)
+
+        obj = o3d.io.read_point_cloud(self.object_pcd_save_path)
+        frames.append(obj)
+        o3d.visualization.draw_geometries(frames)
 
     # ++++++++ PART II: Second part consist of all clients that interact with different nodes/services ++++++++++++
     def control_hithand_config_client(self, joint_conf=None):

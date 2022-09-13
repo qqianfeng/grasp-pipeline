@@ -37,6 +37,9 @@
     <group unless="$(arg simulation)">
         <!-- Camera is no longer attached to robot model directly as in simulation. Therefore, publish transform from camera link to world -->
         <node name="world_to_camera_depth_optical_frame" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 1 world camera_depth_optical_frame 100" />
+        <!-- Insert camera pose: x y z q1 q2 q3 q4 -->
+        <!-- <node name="world_to_camera_depth_optical_frame" pkg="tf" type="static_transform_publisher"
+            args="0.4 -0.35 0.3 -0.10566872  0.10566872  0.69916673  0.69916673 world camera_depth_optical_frame 100" /> -->
 
         <group ns="camera">
             <include file="$(find realsense2_camera)/launch/includes/nodelet.launch.xml">
