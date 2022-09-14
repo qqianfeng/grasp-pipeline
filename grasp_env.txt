@@ -7,3 +7,6 @@ export FFHNET_PATH=/home/yb/Projects/FFHNet
 export SIAMMASK_PATH=/home/yb/Projects/siammask
 export DATA_RECORDING_PATH=/home/yb
 export HITHAND_WS_PATH=/home/yb/Projects/hithand_ws
+
+# Adjust settings
+export VISUALIZE=1
