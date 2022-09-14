@@ -9,8 +9,6 @@ import copy
 # Add FFHNet to the path
 sys.path.append(os.environ['FFHNET_PATH'])
 
-print(os.getcwd())
-
 from FFHNet.models.ffhnet import FFHNet
 from FFHNet.config.eval_config import EvalConfig
 from FFHNet.utils import visualization
