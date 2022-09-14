@@ -67,7 +67,8 @@ class GraspInference():
 
     def handle_infer_grasp_poses(self, n_poses):
         # reshape
-        bps_object = np.load(os.environ['OBJECT_PCD_ENC_PATH'])
+        bps_object_center = np.load(os.environ['OBJECT_PCD_ENC_PATH'])
+        bps_object = bps_object_center[:, 6:]
         n_samples = n_poses
         results = self.FFHNet.generate_grasps(
             bps_object, n_samples=n_samples, return_arr=True)
@@ -119,7 +120,8 @@ class GraspInference():
         return grasp_dict
 
     def handle_evaluate_and_filter_grasp_poses(self, palm_poses, joint_confs, thresh):
-        bps_object = np.load(os.environ['OBJECT_PCD_ENC_PATH'])        
+        bps_object_center = np.load(os.environ['OBJECT_PCD_ENC_PATH'])
+        bps_object = bps_object_center[:, 6:]
         grasp_dict = self.to_grasp_dict(palm_poses, joint_confs)
         results = self.FFHNet.filter_grasps(
             bps_object, grasp_dict, thresh=thresh)
@@ -144,7 +146,8 @@ class GraspInference():
         return palm_poses, joint_confs
 
     def handle_evaluate_grasp_poses(self, req):
-        bps_object = np.load(os.environ['OBJECT_PCD_ENC_PATH'])
+        bps_object_center = np.load(os.environ['OBJECT_PCD_ENC_PATH'])
+        bps_object = bps_object_center[:, 6:]
         # Build a dict with all the grasps
         p_success = self.FFHNet.evaluate_grasps(
             bps_object, grasps, return_arr=True)
