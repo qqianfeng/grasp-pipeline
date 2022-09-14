@@ -6,7 +6,7 @@ export SCENE_PCD_PATH=/home/yb/scene.pcd
 export FFHNET_PATH=/home/yb/Projects/FFHNet
 export SIAMMASK_PATH=/home/yb/Projects/siammask
 export DATA_RECORDING_PATH=/home/yb
-export HITHAND_WS_PATH=/home/yb/Projects/hithand_ws
+export GRASP_PIPELINE_PATH=/home/yb/Projects/grasp-pipeline
 
 # Adjust settings
 export VISUALIZE=1

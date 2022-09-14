@@ -3,7 +3,7 @@ import os
 import time
 
 # Add GraspInference to the path and import
-sys.path.append(os.path.join(os.environ['HITHAND_WS_PATH'], 'src/grasp-pipeline/src'))
+sys.path.append(os.path.join(os.environ['GRASP_PIPELINE_PATH'], 'src'))
 from graspInference import *
 
 n_poses = 100
