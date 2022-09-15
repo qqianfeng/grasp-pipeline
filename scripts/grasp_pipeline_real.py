@@ -16,6 +16,7 @@ gi = GraspInference()
 start = time.process_time()
 time_abs = 0.0
 palm_poses_list = []
+p_max_list = []
 
 i = 0
 while i < 1000:
@@ -34,13 +35,16 @@ while i < 1000:
 
     else:
         grasp_dict = gi.handle_infer_grasp_poses(n_poses)
-        grasp_dict = gi.handle_evaluate_and_filter_grasp_poses(grasp_dict, thresh=0.5)
+        p_success = gi.handle_evaluate_grasp_poses(grasp_dict)
 
     # Calculate difference to last palm pose
     #if i > 0:
-    #    print("Relative offset of best pose: ", palm_poses_list[i-1]-palm_poses[0].pose)i
-    print(grasp_dict['transl'][0])
-    palm_poses_list.append(grasp_dict['transl'][0])
+    #    print("Relative offset of best pose: ", palm_poses_list[i-1]-palm_poses[0].pose)
+
+    # Get max p
+    p_argmax = np.argmax(p_success)
+    p_max_list.append(p_success[p_argmax].copy())
+    palm_poses_list.append(grasp_dict['transl'][p_argmax].detach().cpu().numpy())
 
     i += 1
 
@@ -51,7 +55,7 @@ while i < 1000:
 print("Overall time: ", time_abs)
 print("Avg time per cicle: ", time_abs/i, " | Cicles per second: ", i/time_abs)
 
-print(palm_poses_list)
 plt.plot(palm_poses_list, label=["x", "y", "z"])
+plt.plot(p_max_list, label="p")
 plt.legend(loc="upper left")
 plt.show()
