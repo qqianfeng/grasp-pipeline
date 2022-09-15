@@ -65,7 +65,7 @@ class GraspInference():
             joint_confs.append(jc)
         return joint_confs
 
-    def handle_infer_grasp_poses(self, n_poses):
+    def handle_infer_grasp_poses(self, n_poses, return_dict=False):
         # Make sure the file is not currently locked for writing
         loaded = False
         while not loaded:
@@ -83,6 +83,9 @@ class GraspInference():
 
         # Shift grasps back to original coordinate frame
         results['transl'] += center_transf[:, :3]
+
+        if return_dict:
+            return results
 
         if self.VISUALIZE:
             visualization.show_generated_grasp_distribution(
@@ -130,7 +133,7 @@ class GraspInference():
 
         return grasp_dict
 
-    def handle_evaluate_and_filter_grasp_poses(self, palm_poses, joint_confs, thresh):
+    def handle_evaluate_and_filter_grasp_poses(self, palm_poses=None, joint_confs=None, thresh=0.5, grasp_dict=None):
         # Make sure the file is not currently locked for writing
         loaded = False
         while not loaded:
@@ -142,7 +145,12 @@ class GraspInference():
 
         center_transf = bps_object_center[:, :6]
         bps_object = bps_object_center[:, 6:]
-        grasp_dict = self.to_grasp_dict(palm_poses, joint_confs)
+
+        if not grasp_dict:
+            grasp_dict = self.to_grasp_dict(palm_poses, joint_confs)
+            n_samples = len(palm_poses)
+        else:
+            n_samples = len(grasp_dict['transl'])
 
         # Shift grasps back to center
         grasp_dict['transl'] -= center_transf[:, :3]
@@ -151,7 +159,6 @@ class GraspInference():
 
         n_grasps_filt = results['rot_matrix'].shape[0]
 
-        n_samples = len(palm_poses)
         print("n_grasps after filtering: %d" % n_grasps_filt)
         print("This means %.2f of grasps pass the filtering" %
               (float(n_grasps_filt) / float(n_samples)))

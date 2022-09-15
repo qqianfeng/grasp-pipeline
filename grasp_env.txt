@@ -9,4 +9,4 @@ export DATA_RECORDING_PATH=/home/yb
 export GRASP_PIPELINE_PATH=/home/yb/Projects/grasp-pipeline
 
 # Adjust settings
-export VISUALIZE=1
+export VISUALIZE=0

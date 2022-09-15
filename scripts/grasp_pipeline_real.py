@@ -13,18 +13,23 @@ start = time.process_time()
 time_abs = 0.0
 
 i = 0
-while i < 100:
-    palm_poses_obj_frame, joint_confs = gi.handle_infer_grasp_poses(n_poses)
+while i < 1000:
+    if int(os.environ['VISUALIZE']):
+        palm_poses_obj_frame, joint_confs = gi.handle_infer_grasp_poses(n_poses)
 
-    if 0:
-        for p in palm_poses_obj_frame:
-            print("palm_poses_obj_frame", p)
+        if 0:
+            for p in palm_poses_obj_frame:
+                print("palm_poses_obj_frame", p)
 
-        for j in joint_confs:
-            print("joint_confs", j)
+            for j in joint_confs:
+                print("joint_confs", j)
 
-    palm_poses, joint_confs = gi.handle_evaluate_and_filter_grasp_poses(
-        palm_poses_obj_frame, joint_confs, thresh=0.9)
+        palm_poses, joint_confs = gi.handle_evaluate_and_filter_grasp_poses(
+            palm_poses_obj_frame, joint_confs, thresh=0.9)
+
+    else:
+        grasp_dict = gi.handle_infer_grasp_poses(n_poses, return_dict=True)
+        palm_poses, joint_confs = gi.handle_evaluate_and_filter_grasp_poses(grasp_dict=grasp_dict, thresh=0.9)
 
     i += 1
 
