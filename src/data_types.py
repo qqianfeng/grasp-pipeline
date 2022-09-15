@@ -20,6 +20,10 @@ class Point():
         self.z = z
     def __str__(self):
         return obj_to_string(self)
+    def __add__(self, point):
+        return Point(x=self.x+point.x, y=self.y+point.y, z=self.z+point.z)
+    def __sub__(self, point):
+        return Point(x=self.x-point.x, y=self.y-point.y, z=self.z-point.z)
 
 class Quaternion():
     def __init__(self, x=None, y=None, z=None, w=None):
@@ -29,6 +33,10 @@ class Quaternion():
         self.w = w
     def __str__(self):
         return obj_to_string(self)
+    def __add__(self, quat):
+        return Quaternion(x=self.x+quat.x, y=self.y+quat.y, z=self.z+quat.z, w=self.w+quat.w)
+    def __sub__(self, quat):
+        return Quaternion(x=self.x-quat.x, y=self.y-quat.y, z=self.z-quat.z, w=self.w-quat.w)
 
 class Pose():
     def __init__(self, position=Point(), orientation=Quaternion()):
@@ -36,6 +44,10 @@ class Pose():
         self.orientation = orientation
     def __str__(self):
         return obj_to_string(self)
+    def __add__(self, pose):
+        return Pose(position=self.position+pose.position, orientation=self.orientation+pose.orientation)
+    def __sub__(self, pose):
+        return Pose(position=self.position-pose.position, orientation=self.orientation-pose.orientation)
 
 class PoseStamped():
     def __init__(self, header=Header(), pose=Pose()):
