@@ -75,10 +75,14 @@ class GraspInference():
             except Exception as e:
                 print("\033[93m" + "[Warning] ", {e}, "\nRetrying... \033[0m")
 
+        center_transf = bps_object_center[:, :6]
         bps_object = bps_object_center[:, 6:]
         n_samples = n_poses
         results = self.FFHNet.generate_grasps(
             bps_object, n_samples=n_samples, return_arr=True)
+
+        # Shift grasps back to original coordinate frame
+        results['transl'] += center_transf[:, :3]
 
         if self.VISUALIZE:
             visualization.show_generated_grasp_distribution(
@@ -136,8 +140,12 @@ class GraspInference():
             except Exception as e:
                 print("\033[93m" + "[Warning] ", {e}, "\nRetrying... \033[0m")
 
+        center_transf = bps_object_center[:, :6]
         bps_object = bps_object_center[:, 6:]
         grasp_dict = self.to_grasp_dict(palm_poses, joint_confs)
+
+        # Shift grasps back to center
+        grasp_dict['transl'] -= center_transf[:, :3]
         results = self.FFHNet.filter_grasps(
             bps_object, grasp_dict, thresh=thresh)
 
@@ -147,6 +155,9 @@ class GraspInference():
         print("n_grasps after filtering: %d" % n_grasps_filt)
         print("This means %.2f of grasps pass the filtering" %
               (float(n_grasps_filt) / float(n_samples)))
+
+        # Shift grasps back to original coordinate frame
+        results['transl'] += center_transf[:, :3]
 
         if self.VISUALIZE:
             visualization.show_generated_grasp_distribution(
