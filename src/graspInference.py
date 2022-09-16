@@ -106,6 +106,9 @@ class GraspInference():
         p_success = self.FFHNet.evaluate_grasps(
             bps_object, grasp_dict, return_arr=True)
 
+        # Shift grasps back to camera frame
+        grasp_dict['transl'] += torch.from_numpy(center_transf[:, :3]).cuda()
+
         return p_success
 
 
