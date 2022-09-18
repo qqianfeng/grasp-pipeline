@@ -16,6 +16,9 @@
     <param name="/use_sim_time"           value="true"                      type="bool"   />
     <param name="ffhnet_path" value="/home/vm/hand_ws/src/ffhnet" type="string"/>
     <param name="hithand_ws_path" value="/home/vm/hand_ws" type="string"/>
+    <param name="data_recording_path" value="/tmp/" type="string"/>
+    <param name="ffhnet_path" value="/home/vm/hand_ws/src/ffhnet" type="string"/>
+    <param name="visualize" value="True"/>
 
     <!-- Gazebo scene manager -->
     <node name="manage_gazebo_scene_node" pkg="grasp_pipeline" type="manage_gazebo_scene_server.py" output="screen"/>

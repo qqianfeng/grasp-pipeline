@@ -30,9 +30,15 @@ class ObjectSegmenter():
 
         ########## Tune this parameter if camera is mounted differently ##########
         # Remove all points from pointcloud with x < 0.1, because they belong to panda base
-        self.x_threshold = 0
+        # for simulation
+        self.x_min = 0.1 # for simulation
+        self.z_max = 10
         # remove points that is too far away from the camera
-        self.z_threshold = 0.8
+        
+        # for real world
+        # self.x_min = 0
+        # self.z_max = 0.8
+
         ###################################
 
         self.tf_buffer = tf2_ros.Buffer()
@@ -217,8 +223,9 @@ class ObjectSegmenter():
         colors = np.asarray(pcd.colors)
 
         # currently the mask cropping is removed
-        # mask = points[:, 0] > self.x_threshold
-        mask = points[:, 2] < self.z_threshold
+        mask1 = points[:, 0] > self.x_min
+        mask2 = points[:, 2] < self.z_max
+        mask = np.logical_and(mask1,mask2)
         del pcd
         pcd = o3d.geometry.PointCloud()
         pcd.points = o3d.utility.Vector3dVector(points[mask])
