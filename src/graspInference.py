@@ -45,9 +45,9 @@ class GraspInference():
         # Shift grasps back to original coordinate frame
         results['transl'] += torch.from_numpy(center_transf[:, :3]).cuda()
 
-        if self.VISUALIZE:
+        """if self.VISUALIZE:
             visualization.show_generated_grasp_distribution(
-                self.pcd_path, results)
+                self.pcd_path, results)"""
 
         return results
 
