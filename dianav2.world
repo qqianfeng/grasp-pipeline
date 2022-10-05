@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<sdf version="1.7">
+  <world name="mvp_static_setup">
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+
+    <include>
+      <uri>model://sun</uri>
+    </include>
+
+    <model name="diana">
+      <pose>0 0 0 0 0 0</pose>
+      <include>
+        <uri>model://controllable_diana_v2</uri>
+      </include>
+
+      <joint name='arm_world_joint' type='fixed'>
+        <child>controllable_diana_v2::diana_v2::base</child>
+        <parent>world</parent>
+      </joint>
+    </model>
+
+    <state world_name='default'>
+      <model name='diana'>
+        <joint name='controllable_diana_v2::diana_v2::joint_1'>
+          <angle axis= 0>0.0</angle>
+        </joint>
+        <joint name='controllable_diana_v2::diana_v2::joint_2'>
+          <angle axis= 0>0.0</angle>
+        </joint>
+        <joint name='controllable_diana_v2::diana_v2::joint_3'>
+          <angle axis= 0>0.0</angle>
+        </joint>
+        <joint name='controllable_diana_v2::diana_v2::joint_4'>
+          <angle axis= 0>1.57</angle>
+        </joint>
+        <joint name='controllable_diana_v2::diana_v2::joint_5'>
+          <angle axis= 0>0.0</angle>
+        </joint>
+        <joint name='controllable_diana_v2::diana_v2::joint_6'>
+          <angle axis= 0>-1.57</angle>
+        </joint>
+        <joint name='controllable_diana_v2::diana_v2::joint_7'>
+          <angle axis= 0>0.0</angle>
+        </joint>
+      </model>
+    </state>
+
+    <scene>
+      <shadows>0</shadows>
+    </scene>
+
+  </world>
+</sdf>
