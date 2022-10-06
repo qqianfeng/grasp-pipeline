@@ -7,11 +7,6 @@ gazebo --verbose dianav2.world
 ```
 
 ## Usage
-Start shell environment:
-```
-eval $(arpm_env ar-toolkit/9.0.0@ar/stable)
-```
-
 Source environment variables:
 ```
 source grasp_env.txt
@@ -20,6 +15,11 @@ source grasp_env.txt
 Activate conda environment:
 ```
 conda activate grasp-pipeline
+```
+
+Start shell environment:
+```
+eval $(arpm_env ar-toolkit/9.0.0@ar/stable)
 ```
 
 Exceute grasp pipeline:

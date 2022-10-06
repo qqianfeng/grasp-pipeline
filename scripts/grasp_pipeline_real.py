@@ -14,6 +14,21 @@ from graspInference import *
 # Import robot controller
 from ar_toolkit.robots import Diana7Robot
 
+# Transformations
+hand_R_ee = np.zeros((3, 3))
+hand_R_ee[0,0] = 1
+hand_R_ee[1,2] = -1
+hand_R_ee[2,1] = 1
+
+base_R_cam = np.zeros((3, 3))
+base_R_cam[0,1] = -1
+base_R_cam[1,2] = 1
+base_R_cam[2,0] = -1
+
+R_fkin = np.identity(3)
+R_fkin[1,1] = -1
+R_fkin[2,2] = -1
+
 # Move robot to home position
 robot = Diana7Robot("diana")
 robot.move_ptp([0,0,0,1.57079632679,0,-1.57079632679,0])
@@ -51,19 +66,26 @@ while i < 200:
 
     # Find pose closest to previous pose
     rot = R.from_matrix(grasp_dict['rot_matrix'].detach().cpu().numpy())
+    pos = grasp_dict['transl'].detach().cpu().numpy()
+
+    # Update rotation and translation
+    hand_R_cam = hand_R_ee @ R_fkin @ base_R_cam
+    rot = R.from_matrix(hand_R_cam @ rot.as_matrix())
+    for pos_i in pos:
+        pos_i = hand_R_cam.dot(pos_i)
 
     # Update pose (simulation)
-    grasp_dict['transl'] = grasp_dict['transl'] - torch.from_numpy(x).cuda()
+    pos = pos - x
     rot = R.from_rotvec(rot.as_rotvec() - r)
     
-    diff_pos = np.linalg.norm(grasp_dict['transl'].detach().cpu().numpy(), 1, axis=1)
+    diff_pos = np.linalg.norm(pos, 1, axis=1)
     diff_rot = np.linalg.norm(rot.as_rotvec(), 1, axis=1)
     
     p_best = np.argmax(p_success - 5*diff_pos - 0.5*diff_rot)
     norm_pos_diff_list.append(diff_pos[p_best])
     norm_rot_diff_list.append(diff_rot[p_best])
 
-    palm_pos_list.append(grasp_dict['transl'][p_best].detach().cpu().numpy())
+    palm_pos_list.append(pos[p_best])
     palm_rot_list.append(rot.as_rotvec()[p_best])
     p_best_list.append(p_success[p_best].copy())
 
@@ -78,16 +100,10 @@ while i < 200:
     print("Time of last cycle: ", time_loop)
     time_abs += time_loop
 
-    # Move robot towards grasp (invert x and z-axis to because of Diana 7)
-    dx_update = np.zeros(3)
-    dx_update[0] = - grasp_dict['transl'][p_best].detach().cpu().numpy()[0]
-    dx_update[1] = grasp_dict['transl'][p_best].detach().cpu().numpy()[1]
-    dx_update[2] = - grasp_dict['transl'][p_best].detach().cpu().numpy()[2]
+    # Move robot towards grasp
+    dx_update = -pos[p_best]
 
-    dr_axis_update = np.zeros(3)
-    dr_axis_update[0] = - (rot[p_best].as_rotvec()/np.linalg.norm(rot[p_best].as_rotvec()))[0]
-    dr_axis_update[1] = (rot[p_best].as_rotvec()/np.linalg.norm(rot[p_best].as_rotvec()))[1]
-    dr_axis_update[2] = - (rot[p_best].as_rotvec()/np.linalg.norm(rot[p_best].as_rotvec()))[2]
+    dr_axis_update = -(rot[p_best].as_rotvec()/np.linalg.norm(rot[p_best].as_rotvec()))
     dr_angle_update = np.linalg.norm(rot[p_best].as_rotvec())
 
     p = 0.1
@@ -97,10 +113,10 @@ while i < 200:
         break
 
     x[0] -= dx_update[0] * p
-    x[1] += dx_update[1] * p
+    x[1] -= dx_update[1] * p
     x[2] -= dx_update[2] * p
     r[0] -= dr_axis_update[0] * dr_angle_update * p
-    r[1] += dr_axis_update[1] * dr_angle_update * p
+    r[1] -= dr_axis_update[1] * dr_angle_update * p
     r[2] -= dr_axis_update[2] * dr_angle_update * p
 
 print("Overall time: ", time_abs)
