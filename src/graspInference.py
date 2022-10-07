@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 import numpy as np
-from scipy.spatial.transform import Rotation as R
 import torch
 import os
 import sys
 import copy
+from scipy.spatial.transform import Rotation as R
+import pytorch3d.transforms as T
 
 # Add FFHNet to the path
 sys.path.append(os.environ['FFHNET_PATH'])
@@ -43,6 +44,10 @@ class GraspInference():
             bps_object, n_samples=n_samples, return_arr=False)
 
         # Shift grasps back to original coordinate frame
+        r_axis_angle = center_transf[:, 3:6]
+        r = torch.tensor(R.from_rotvec(r_axis_angle).as_matrix()).cuda()
+        transf = T.Rotate(r)
+        results['transl'] = transf.transform_points(results['transl'])
         results['transl'] += torch.from_numpy(center_transf[:, :3]).cuda()
 
         """if self.VISUALIZE:
@@ -68,6 +73,15 @@ class GraspInference():
 
         # Shift grasps back to center
         grasp_dict['transl'] -= torch.from_numpy(center_transf[:, :3]).cuda()
+        print(grasp_dict['transl'])
+        print(grasp_dict['transl'].shape)
+        r_axis_angle = center_transf[:, 3:6]
+        r_numpy = R.from_rotvec(r_axis_angle).as_matrix()
+        r = torch.tensor(r_numpy).cuda()
+        transf = T.Rotate(r)
+        print(transf.get_matrix().detach().cpu().numpy())
+        grasp_dict['transl'] = transf.inverse().transform_points(grasp_dict['transl'])
+        print(grasp_dict['transl'])
         results = self.FFHNet.filter_grasps(
             bps_object, grasp_dict, thresh=thresh)
 
@@ -78,6 +92,7 @@ class GraspInference():
               (float(n_grasps_filt) / float(n_samples)))
 
         # Shift grasps back to original coordinate frame
+        results['transl'] = results['transl'] @ r_numpy[0].T
         results['transl'] += center_transf[:, :3]
 
         if self.VISUALIZE:
@@ -101,12 +116,17 @@ class GraspInference():
 
         # Shift grasps back to center
         grasp_dict['transl'] -= torch.from_numpy(center_transf[:, :3]).cuda()
+        r_axis_angle = center_transf[:, 3:6]
+        r = torch.tensor(R.from_rotvec(r_axis_angle).as_matrix()).cuda()
+        transf = T.Rotate(r)
+        grasp_dict['transl'] = transf.inverse().transform_points(grasp_dict['transl'])
 
         # Get score for all grasps
         p_success = self.FFHNet.evaluate_grasps(
             bps_object, grasp_dict, return_arr=True)
 
-        # Shift grasps back to camera frame
+        # Shift grasps back to original coordinate frame
+        grasp_dict['transl'] = transf.transform_points(grasp_dict['transl'])
         grasp_dict['transl'] += torch.from_numpy(center_transf[:, :3]).cuda()
 
         return p_success
