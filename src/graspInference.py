@@ -130,5 +130,3 @@ class GraspInference():
         grasp_dict['transl'] += torch.from_numpy(center_transf[:, :3]).cuda()
 
         return p_success
-
-
