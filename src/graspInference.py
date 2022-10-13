@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from distutils.log import error
 import numpy as np
 import torch
 import os
@@ -14,6 +15,11 @@ from FFHNet.models.ffhnet import FFHNet
 from FFHNet.config.eval_config import EvalConfig
 from FFHNet.utils import visualization
 
+# DDS imports
+import signal
+import time
+import ar_dds as dds
+
 class GraspInference():
     def __init__(self):
         cfg = EvalConfig().parse()
@@ -27,28 +33,50 @@ class GraspInference():
             epoch=30,
             load_path=os.path.join(ffhnet_path, 'models/ffhevaluator'))
 
-    def handle_infer_grasp_poses(self, n_poses):
-        # Make sure the file is not currently locked for writing
-        loaded = False
-        while not loaded:
-            try:
-                 bps_object_center = np.load(os.environ['OBJECT_PCD_ENC_PATH'])
-                 loaded = True
-            except Exception as e:
-                print("\033[93m" + "[Warning] ", {e}, "\nRetrying... \033[0m")
+        # Initialize array for DDS data
+        self.center_transf = np.zeros((1, 6))
 
-        center_transf = bps_object_center[:, :6]
-        bps_object = bps_object_center[:, 6:]
+        # Initialize DDS Domain Participant
+        participant = dds.DomainParticipant(domain_id=0)
+
+        # Create subscriber using the participant
+        self.listener = participant.create_subscriber_listener("ar::dds::pcd_enc::Msg",
+                                                          'pcd_enc_msg', self.listener_callback)
+        print("Subscriber is ready. Waiting for data ...")
+
+    def interrupt_signal_handler(self, _signal_number, _frame):
+        """SIGINT/SIGTSTP handler for gracefully stopping an application."""
+        print("Caught interrupt signal. Stop application!")
+        self.shutdown_requested
+        self.shutdown_requested = True
+
+    def listener_callback(self, msg):
+        """
+        retrieve the message field of the data received
+        """
+        data = np.array(msg["message"])
+        """
+        Assign data
+        """
+        self.center_transf = data[:6].reshape(1, -1)
+        self.bps_object = data[6:].reshape(1, -1)
+
+    def handle_infer_grasp_poses(self, n_poses):
+        # Wait for data to be published
+        while not any(self.center_transf[0]):
+            pass
+        print(self.center_transf)
+
         n_samples = n_poses
         results = self.FFHNet.generate_grasps(
-            bps_object, n_samples=n_samples, return_arr=False)
+            self.bps_object, n_samples=n_samples, return_arr=False)
 
         # Shift grasps back to original coordinate frame
-        r_axis_angle = center_transf[:, 3:6]
+        r_axis_angle = self.center_transf[:, 3:6]
         r = torch.tensor(R.from_rotvec(r_axis_angle).as_matrix()).cuda()
         transf = T.Rotate(r)
         results['transl'] = transf.transform_points(results['transl'])
-        results['transl'] += torch.from_numpy(center_transf[:, :3]).cuda()
+        results['transl'] += torch.from_numpy(self.center_transf[:, :3]).cuda()
 
         """if self.VISUALIZE:
             visualization.show_generated_grasp_distribution(
@@ -57,25 +85,14 @@ class GraspInference():
         return results
 
     def handle_evaluate_and_filter_grasp_poses(self, grasp_dict, thresh=0.5):
-        # Make sure the file is not currently locked for writing
-        loaded = False
-        while not loaded:
-            try:
-                 bps_object_center = np.load(os.environ['OBJECT_PCD_ENC_PATH'])
-                 loaded = True
-            except Exception as e:
-                print("\033[93m" + "[Warning] ", {e}, "\nRetrying... \033[0m")
-
-        center_transf = bps_object_center[:, :6]
-        bps_object = bps_object_center[:, 6:]
-
+        
         n_samples = len(grasp_dict['transl'])
 
         # Shift grasps back to center
-        grasp_dict['transl'] -= torch.from_numpy(center_transf[:, :3]).cuda()
+        grasp_dict['transl'] -= torch.from_numpy(self.center_transf[:, :3]).cuda()
         print(grasp_dict['transl'])
         print(grasp_dict['transl'].shape)
-        r_axis_angle = center_transf[:, 3:6]
+        r_axis_angle = self.center_transf[:, 3:6]
         r_numpy = R.from_rotvec(r_axis_angle).as_matrix()
         r = torch.tensor(r_numpy).cuda()
         transf = T.Rotate(r)
@@ -83,7 +100,7 @@ class GraspInference():
         grasp_dict['transl'] = transf.inverse().transform_points(grasp_dict['transl'])
         print(grasp_dict['transl'])
         results = self.FFHNet.filter_grasps(
-            bps_object, grasp_dict, thresh=thresh)
+            self.bps_object, grasp_dict, thresh=thresh)
 
         n_grasps_filt = results['rot_matrix'].shape[0]
 
@@ -93,7 +110,7 @@ class GraspInference():
 
         # Shift grasps back to original coordinate frame
         results['transl'] = results['transl'] @ r_numpy[0].T
-        results['transl'] += center_transf[:, :3]
+        results['transl'] += self.center_transf[:, :3]
 
         if self.VISUALIZE:
             visualization.show_generated_grasp_distribution(
@@ -102,31 +119,24 @@ class GraspInference():
         return results
 
     def handle_evaluate_grasp_poses(self, grasp_dict):
-        # Make sure the file is not currently locked for writing
-        loaded = False
-        while not loaded:
-            try:
-                 bps_object_center = np.load(os.environ['OBJECT_PCD_ENC_PATH'])
-                 loaded = True
-            except Exception as e:
-                print("\033[93m" + "[Warning] ", {e}, "\nRetrying... \033[0m")
-
-        center_transf = bps_object_center[:, :6]
-        bps_object = bps_object_center[:, 6:]
+        # Wait for data to be published
+        while not any(self.center_transf[0]):
+            pass
+        print(self.center_transf)
 
         # Shift grasps back to center
-        grasp_dict['transl'] -= torch.from_numpy(center_transf[:, :3]).cuda()
-        r_axis_angle = center_transf[:, 3:6]
+        grasp_dict['transl'] -= torch.from_numpy(self.center_transf[:, :3]).cuda()
+        r_axis_angle = self.center_transf[:, 3:6]
         r = torch.tensor(R.from_rotvec(r_axis_angle).as_matrix()).cuda()
         transf = T.Rotate(r)
         grasp_dict['transl'] = transf.inverse().transform_points(grasp_dict['transl'])
 
         # Get score for all grasps
         p_success = self.FFHNet.evaluate_grasps(
-            bps_object, grasp_dict, return_arr=True)
+            self.bps_object, grasp_dict, return_arr=True)
 
         # Shift grasps back to original coordinate frame
         grasp_dict['transl'] = transf.transform_points(grasp_dict['transl'])
-        grasp_dict['transl'] += torch.from_numpy(center_transf[:, :3]).cuda()
+        grasp_dict['transl'] += torch.from_numpy(self.center_transf[:, :3]).cuda()
 
         return p_success

@@ -41,7 +41,7 @@ robot.move_ptp([0,0,0,1.57079632679,0,-1.57079632679,0])
 
 # Initialize variables
 n_poses = 1000
-grasp_execution_threshold = 0.9
+grasp_execution_threshold = 0.8
 start = time.process_time()
 time_abs = 0.0
 robot_pos = np.zeros(3)
@@ -63,7 +63,7 @@ current_success_list = []
 robot_pos_init = robot.get_cartesian_pose()[:3, 3:4].flatten()
 
 i = 0
-while i < 100:
+while i < 1000:
 
     # Run inference on FFHNet
     if int(os.environ['VISUALIZE']):
@@ -102,7 +102,7 @@ while i < 100:
     diff_rot = np.linalg.norm(grasp_rot.as_rotvec(), 1, axis=1)
 
     # Find best grasp
-    p_best = np.argmax(p_success - 5*diff_pos - 5*diff_rot)
+    p_best = np.argmax(p_success - 1*diff_pos - 5*diff_rot)
 
     # Append results to list (for plot)
     norm_pos_diff_list.append(diff_pos[p_best])
@@ -158,7 +158,7 @@ print("Avg time per cicle: ", time_abs/i, " | Cicles per second: ", i/time_abs)
 
 # Plot result
 #plt.plot(palm_pos_list, label=["x", "y", "z"])
-#plt.plot(palm_rot_list, label=["rx", "ry", "rz"])
+# plt.plot(palm_rot_list, label=["rx", "ry", "rz"])
 #plt.plot(p_max_list, label="p_max")
 plt.plot(p_best_list, label="p_best")
 plt.plot(norm_pos_diff_list, label="delta_x")
