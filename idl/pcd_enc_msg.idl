@@ -1,0 +1,18 @@
+/**  structure for message that is exchanged between publisher and subscriber */
+module ar
+{
+    module dds
+    {
+        module pcd_enc 
+        {
+            struct Msg
+            {
+                /** User ID */
+                long userID; //@key
+                /**  message */
+                float message[4102];
+            };
+            #pragma keylist Msg userID
+        };
+    };
+};
