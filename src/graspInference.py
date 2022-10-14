@@ -82,7 +82,7 @@ class GraspInference():
             visualization.show_generated_grasp_distribution(
                 self.pcd_path, results)"""
 
-        return results
+        return results, self.center_transf
 
     def handle_evaluate_and_filter_grasp_poses(self, grasp_dict, thresh=0.5):
         
