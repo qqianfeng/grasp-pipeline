@@ -62,10 +62,14 @@ class GraspInference():
         self.bps_object = data[6:].reshape(1, -1)
 
     def handle_infer_grasp_poses(self, n_poses):
+        if self.VISUALIZE:
+            bps_object_center = np.load(os.environ['OBJECT_PCD_ENC_PATH'])
+            self.center_transf = bps_object_center[:, :6]
+            self.bps_object = bps_object_center[:, 6:]
+        else:
         # Wait for data to be published
-        while not any(self.center_transf[0]):
-            pass
-        print(self.center_transf)
+            while not any(self.center_transf[0]):
+                pass
 
         n_samples = n_poses
         results = self.FFHNet.generate_grasps(

@@ -29,24 +29,15 @@ def rot_z(z):
 
 # Transformations
 hand_R_ee = np.zeros((3, 3))
-hand_R_ee[2,0] = -1
-hand_R_ee[0,1] = 1
-hand_R_ee[1,2] = -1
+hand_R_ee[0,2] = -1
+hand_R_ee[1,0] = 1
+hand_R_ee[2,1] = -1
 
 cam_R_ee = np.zeros((3, 3))
 cam_R_ee[0,1] = -1
 cam_R_ee[1,0] = -1
 cam_R_ee[2,2] = -1
 cam_t_ee = np.array([0.1, 0, 0])
-
-base_R_ee = np.identity(3)
-base_R_ee[1,1] = -1
-base_R_ee[2,2] = -1
-
-hand_R_cam = np.zeros((3, 3))
-hand_R_cam[2,0] = 1
-hand_R_cam[1,1] = 1
-hand_R_cam[0,2] = -1
 
 # Move robot to home position
 robot = Diana7Robot("diana")
@@ -72,6 +63,7 @@ norm_pos_diff_list = []
 norm_rot_diff_list = []
 current_success_list = []
 center_pos_list = []
+c_list = []
 
 # Get current pose of the robot
 robot_pos_init = robot.get_cartesian_pose()[:3, 3:4].flatten()
@@ -121,7 +113,7 @@ try:
         diff_rot = np.linalg.norm(grasp_rot.as_rotvec(), 1, axis=1) #abs(grasp_rot.as_rotvec()[:, 2])
 
         # Find best grasp
-        p_best = np.argmax(p_success)# - 1*diff_pos - 1*diff_rot)
+        p_best = np.argmax(p_success - 1*diff_pos - 1*diff_rot)
 
         # Set orientation towards center of point clound (align -z of EE with vector to center)
         # https://math.stackexchange.com/questions/180418/calculate-rotation-matrix-to-align-vector-a-to-vector-b-in-3d
@@ -133,8 +125,9 @@ try:
         rot_align_z = R.from_matrix(rot_z(grasp_rot.as_rotvec()[p_best, 2]) @ rot_align_z_mat).as_rotvec()
 
         # Metric to banalnce aligning z and grasp rotation
-        c_bal = 0.1
-        rot_des = diff_pos[p_best] * rot_align_z + c_bal * grasp_rot.as_rotvec()[p_best]
+        c_bal = np.clip(10*diff_pos[p_best], 0.0, 1.0)
+        rot_des = c_bal * rot_align_z + (1-c_bal) * grasp_rot.as_rotvec()[p_best]
+        c_list.append(c_bal.copy())
 
         # Append results to list (for plot)
         norm_pos_diff_list.append(diff_pos[p_best])
@@ -193,7 +186,7 @@ print("Avg time per cicle: ", time_abs/i, " | Cicles per second: ", i/time_abs)
 
 # Plot result
 #plt.plot(palm_pos_list, label=["x", "y", "z"])
-# plt.plot(palm_rot_list, label=["rx", "ry", "rz"])
+#plt.plot(palm_rot_list, label=["rx", "ry", "rz"])
 #plt.plot(p_max_list, label="p_max")
 plt.plot(p_best_list, label="p_best")
 plt.plot(norm_pos_diff_list, label="delta_x")
@@ -202,5 +195,6 @@ seq_len = len(current_success_list)
 plt.plot(grasp_execution_threshold*np.ones(seq_len), label="grasp_execution_threshold")
 plt.plot(current_success_list, label="exp_success")
 plt.plot(center_pos_list, label="center_pos")
+plt.plot(c_list, label="c_bal")
 plt.legend(loc="upper left")
 plt.show()

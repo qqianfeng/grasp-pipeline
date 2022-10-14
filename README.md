@@ -22,6 +22,11 @@ Start shell environment:
 eval $(arpm_env ar-toolkit/9.0.0@ar/stable)
 ```
 
+Add DDS message path to env:
+```
+export AR_IDL_DIRS=$AR_IDL_DIRS:$PWD/idl
+```
+
 Exceute grasp pipeline:
 ```
 python scripts/grasp_pipeline_real.py
