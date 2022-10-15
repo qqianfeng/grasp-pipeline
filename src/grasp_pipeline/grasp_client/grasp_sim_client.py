@@ -77,12 +77,13 @@ class GraspClient():
         self.success_tolerance_lift_height = 0.05
         self.object_segment_response = None
         self.grasp_label = None
+        self.collision_to_approach_pose = False
+        self.collision_to_grasp_pose = False
 
         # For voxel server
         self.voxel_grid_dim = np.array([26, 26, 26])
         self.voxel_grid_dim_full = np.array([32, 32, 32])
-        self.voxel_translation_dim = (
-            self.voxel_grid_dim_full - self.voxel_grid_dim) // 2
+        self.voxel_translation_dim = (self.voxel_grid_dim_full - self.voxel_grid_dim) // 2
 
         self.is_rec_sess = is_rec_sess
         self.is_eval_sess = is_eval_sess
@@ -106,8 +107,7 @@ class GraspClient():
         tf2_pose = tf2_geometry_msgs.PoseStamped()
         tf2_pose.pose = pose.pose
         tf2_pose.header.frame_id = from_frame
-        pose_stamped = self.tf_buffer.transform(
-            tf2_pose, to_frame, rospy.Duration(5))
+        pose_stamped = self.tf_buffer.transform(tf2_pose, to_frame, rospy.Duration(5))
 
         return pose_stamped
 
@@ -124,8 +124,7 @@ class GraspClient():
     def create_grasp_folder_structure(self, base_path):
         rec_sess_path = base_path + 'grasp_data/recording_sessions'
         if os.path.exists(rec_sess_path):
-            self.ess_id_num = int(
-                sorted(os.listdir(rec_sess_path))[-1].split('_')[-1]) + 1
+            self.sess_id_num = int(sorted(os.listdir(rec_sess_path))[-1].split('_')[-1]) + 1
             self.grasp_id_num = 0
             # if os.listdir(rec_sess_path + '/recording_session_' +
             #               str(self.sess_id_num - 1).zfill(4)):
@@ -139,8 +138,7 @@ class GraspClient():
             self.sess_id_num = 1
             self.grasp_id_num = 0
             os.makedirs(rec_sess_path)
-            rospy.loginfo(
-                'This is the first recording, no prior recordings found.')
+            rospy.loginfo('This is the first recording, no prior recordings found.')
 
         self.sess_id_str = str(self.sess_id_num).zfill(4)
         self.grasp_id_str = str(self.grasp_id_num).zfill(4)
@@ -172,8 +170,7 @@ class GraspClient():
 
         self.curr_grasp_trial_path = object_rec_path + '/grasp_' + self.grasp_id_str
         if os.path.exists(self.curr_grasp_trial_path):
-            rospy.logerr(
-                "Path for grasp trial already exists, something is wrong.")
+            rospy.logerr("Path for grasp trial already exists, something is wrong.")
         os.mkdir(self.curr_grasp_trial_path)
         os.mkdir(self.curr_grasp_trial_path + '/during_grasp')
         os.mkdir(self.curr_grasp_trial_path + '/post_grasp')
@@ -190,10 +187,8 @@ class GraspClient():
     def generate_random_object_pose_for_experiment(self):
         """Generates a random x,y position and z orientation within object_spawn boundaries for grasping experiments.
         """
-        rand_x = np.random.uniform(
-            self.spawn_object_x_min, self.spawn_object_x_max)
-        rand_y = np.random.uniform(
-            self.spawn_object_y_min, self.spawn_object_y_max)
+        rand_x = np.random.uniform(self.spawn_object_x_min, self.spawn_object_x_max)
+        rand_y = np.random.uniform(self.spawn_object_y_min, self.spawn_object_y_max)
         rand_z_orientation = np.random.uniform(0., 2 * np.pi)
         object_pose = [
             rand_x, rand_y, self.object_metadata["spawn_height_z"],
@@ -205,8 +200,7 @@ class GraspClient():
         self.object_metadata["mesh_frame_pose"] = object_pose_stamped
 
     def choose_random_grasp_preshape(self):
-        grasp_idx = np.random.randint(
-            0, len(self.heuristic_preshapes.palm_goal_poses_world))
+        grasp_idx = np.random.randint(0, len(self.heuristic_preshapes.palm_goal_poses_world))
         # Store the chosen grasp pose and appraoch pose as well as joint state in corresponding dicts
         self.palm_poses["desired_pre"] = self.heuristic_preshapes.palm_goal_poses_world[grasp_idx]
         self.palm_poses["approach"] = self.heuristic_preshapes.palm_approach_poses_world[grasp_idx]
@@ -232,8 +226,7 @@ class GraspClient():
 
         # If unspecified randomly select a grasp type:
         if grasp_type == 'unspecified':
-            grasp_type = self.grasp_types[np.random.randint(
-                0, len(self.grasp_types))]
+            grasp_type = self.grasp_types[np.random.randint(0, len(self.grasp_types))]
 
         available_grasp_types = copy.deepcopy(self.grasp_types)
 
@@ -253,15 +246,12 @@ class GraspClient():
         elif grasp_type in available_grasp_types:
             print('Grasp type is available. Chosen grasp type: ' + str(grasp_type))
         else:
-            grasp_type = available_grasp_types[np.random.randint(
-                0, len(available_grasp_types))]
+            grasp_type = available_grasp_types[np.random.randint(0, len(available_grasp_types))]
 
         if grasp_type == 'side1':
-            grasp_idx = self.side1_idxs[np.random.randint(
-                0, len(self.side1_idxs))]
+            grasp_idx = self.side1_idxs[np.random.randint(0, len(self.side1_idxs))]
         elif grasp_type == 'side2':
-            grasp_idx = self.side2_idxs[np.random.randint(
-                0, len(self.side2_idxs))]
+            grasp_idx = self.side2_idxs[np.random.randint(0, len(self.side2_idxs))]
         elif grasp_type == 'top':
             grasp_idx = self.top_idxs[np.random.randint(0, len(self.top_idxs))]
 
@@ -286,32 +276,29 @@ class GraspClient():
         wait_for_service('create_moveit_scene')
         try:
             req = ManageMoveitSceneRequest()
-            create_moveit_scene = rospy.ServiceProxy(
-                'create_moveit_scene', ManageMoveitScene)
+            create_moveit_scene = rospy.ServiceProxy('create_moveit_scene', ManageMoveitScene)
             req.object_mesh_path = self.object_metadata["collision_mesh_path"]
             req.object_pose_world = self.object_metadata["mesh_frame_pose"]
             create_scene_response = create_moveit_scene(req)
         except rospy.ServiceException, e:
-            rospy.loginfo('Service create_moveit_scene call failed: %s' % e)
-        rospy.loginfo('Service create_moveit_scene is executed.')
+            rospy.logerr('Service create_moveit_scene call failed: %s' % e)
+        rospy.logdebug('Service create_moveit_scene is executed.')
 
     def clean_moveit_scene_client(self):
         wait_for_service('clean_moveit_scene')
         try:
             req = ManageMoveitSceneRequest()
-            clean_moveit_scene = rospy.ServiceProxy(
-                'clean_moveit_scene', ManageMoveitScene)
+            clean_moveit_scene = rospy.ServiceProxy('clean_moveit_scene', ManageMoveitScene)
             create_scene_response = clean_moveit_scene(req)
         except rospy.ServiceException, e:
-            rospy.loginfo('Service clean_moveit_scene call failed: %s' % e)
-        rospy.loginfo('Service clean_moveit_scene is executed.')
+            rospy.logerr('Service clean_moveit_scene call failed: %s' % e)
+        rospy.logdebug('Service clean_moveit_scene is executed.')
 
     def control_hithand_config_client(self, joint_conf=None):
         wait_for_service('control_hithand_config')
         try:
             req = ControlHithandRequest()
-            control_hithand_config = rospy.ServiceProxy(
-                'control_hithand_config', ControlHithand)
+            control_hithand_config = rospy.ServiceProxy('control_hithand_config', ControlHithand)
             if joint_conf == None:
                 jc = self.hand_joint_states["desired_pre"]
                 print("##### THUMB 0 ANGLE: " + str(jc.position[16]))
@@ -636,8 +623,7 @@ class GraspClient():
             # Then transform the poses from world frame to object mesh frame
             palm_goal_poses_mesh_frame = []
             for pose in palm_poses_collision:
-                pose_mesh_frame = self.transform_pose(
-                    pose, 'world', 'object_mesh_frame')
+                pose_mesh_frame = self.transform_pose(pose, 'world', 'object_mesh_frame')
                 palm_goal_poses_mesh_frame.append(pose_mesh_frame)
 
             # Get service proxy
@@ -822,8 +808,7 @@ class GraspClient():
                                                         rospy.Time(0),
                                                         timeout=rospy.Duration(5))
                 quat = trans.transform.rotation
-                aligned_T_pose = tft.quaternion_matrix(
-                    [quat.x, quat.y, quat.z, quat.w])
+                aligned_T_pose = tft.quaternion_matrix([quat.x, quat.y, quat.z, quat.w])
                 bb_extent_aligned = np.abs(aligned_T_pose.dot(bb_extent))
                 self.object_metadata["aligned_dim_whd"] = bb_extent_aligned[:3]
                 self.object_segment_response.object.width = bb_extent_aligned[0]
@@ -837,33 +822,30 @@ class GraspClient():
                 ])
 
         except rospy.ServiceException, e:
-            rospy.loginfo('Service segment_object call failed: %s' % e)
-        rospy.loginfo('Service segment_object is executed.')
+            rospy.logerr('Service segment_object call failed: %s' % e)
+        rospy.logdebug('Service segment_object is executed.')
 
     def update_moveit_scene_client(self):
         wait_for_service('update_moveit_scene')
         try:
-            update_moveit_scene = rospy.ServiceProxy(
-                'update_moveit_scene', ManageMoveitScene)
+            update_moveit_scene = rospy.ServiceProxy('update_moveit_scene', ManageMoveitScene)
             # print(self.spawned_object_mesh_path)
             req = ManageMoveitSceneRequest()
             req.object_mesh_path = self.object_metadata["collision_mesh_path"]
             req.object_pose_world = self.object_metadata["mesh_frame_pose"]
             self.update_scene_response = update_moveit_scene(req)
         except rospy.ServiceException, e:
-            rospy.loginfo('Service update_moveit_scene call failed: %s' % e)
-        rospy.loginfo(
+            rospy.logerr('Service update_moveit_scene call failed: %s' % e)
+        rospy.logdebug(
             'Service update_moveit_scene is executed %s.' % str(self.update_scene_response))
 
     def update_gazebo_object_client(self):
         """Gazebo management client, deletes previous object and spawns new object
         """
         wait_for_service('update_gazebo_object')
-        object_pose_array = get_pose_array_from_stamped(
-            self.object_metadata["mesh_frame_pose"])
+        object_pose_array = get_pose_array_from_stamped(self.object_metadata["mesh_frame_pose"])
         try:
-            update_gazebo_object = rospy.ServiceProxy(
-                'update_gazebo_object', UpdateObjectGazebo)
+            update_gazebo_object = rospy.ServiceProxy('update_gazebo_object', UpdateObjectGazebo)
             req = UpdateObjectGazeboRequest()
             req.object_name = self.object_metadata["name"]
             req.object_model_file = self.object_metadata["model_file"]
@@ -1041,8 +1023,7 @@ class GraspClient():
             pose_arr[3] = self.object_metadata["spawn_angle_roll"]
             pose_arr[2] = self.object_metadata["spawn_height_z"]
 
-            self.object_metadata["mesh_frame_pose"] = get_pose_stamped_from_array(
-                pose_arr)
+            self.object_metadata["mesh_frame_pose"] = get_pose_stamped_from_array(pose_arr)
 
         #print "Spawning object here:", pose_arr
 
@@ -1078,10 +1059,8 @@ class GraspClient():
                                                     grasp_phase + '_grasp',
                                                     self.object_metadata["name"] + '_color.jpg')
         else:
-            self.depth_img_save_path = os.path.join(
-                self.base_path, 'depth.png')
-            self.color_img_save_path = os.path.join(
-                self.base_path, 'color.jpg')
+            self.depth_img_save_path = os.path.join(self.base_path, 'depth.png')
+            self.color_img_save_path = os.path.join(self.base_path, 'color.jpg')
 
     def save_visual_data_and_record_grasp(self):
         self.set_visual_data_save_paths(grasp_phase='post')
@@ -1123,10 +1102,8 @@ class GraspClient():
         print(self.prune_idxs)
 
         self.top_idxs = [x for x in self.top_idxs if x not in self.prune_idxs]
-        self.side1_idxs = [
-            x for x in self.side1_idxs if x not in self.prune_idxs]
-        self.side2_idxs = [
-            x for x in self.side2_idxs if x not in self.prune_idxs]
+        self.side1_idxs = [x for x in self.side1_idxs if x not in self.prune_idxs]
+        self.side2_idxs = [x for x in self.side2_idxs if x not in self.prune_idxs]
 
         if len(self.top_idxs) + len(self.side1_idxs) + len(self.side2_idxs) == 0:
             self.grasps_available = False
@@ -1168,16 +1145,14 @@ class GraspClient():
             i += 1
 
             # Step 1 choose a specific grasp. In first iteration self.chosen_grasp_type is unspecific, e.g. function will randomly choose grasp type
-            self.choose_specific_grasp_preshape(
-                grasp_type=self.chosen_grasp_type)
+            self.choose_specific_grasp_preshape(grasp_type=self.chosen_grasp_type)
 
             if not self.grasps_available:
                 break
 
             # Step 2, if the previous grasp type is not same as current grasp type move to approach pose
             if self.previous_grasp_type != self.chosen_grasp_type or i == 1:
-                approach_plan_exists = self.plan_arm_trajectory_client(
-                    self.palm_poses["approach"])
+                approach_plan_exists = self.plan_arm_trajectory_client(self.palm_poses["approach"])
                 # If a plan could be found, execute
                 if approach_plan_exists:
                     self.execute_joint_trajectory_client(speed='mid')
@@ -1228,13 +1203,11 @@ class GraspClient():
             execution_success = False
             while not execution_success:
                 if time.time() - start > 60:
-                    rospy.loginfo('Could not find a lift pose')
+                    rospy.logerr('Could not find a lift pose')
                     break
-                plan_exists = self.plan_arm_trajectory_client(
-                    place_goal_pose=lift_pose)
+                plan_exists = self.plan_arm_trajectory_client(place_goal_pose=lift_pose)
                 if plan_exists:
-                    execution_success = self.execute_joint_trajectory_client(
-                        speed='slow')
+                    execution_success = self.execute_joint_trajectory_client(speed='slow')
                 lift_pose.pose.position.x += np.random.uniform(-0.05, 0.05)
                 lift_pose.pose.position.y += np.random.uniform(-0.05, 0.05)
                 lift_pose.pose.position.z += np.random.uniform(0, 0.1)

@@ -20,6 +20,7 @@ from eigengrasps_hithand import *
 class BoundingBoxFace():
     """Simple class to store properties of a bounding box face.
     """
+
     def __init__(self, color, center, orient_a, orient_b, size_a, size_b, is_top=False):
         self.center = np.array(center)
         self.orient_a = orient_a
@@ -41,6 +42,7 @@ class BoundingBoxFace():
 
 
 class GenerateHithandPreshape():
+
     def __init__(self):
         rospy.init_node("generate_hithand_preshape_node")
         # Publish information about bounding box

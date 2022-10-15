@@ -12,6 +12,7 @@ from grasp_pipeline.srv import *
 
 
 class RecordGraspData():
+
     def __init__(self):
         if not DEBUG:
             rospy.init_node('record_grasp_and_collision_data_node')
@@ -144,13 +145,13 @@ class RecordGraspData():
         # Update session metadata
         rec_sess_metadata_gp = grasp_file['recording_sessions'][self.curr_sess_name]['metadata']
         rec_sess_metadata_gp['sess_num_grasps'][()] += num_grasps
-        rec_sess_metadata_gp['sess_num_collisions'][()] += num_grasps
+        rec_sess_metadata_gp['sess_num_collisions'][()] += num_grasps  # why???
 
         # Update object
         object_metadata_gp = grasp_file['recording_sessions'][self.curr_sess_name]['grasp_trials'][
             self.curr_object_name]['metadata']
         object_metadata_gp['object_num_grasps'][()] += num_grasps
-        object_metadata_gp['object_num_collisions'][()] += num_grasps
+        object_metadata_gp['object_num_collisions'][()] += num_grasps  # why???
 
     def get_grasp_group(self, grasp_trials, grasp_class):
         """ Creates the entire folder structure under grasp_trials if it does not exist.

@@ -1,3 +1,5 @@
+""" This script provides the server of record_grasp_data. However, it seems this server is never used???
+"""
 #!/usr/bin/env python
 import rospy
 import h5py
@@ -10,6 +12,7 @@ from grasp_pipeline.srv import *
 
 
 class RecordGraspData():
+
     def __init__(self):
         rospy.init_node('record_grasp_data_node')
         self.num_grasps_per_object = rospy.get_param('num_grasps_per_object', 5)
@@ -163,21 +166,21 @@ class RecordGraspData():
             grasp_group.create_dataset('lifted_palm_world_pose',
                                        data=self.convert_pose_to_list(req.lifted_palm_world_pose))
 
-            #6. Record all joint states
-            #desired_preshape_hithand_joint_state
+            # 6. Record all joint states
+            # desired_preshape_hithand_joint_state
             grasp_group.create_dataset('desired_preshape_hithand_joint_state',
                                        data=req.desired_preshape_hithand_joint_state.position)
-            #true_preshape_hithand_joint_state
+            # true_preshape_hithand_joint_state
             grasp_group.create_dataset('true_preshape_hithand_joint_state',
                                        data=req.true_preshape_hithand_joint_state.position)
-            #closed_hithand_joint_state
+            # closed_hithand_joint_state
             grasp_group.create_dataset('closed_hithand_joint_state',
                                        data=req.closed_hithand_joint_state.position)
-            #lifted_hithand_joint_state
+            # lifted_hithand_joint_state
             grasp_group.create_dataset('lifted_hithand_joint_state',
                                        data=req.lifted_hithand_joint_state.position)
 
-            #8. Return response, context manager closes file
+            # 8. Return response, context manager closes file
             res = RecordGraspDataSimResponse()
             res.success = True
             return res
