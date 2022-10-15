@@ -422,6 +422,8 @@ class GenerateHithandPreshape():
         return (palm_pos, palm_q)
 
     def handle_generate_hithand_preshape(self, req):
+        """Generate sampled poses from all the bbox faces. For data generation.
+        """
         # Get new information on segmented object from rostopics/disk and store in instance attributes
         self.update_object_information()
         bounding_box_faces = self.get_oriented_bounding_box_faces(req.object)

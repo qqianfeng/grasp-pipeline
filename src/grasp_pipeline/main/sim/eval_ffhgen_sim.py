@@ -10,22 +10,22 @@ from grasp_pipeline.utils.object_names_in_datasets import OBJECTS_FOR_EVAL as ob
 # from grasp_pipeline.utils.object_names_in_datasets import OBJECTS_DATA_GEN_PAPER_VIDEO as obj_list
 
 N_POSES = 400
-# FILTER_THRESH = 0.0  # set to -1 if no filtering desired
-FILTER_THRESH = 0.9
+FILTER_THRESH = -1  # set to -1 if no filtering desired, default 0.9
+FILTER_NUM_GRASPS = 5
 
 shutil.rmtree('/home/vm/grasp_data', ignore_errors=True)
-grasp_client = GraspClient(grasp_data_recording_path='/home/vm/',
+grasp_client = GraspClient(grasp_data_recording_path='/tmp/',
                            is_rec_sess=True,
                            is_eval_sess=True)
 metadata_handler = MetadataHandler()
 
 for obj_full in obj_list:
     # Skip object
-    txt = "Skip object: {}? ".format(obj_full)
-    l = raw_input(txt)
-    print("Skipped")
-    if (l == "y") or (l == "Y"):
-        continue
+    # txt = "Skip object: {}? ".format(obj_full)
+    # l = raw_input(txt)
+    # if (l == "y") or (l == "Y"):
+    #     print("Skipped")
+    #     continue
 
     dset, obj_name = metadata_handler.split_full_name(obj_full)
 
