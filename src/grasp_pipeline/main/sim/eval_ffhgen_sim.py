@@ -56,11 +56,13 @@ for obj_full in obj_list:
     # Evaluate the generated poses according to the FFHEvaluator
     palm_poses_obj_frame, joint_confs = grasp_client.evaluate_and_remove_grasps(
         palm_poses_obj_frame, joint_confs, thresh=FILTER_THRESH, visualize_poses=True)
-
+    palm_poses_obj_frame = palm_poses_obj_frame[:FILTER_NUM_GRASPS]
+    joint_confs = joint_confs[:FILTER_NUM_GRASPS]
     # Execute the grasps and record results
     is_skipped = False
-    for i in range(len(joint_confs)):
+    for i in range(FILTER_NUM_GRASPS):
         #for i in range(8):
+        print("The {} time of trial out of {}".format(i, FILTER_NUM_GRASPS))
         if i != 0 and not is_skipped:
             grasp_client.reset_hithand_and_panda()
 

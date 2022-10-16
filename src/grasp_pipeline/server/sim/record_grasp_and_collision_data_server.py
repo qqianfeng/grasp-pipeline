@@ -55,6 +55,8 @@ class RecordGraspData():
         sess_metadata_gp.create_dataset("sess_num_successes", data=0, dtype='u4')
         sess_metadata_gp.create_dataset("sess_num_failures", data=0, dtype='u4')
         sess_metadata_gp.create_dataset("sess_num_collisions", data=0, dtype='u4')
+        sess_metadata_gp.create_dataset("total_num_collision_to_approach_pose", data=0, dtype='u4')
+        sess_metadata_gp.create_dataset("total_num_collision_to_grasp_pose", data=0, dtype='u4')
 
     def initialize_file_metadata(self, metadata_gp):
         metadata_gp.create_dataset("datetime_recording_start",
@@ -65,6 +67,9 @@ class RecordGraspData():
         metadata_gp.create_dataset("total_num_successes", data=0, dtype='u4')
         metadata_gp.create_dataset("total_num_failures", data=0, dtype='u4')
         metadata_gp.create_dataset("total_num_collisions", data=0, dtype='u4')
+        metadata_gp.create_dataset("total_num_collision_to_approach_pose", data=0, dtype='u4')
+        metadata_gp.create_dataset("total_num_collision_to_grasp_pose", data=0, dtype='u4')
+
         metadata_gp.create_dataset("total_num_recordings", data=1, dtype='u4')
 
     def initialize_data_file(self):
@@ -115,7 +120,12 @@ class RecordGraspData():
     ###################################
     ######  PART III : Update  ########
     ###################################
-    def update_all_metadata(self, grasp_file, is_top_grasp, grasp_success_label, collision=False):
+    def update_all_metadata(self,
+                            grasp_file,
+                            is_top_grasp,
+                            grasp_success_label,
+                            collision_to_approach_pose=False,
+                            collision_to_grasp_pose=False):
         # Overall meta data and grasp trial metadata
         metadata_group = grasp_file['metadata']
         curr_sess_metadata_group = grasp_file['recording_sessions'][
@@ -126,9 +136,13 @@ class RecordGraspData():
         if is_top_grasp:
             metadata_group['total_num_tops'][()] += 1
             curr_sess_metadata_group['sess_num_tops'][()] += 1
-        if collision:
-            metadata_group['total_num_collisions'][()] += 1
-            curr_sess_metadata_group['sess_num_collisions'][()] += 1
+
+        if collision_to_approach_pose:
+            metadata_group['total_num_collision_to_approach_pose'][()] += 1
+            curr_sess_metadata_group['sess_num_collision_to_approach_pose'][()] += 1
+        if collision_to_grasp_pose:
+            metadata_group['total_num_collision_to_grasp_pose'][()] += 1
+            curr_sess_metadata_group['sess_num_collision_to_grasp_pose'][()] += 1
 
         if grasp_success_label:
             metadata_group['total_num_successes'][()] += 1
@@ -136,6 +150,32 @@ class RecordGraspData():
         else:
             metadata_group['total_num_failures'][()] += 1
             curr_sess_metadata_group['sess_num_failures'][()] += 1
+
+    def update_grasp_metadata(self,
+                              metadata_group,
+                              curr_sess_metadata_group,
+                              is_top_grasp,
+                              grasp_success_label,
+                              collision_to_approach_pose=False,
+                              collision_to_grasp_pose=False):
+
+        # Overall meta data and grasp trial metadata
+        metadata_group['total_num_grasps'][()] += 1
+        curr_sess_metadata_group['sess_num_grasps'][()] += 1
+        if is_top_grasp:
+            metadata_group['total_num_top_grasps'][()] += 1
+            curr_sess_metadata_group['sess_num_top_grasps'][()] += 1
+        if grasp_success_label:
+            metadata_group['total_num_success_grasps'][()] += 1
+            curr_sess_metadata_group['sess_num_success_grasps'][()] += 1
+        else:
+            metadata_group['total_num_failure_grasps'][()] += 1
+            curr_sess_metadata_group['sess_num_failure_grasps'][()] += 1
+
+        if collision_to_approach_pose:
+            metadata_group['total_num_collision_to_approach_pose'][()] += 1
+        if collision_to_grasp_pose:
+            metadata_group['total_num_collision_to_grasp_pose'][()] += 1
 
     def update_all_metadata_collision(self, grasp_file, num_grasps):
         # Update overall metadata
@@ -209,6 +249,10 @@ class RecordGraspData():
             grasp_group.create_dataset('is_top_grasp', data=req.is_top_grasp)
             # grasp_success_label
             grasp_group.create_dataset('grasp_success_label', data=req.grasp_success_label)
+            # collision label
+            grasp_group.create_dataset('collision_to_approach_pose',
+                                       data=req.collision_to_approach_pose)
+            grasp_group.create_dataset('collision_to_grasp_pose', data=req.collision_to_grasp_pose)
 
             # object_world_sim_pose
             grasp_group.create_dataset('object_mesh_frame_world',

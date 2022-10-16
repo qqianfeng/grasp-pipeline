@@ -34,6 +34,12 @@ class RecordGraspData():
         gp_curr_sess_metadata.create_dataset("sess_num_top_grasps", data=0, dtype='u4')
         gp_curr_sess_metadata.create_dataset("sess_num_success_grasps", data=0, dtype='u4')
         gp_curr_sess_metadata.create_dataset("sess_num_failure_grasps", data=0, dtype='u4')
+        gp_curr_sess_metadata.create_dataset("sess_num_collision_to_approach_pose",
+                                             data=1,
+                                             dtype='u4')
+        gp_curr_sess_metadata.create_dataset("sess_num_collision_to_grasp_pose",
+                                             data=1,
+                                             dtype='u4')
 
     def initialize_data_file(self):
         """ Creates a new grasp file under grasp_data_file_name or opens existing one and then creates "grasp_trials" and "grasp_metadata" groups if they do not yet exist.
@@ -65,6 +71,11 @@ class RecordGraspData():
                 gp_metadata.create_dataset("total_num_failure_grasps", data=0, dtype='u4')
                 gp_metadata.create_dataset("total_num_recordings", data=1, dtype='u4')
 
+                gp_metadata.create_dataset("total_num_collision_to_approach_pose",
+                                           data=1,
+                                           dtype='u4')
+                gp_metadata.create_dataset("total_num_collision_to_grasp_pose", data=1, dtype='u4')
+
                 # set current sess name
                 self.curr_sess_name = 'recording_session_0001'
 
@@ -86,8 +97,14 @@ class RecordGraspData():
                 # Initialize metadata for current session
                 self.initialize_sess_metadata(sess_metadata)
 
-    def update_grasp_metadata(self, metadata_group, curr_sess_metadata_group, is_top_grasp,
-                              grasp_success_label):
+    def update_grasp_metadata(self,
+                              metadata_group,
+                              curr_sess_metadata_group,
+                              is_top_grasp,
+                              grasp_success_label,
+                              collision_to_approach_pose=False,
+                              collision_to_grasp_pose=False):
+
         # Overall meta data and grasp trial metadata
         metadata_group['total_num_grasps'][()] += 1
         curr_sess_metadata_group['sess_num_grasps'][()] += 1
@@ -101,6 +118,11 @@ class RecordGraspData():
             metadata_group['total_num_failure_grasps'][()] += 1
             curr_sess_metadata_group['sess_num_failure_grasps'][()] += 1
 
+        if collision_to_approach_pose:
+            metadata_group['total_num_collision_to_approach_pose'][()] += 1
+        if collision_to_grasp_pose:
+            metadata_group['total_num_collision_to_grasp_pose'][()] += 1
+
     def handle_record_grasp_data(self, req):
         # r+ : Read/write, file must exist
         with h5py.File(self.grasp_data_file_name, 'r+') as grasp_file:
@@ -109,7 +131,8 @@ class RecordGraspData():
             self.update_grasp_metadata(
                 grasp_file['metadata'],
                 grasp_file['recording_sessions'][self.curr_sess_name]['metadata'],
-                req.is_top_grasp, req.grasp_success_label)
+                req.is_top_grasp, req.grasp_success_label, req.collision_to_approach_pose,
+                req.collision_to_grasp_pose)
             grasp_trial_id_str = str(grasp_file['metadata']['total_num_grasps'][()]).zfill(6)
 
             # 2. Create new group under curr sess grasp_trials with the name e.g. grasp_000005 if 5th grasp
@@ -125,6 +148,11 @@ class RecordGraspData():
             grasp_group.create_dataset('is_top_grasp', data=req.is_top_grasp)
             # grasp_success_label
             grasp_group.create_dataset('grasp_success_label', data=req.grasp_success_label)
+
+            grasp_group.create_dataset('collision_to_approach_pose',
+                                       data=req.collision_to_approach_pose)
+            grasp_group.create_dataset('collision_to_grasp_pose', data=req.collision_to_grasp_pose)
+
             # object_size (after alignment)
             grasp_group.create_dataset('object_size_aligned', data=req.object_size_aligned)
             # object size unaligned

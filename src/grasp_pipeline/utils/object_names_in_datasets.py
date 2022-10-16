@@ -265,9 +265,10 @@ DO_NOT_CONSIDER_NEGATIVE_GRASPS_BEFORE_15_04 = [
 
 # Objects used for evaluation 'ycb_006_mustard_bottle',
 OBJECTS_FOR_EVAL = [
-    'kit_BathDetergent', 'kit_Sprayflask', 'kit_InstantSauce', 'kit_BakingSoda',
-    'kit_BroccoliSoup', 'kit_CoughDropsLemon', 'kit_Curry', 'kit_FizzyTabletsCalcium',
-    'kit_NutCandy', 'kit_PotatoeDumplings', 'kit_TomatoSoup', 'kit_YellowSaltCube2'
+    'kit_BathDetergent', 
+    # 'kit_Sprayflask', 'kit_InstantSauce', 'kit_BakingSoda',
+    # 'kit_BroccoliSoup', 'kit_CoughDropsLemon', 'kit_Curry', 'kit_FizzyTabletsCalcium',
+    # 'kit_NutCandy', 'kit_PotatoeDumplings', 'kit_TomatoSoup', 'kit_YellowSaltCube2'
 ]
 # OBJECTS_FOR_EVAL = ["ycb_006_mustard_bottle"]
 
