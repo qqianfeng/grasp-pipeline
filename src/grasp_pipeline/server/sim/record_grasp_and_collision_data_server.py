@@ -55,8 +55,8 @@ class RecordGraspData():
         sess_metadata_gp.create_dataset("sess_num_successes", data=0, dtype='u4')
         sess_metadata_gp.create_dataset("sess_num_failures", data=0, dtype='u4')
         sess_metadata_gp.create_dataset("sess_num_collisions", data=0, dtype='u4')
-        sess_metadata_gp.create_dataset("total_num_collision_to_approach_pose", data=0, dtype='u4')
-        sess_metadata_gp.create_dataset("total_num_collision_to_grasp_pose", data=0, dtype='u4')
+        sess_metadata_gp.create_dataset("sess_num_collision_to_approach_pose", data=0, dtype='u4')
+        sess_metadata_gp.create_dataset("sess_num_collision_to_grasp_pose", data=0, dtype='u4')
 
     def initialize_file_metadata(self, metadata_gp):
         metadata_gp.create_dataset("datetime_recording_start",
@@ -227,7 +227,8 @@ class RecordGraspData():
         # r+ : Read/write, file must exist
         with h5py.File(self.grasp_data_file_name, 'r+') as grasp_file:
             # Update grasp meta information and update sess metadata
-            self.update_all_metadata(grasp_file, req.is_top_grasp, req.grasp_success_label)
+            self.update_all_metadata(grasp_file, req.is_top_grasp, req.grasp_success_label,
+                                     req.collision_to_approach_pose, req.collision_to_grasp_pose)
 
             # Get a descriptor for grasp trials
             grasp_trials = grasp_file['recording_sessions'][self.curr_sess_name]['grasp_trials']
@@ -355,15 +356,18 @@ if __name__ == '__main__':
         req.is_top_grasp = True
         req.grasp_success_label = 1
 
+        req.collision_to_approach_pose = 1
+        req.collision_to_grasp_pose = 1
+
         # The true spawn pose in world frame
-        req.object_world_sim_pose = [PoseStamped()]
-        req.desired_preshape_palm_world_pose = [PoseStamped()]
-        req.true_preshape_palm_world_pose = [PoseStamped()]
+        req.object_mesh_frame_world = [PoseStamped()]
+        req.desired_preshape_palm_mesh_frame = [PoseStamped()]
+        req.true_preshape_palm_mesh_frame = [PoseStamped()]
         # Hithand jointstates
-        req.desired_preshape_hithand_joint_state = [JointState()]
-        req.true_preshape_hithand_joint_state = [JointState()]
-        req.closed_hithand_joint_state = [JointState()]
-        req.lifted_hithand_joint_state = [JointState()]
+        req.desired_joint_state = [JointState()]
+        req.true_joint_state = [JointState()]
+        req.closed_joint_state = [JointState()]
+        req.lifted_joint_state = [JointState()]
         rgd.handle_record_grasp_trial_data(req)
 
     rospy.spin()

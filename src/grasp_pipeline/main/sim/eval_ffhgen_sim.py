@@ -11,12 +11,10 @@ from grasp_pipeline.utils.object_names_in_datasets import OBJECTS_FOR_EVAL as ob
 
 N_POSES = 400
 FILTER_THRESH = -1  # set to -1 if no filtering desired, default 0.9
-FILTER_NUM_GRASPS = 5
+FILTER_NUM_GRASPS = 10
 
 shutil.rmtree('/home/vm/grasp_data', ignore_errors=True)
-grasp_client = GraspClient(grasp_data_recording_path='/tmp/',
-                           is_rec_sess=True,
-                           is_eval_sess=True)
+grasp_client = GraspClient(grasp_data_recording_path='/tmp/', is_rec_sess=True, is_eval_sess=True)
 metadata_handler = MetadataHandler()
 
 for obj_full in obj_list:

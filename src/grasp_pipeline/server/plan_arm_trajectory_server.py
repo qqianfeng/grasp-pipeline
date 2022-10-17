@@ -81,6 +81,9 @@ class CartesianPoseMoveitPlanner():
         return ee_pose
 
     def handle_plan_arm_trajectory(self, req):
+        """It's a move joint command.
+
+        """
         self.update_seed_state()
         plan = None
         plan = self.go_goal_trac_ik(req.palm_goal_pose_world)

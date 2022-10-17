@@ -77,8 +77,8 @@ class GraspClient():
         self.success_tolerance_lift_height = 0.05
         self.object_segment_response = None
         self.grasp_label = None
-        self.collision_to_approach_pose = False
-        self.collision_to_grasp_pose = False
+        self.collision_to_approach_pose = 0
+        self.collision_to_grasp_pose = 0
 
         # For voxel server
         self.voxel_grid_dim = np.array([26, 26, 26])
@@ -684,37 +684,37 @@ class GraspClient():
         rospy.logdebug('Service record_grasp_trial_data is executed.')
 
     # This seems never used!!!
-    # def record_grasp_data_client(self):
-    #     wait_for_service('record_grasp_data')
-    #     try:
-    #         # Currently all poses are in the world frame. Transfer the desired pose into object frame
+    def record_grasp_data_client(self):
+        wait_for_service('record_grasp_data')
+        try:
+            # Currently all poses are in the world frame. Transfer the desired pose into object frame
 
-    #         record_grasp_data = rospy.ServiceProxy('record_grasp_data', RecordGraspDataSim)
-    #         req = RecordGraspDataSimRequest()
-    #         req.object_name = self.object_metadata["name"]
-    #         req.time_stamp = datetime.datetime.now().isoformat()
-    #         req.is_top_grasp = self.chosen_is_top_grasp
-    #         req.grasp_success_label = self.grasp_label
-    #         req.object_size_aligned = self.object_metadata["aligned_dim_whd"]
-    #         req.object_size_unaligned = self.object_metadata["seg_dim_whd"]
-    #         req.sparse_voxel_grid = self.object_metadata["sparse_voxel_grid"]
-    #         req.object_world_sim_pose = self.object_metadata["mesh_frame_pose"]
-    #         req.object_world_seg_unaligned_pose = self.object_metadata["seg_pose"]
-    #         req.object_world_aligned_pose = self.object_metadata["aligned_pose"]
-    #         req.desired_preshape_palm_world_pose = self.palm_poses["desired_pre"]
-    #         req.palm_in_object_aligned_frame_pose = self.palm_poses["palm_in_object_aligned_frame"]
-    #         req.true_preshape_palm_world_pose = self.palm_poses["true_pre"]
-    #         req.closed_palm_world_pose = self.palm_poses["closed"]
-    #         req.lifted_palm_world_pose = self.palm_poses["lifted"]
-    #         req.desired_preshape_hithand_joint_state = self.hand_joint_states["desired_pre"]
-    #         req.true_preshape_hithand_joint_state = self.hand_joint_states["true_pre"]
-    #         req.closed_hithand_joint_state = self.hand_joint_states["closed"]
-    #         req.lifted_hithand_joint_state = self.hand_joint_states["lifted"]
+            record_grasp_data = rospy.ServiceProxy('record_grasp_data', RecordGraspDataSim)
+            req = RecordGraspDataSimRequest()
+            req.object_name = self.object_metadata["name"]
+            req.time_stamp = datetime.datetime.now().isoformat()
+            req.is_top_grasp = self.chosen_is_top_grasp
+            req.grasp_success_label = self.grasp_label
+            req.object_size_aligned = self.object_metadata["aligned_dim_whd"]
+            req.object_size_unaligned = self.object_metadata["seg_dim_whd"]
+            req.sparse_voxel_grid = self.object_metadata["sparse_voxel_grid"]
+            req.object_world_sim_pose = self.object_metadata["mesh_frame_pose"]
+            req.object_world_seg_unaligned_pose = self.object_metadata["seg_pose"]
+            req.object_world_aligned_pose = self.object_metadata["aligned_pose"]
+            req.desired_preshape_palm_world_pose = self.palm_poses["desired_pre"]
+            req.palm_in_object_aligned_frame_pose = self.palm_poses["palm_in_object_aligned_frame"]
+            req.true_preshape_palm_world_pose = self.palm_poses["true_pre"]
+            req.closed_palm_world_pose = self.palm_poses["closed"]
+            req.lifted_palm_world_pose = self.palm_poses["lifted"]
+            req.desired_preshape_hithand_joint_state = self.hand_joint_states["desired_pre"]
+            req.true_preshape_hithand_joint_state = self.hand_joint_states["true_pre"]
+            req.closed_hithand_joint_state = self.hand_joint_states["closed"]
+            req.lifted_hithand_joint_state = self.hand_joint_states["lifted"]
 
-    #         res = record_grasp_data(req)
-    #     except rospy.ServiceException, e:
-    #         rospy.logerr('Service record_grasp_data call failed: %s' % e)
-    #     rospy.logdebug('Service record_grasp_data is executed.')
+            res = record_grasp_data(req)
+        except rospy.ServiceException, e:
+            rospy.logerr('Service record_grasp_data call failed: %s' % e)
+        rospy.logdebug('Service record_grasp_data is executed.')
 
     def record_sim_grasp_data_utah_client(self, grasp_id, object_name, grasp_config_obj, is_top,
                                           label):
@@ -1258,45 +1258,54 @@ class GraspClient():
 
         # Compute an approach pose and try to reach it. Add object mesh to moveit to avoid hitting it with the approach plan. Delete it after
         self.create_moveit_scene_client()
-        approach_pose = self.approach_pose_from_palm_pose(palm_pose_world)
-        approach_plan_exists = self.plan_arm_trajectory_client(approach_pose)
-        if not approach_plan_exists:
-            count = 0
-            while not approach_plan_exists and count < 3:
-                approach_pose = self.add_position_noise(approach_pose)
-                approach_plan_exists = self.plan_arm_trajectory_client(approach_pose)
-                count += 1
 
-        if approach_plan_exists:
-            self.clean_moveit_scene_client()
-        else:
-            rospy.logerr("no traj found to approach pose")
-        # Execute to approach pose
-        self.execute_joint_trajectory_client(speed='mid')
+        # approach_pose = self.approach_pose_from_palm_pose(palm_pose_world)
 
-        # Detect object pose to check if collision happened
-        if check_if_object_moved(object_pose):
-            self.collision_to_approach_pose = True
-            rospy.logerr("Object moved during way to approach pose")
+        self.plan_cartesian_path_trajectory_client(palm_pose_world)
+        ### Move J Motion ###
+        # approach_pose = self.approach_pose_from_palm_pose(palm_pose_world)
+        # approach_plan_exists = self.plan_arm_trajectory_client(approach_pose)
+        # if not approach_plan_exists:
+        #     count = 0
+        #     while not approach_plan_exists and count < 3:
+        #         approach_pose = self.add_position_noise(approach_pose)
+        #         approach_plan_exists = self.plan_arm_trajectory_client(approach_pose)
+        #         count += 1
 
-        # Try to find a plan to the final destination
-        plan_exists = self.plan_arm_trajectory_client(palm_pose_world)
+        # if approach_plan_exists:
+        #     self.clean_moveit_scene_client()
+        # else:
+        #     rospy.logerr("no traj found to approach pose")
+        # # Execute to approach pose
+        # self.execute_joint_trajectory_client(speed='mid')
 
-        # Backup if no plan found
-        if not plan_exists:
-            plan_exists = self.plan_arm_trajectory_client(palm_pose_world)
-            if not plan_exists:
-                self.grasp_label = -1
-                rospy.logerr("no traj found to final grasp pose")
-                return False
+        # # Detect object pose to check if collision happened
+        # if check_if_object_moved(object_pose):
+        #     self.collision_to_approach_pose = 1
+        #     rospy.logerr("Object moved during way to approach pose")
+        # else:
+        #     self.collision_to_approach_pose = 0
 
+        # # Try to find a plan to the final destination
+        # plan_exists = self.plan_arm_trajectory_client(palm_pose_world)
+
+        # # Backup if no plan found
+        # if not plan_exists:
+        #     plan_exists = self.plan_arm_trajectory_client(palm_pose_world)
+        #     if not plan_exists:
+        #         self.grasp_label = -1
+        #         rospy.logerr("no traj found to final grasp pose")
+        #         return False
+        ###############
         # Execute joint trajectory
         self.execute_joint_trajectory_client(speed='mid')
 
         # Detect object pose to check if collision happened
         if check_if_object_moved(object_pose):
-            self.collision_to_grasp_pose = False
+            self.collision_to_grasp_pose = 1
             rospy.logerr("Object moved during way to final pose")
+        else:
+            self.collision_to_grasp_pose = 0
 
         # Get the current actual joint position and palm pose
         self.palm_poses["true_pre"], self.hand_joint_states[
