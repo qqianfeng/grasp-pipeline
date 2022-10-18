@@ -1,12 +1,8 @@
-# Adjust user-specific paths
+# Activate conda environment
+conda activate grasp-pipeline
 
-export OBJECT_PCD_PATH=/home/yb/object.pcd
-export OBJECT_PCD_ENC_PATH=/home/yb/pcd_enc.npy
-export SCENE_PCD_PATH=/home/yb/scene.pcd
-export FFHNET_PATH=/home/yb/Projects/FFHNet
-export SIAMMASK_PATH=/home/yb/Projects/siammask
-export DATA_RECORDING_PATH=/home/yb
-export GRASP_PIPELINE_PATH=/home/yb/Projects/grasp-pipeline
+# Start shell environment
+eval $(arpm_env ar-toolkit/9.0.0@ar/stable)
 
-# Adjust settings
-export VISUALIZE=0
+# Set environment variables
+source grasp_settings.txt
