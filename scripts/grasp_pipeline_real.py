@@ -104,7 +104,7 @@ try:
         # Update grasp poses (simulation, in reality point clouds are updated)
         grasp_pos = grasp_pos - robot_pos
         grasp_rot = R.from_rotvec(grasp_rot.as_rotvec() - robot_rot)
-        center_translation = center_translation @ robot_rot_mat.T
+        center_translation = center_translation @ robot_rot_mat
         center_translation -= robot_pos
         center_pos_list.append(copy.deepcopy(center_translation))
         
@@ -118,7 +118,7 @@ try:
         # Set orientation towards center of point clound (align -z of EE with vector to center)
         # https://math.stackexchange.com/questions/180418/calculate-rotation-matrix-to-align-vector-a-to-vector-b-in-3d
         center_translation /= np.linalg.norm(center_translation)
-        v_hat = skew(np.array([-center_translation[1], center_translation[0], 0]))
+        v_hat = skew(np.array([center_translation[1], -center_translation[0], 0]))
         rot_align_z_mat = np.identity(3) + v_hat - center_translation[2] * v_hat @ v_hat
 
         # Rotate around z to to align grasp pose
@@ -147,9 +147,9 @@ try:
         dr_axis_update /= np.linalg.norm(dr_axis_update)
         dr_angle_update = np.linalg.norm(rot_des)
 
-        p = 0.1
+        p = [0.1, 0.05]
         try:
-            robot.move_linear_relative((p*dx_update, (dr_axis_update, p*dr_angle_update))) 
+            robot.move_linear_relative((p[0]*dx_update, (dr_axis_update, p[1]*dr_angle_update))) 
         except Exception as e:
             print(e)
             break
@@ -188,13 +188,13 @@ print("Avg time per cicle: ", time_abs/i, " | Cicles per second: ", i/time_abs)
 #plt.plot(palm_pos_list, label=["x", "y", "z"])
 #plt.plot(palm_rot_list, label=["rx", "ry", "rz"])
 #plt.plot(p_max_list, label="p_max")
-plt.plot(p_best_list, label="p_best")
+# plt.plot(p_best_list, label="p_best")
 plt.plot(norm_pos_diff_list, label="delta_x")
 plt.plot(norm_rot_diff_list, label="delta_rot")
 seq_len = len(current_success_list)
 plt.plot(grasp_execution_threshold*np.ones(seq_len), label="grasp_execution_threshold")
 plt.plot(current_success_list, label="exp_success")
-plt.plot(center_pos_list, label="center_pos")
+# plt.plot(center_pos_list, label="center_pos")
 plt.plot(c_list, label="c_bal")
 plt.legend(loc="upper left")
 plt.show()
