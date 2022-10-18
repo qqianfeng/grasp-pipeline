@@ -46,6 +46,8 @@ robot.move_ptp([0,0,0,1.57079632679,0,-1.57079632679,0])
 # Initialize variables
 n_poses = 1000
 grasp_execution_threshold = 0.8
+k_p = [0.1, 0.05]
+v_des_max = [1.0, 1.0]
 start = time.process_time()
 time_abs = 0.0
 robot_pos = np.zeros(3)
@@ -141,15 +143,19 @@ try:
         p_max_list.append(p_success[p_argmax].copy())
 
         # Move robot towards grasp
-        dx_update = grasp_pos[p_best]
+        dx_update = k_p[0] * grasp_pos[p_best]
 
         dr_axis_update = rot_des
         dr_axis_update /= np.linalg.norm(dr_axis_update)
-        dr_angle_update = np.linalg.norm(rot_des)
+        dr_angle_update = k_p[1] * np.linalg.norm(rot_des)
 
-        p = [0.1, 0.05]
+        # Limit linear and angular velocity
+        if np.linalg.norm(dx_update) > v_des_max[0]:
+            dx_update /= np.linalg.norm(dx_update) * v_des_max[0]
+        dr_angle_update = np.clip(dr_angle_update, -v_des_max[1], v_des_max[1])
+
         try:
-            robot.move_linear_relative((p[0]*dx_update, (dr_axis_update, p[1]*dr_angle_update))) 
+            robot.move_linear_relative((dx_update, (dr_axis_update, dr_angle_update)))
         except Exception as e:
             print(e)
             break
