@@ -4,7 +4,6 @@ import numpy as np
 import torch
 import os
 import sys
-import copy
 from scipy.spatial.transform import Rotation as R
 import pytorch3d.transforms as T
 
@@ -16,8 +15,6 @@ from FFHNet.config.eval_config import EvalConfig
 from FFHNet.utils import visualization
 
 # DDS imports
-import signal
-import time
 import ar_dds as dds
 
 class GraspInference():
@@ -67,7 +64,7 @@ class GraspInference():
             self.center_transf = bps_object_center[:, :6]
             self.bps_object = bps_object_center[:, 6:]
         else:
-        # Wait for data to be published
+            # Wait for data to be published
             while not any(self.center_transf[0]):
                 pass
 
@@ -94,15 +91,11 @@ class GraspInference():
 
         # Shift grasps back to center
         grasp_dict['transl'] -= torch.from_numpy(self.center_transf[:, :3]).cuda()
-        print(grasp_dict['transl'])
-        print(grasp_dict['transl'].shape)
         r_axis_angle = self.center_transf[:, 3:6]
         r_numpy = R.from_rotvec(r_axis_angle).as_matrix()
         r = torch.tensor(r_numpy).cuda()
         transf = T.Rotate(r)
-        print(transf.get_matrix().detach().cpu().numpy())
         grasp_dict['transl'] = transf.inverse().transform_points(grasp_dict['transl'])
-        print(grasp_dict['transl'])
         results = self.FFHNet.filter_grasps(
             self.bps_object, grasp_dict, thresh=thresh)
 
@@ -126,7 +119,6 @@ class GraspInference():
         # Wait for data to be published
         while not any(self.center_transf[0]):
             pass
-        print(self.center_transf)
 
         # Shift grasps back to center
         grasp_dict['transl'] -= torch.from_numpy(self.center_transf[:, :3]).cuda()
