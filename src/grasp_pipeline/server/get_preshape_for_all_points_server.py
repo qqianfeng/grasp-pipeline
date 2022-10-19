@@ -22,6 +22,7 @@ from grasp_pipeline.utils.utils import get_pose_stamped_from_trans_and_quat
 class BoundingBoxFace():
     """Simple class to store properties of a bounding box face.
     """
+
     def __init__(self,
                  color,
                  center,
@@ -55,6 +56,7 @@ class BoundingBoxFace():
 
 
 class GetPreshapeForAllPoints():
+
     def __init__(self):
         rospy.init_node("get_preshape_for_all_points_node")
 
@@ -474,8 +476,6 @@ class GetPreshapeForAllPoints():
         is_tops = []
         joint_states = []
         face_ids = []
-
-        ob = o3d.io.read_point_cloud('/home/vm/object.pcd')
 
         # Sample 6D pose for each point
         for i, (point, normal) in enumerate(zip(self.object_points, self.object_normals)):

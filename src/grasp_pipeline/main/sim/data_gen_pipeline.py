@@ -11,7 +11,7 @@ poses = [[0.5, 0.0, 0.2, 0, 0, 0], [0.5, 0.0, 0.2, 0, 0, 1.571], [0.5, 0.0, 0.2,
 
 if __name__ == '__main__':
     # Some relevant variables
-    data_recording_path = '/home/vm/'
+    data_recording_path = '/tmp/'  #'/home/vm/'
     gazebo_objects_path = '/home/vm/gazebo-objects/objects_gazebo'
 
     # Remove these while testing
