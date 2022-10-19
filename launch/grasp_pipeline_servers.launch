@@ -21,6 +21,7 @@
     <param name="color_img_topic"         value="$(arg color_img_topic)"        type="string" />
     <param name="depth_img_topic"         value="$(arg depth_img_topic)"        type="string" />   
     <param name="/use_sim_time" value="true"/>
+    <param name="visualize" value="false"/>
 
     <!-- +++++++++++++++++++++++++++++++++++++++++++++++++++ -->
     <group if="$(arg sim)">

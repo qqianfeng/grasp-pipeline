@@ -576,6 +576,9 @@ class GraspClient():
         return res.success
 
     def plan_cartesian_path_trajectory_client(self, place_goal_pose=None):
+        """Given place_goal_pose for evaluation. If not given, it's used for data generation.
+
+        """
         wait_for_service('plan_cartesian_path_trajectory')
         try:
             plan_cartesian_path_trajectory = rospy.ServiceProxy('plan_cartesian_path_trajectory',
@@ -583,8 +586,11 @@ class GraspClient():
             req = PlanCartesianPathTrajectoryRequest()
             # Change the reference frame of desired_pre and approach pose to be
             if place_goal_pose is not None:
+                palm_approach_pose_world = self.approach_pose_from_palm_pose(place_goal_pose)
+                req.palm_approach_pose_world = self.add_position_noise(palm_approach_pose_world)
                 req.palm_goal_pose_world = place_goal_pose
             else:
+                # self.plam_poses value are saved in data generation pipeline
                 req.palm_goal_pose_world = self.palm_poses["desired_pre"]
                 req.palm_approach_pose_world = self.palm_poses["approach"]
             res = plan_cartesian_path_trajectory(req)
@@ -592,7 +598,7 @@ class GraspClient():
             rospy.logerr('Service plan_arm_trajectory call failed: %s' % e)
         rospy.logdebug('Service plan_arm_trajectory is executed %s.' % str(res.success))
         self.panda_planned_joint_trajectory = res.trajectory
-        return res.success
+        return res.success, res.fraction
 
     def plan_reset_trajectory_client(self):
         wait_for_service('plan_reset_trajectory')
@@ -605,6 +611,20 @@ class GraspClient():
             rospy.logerr('Service plan_reset_trajectory call failed: %s' % e)
         rospy.logdebug('Service plan_reset_trajectory is executed.')
         return res.success
+
+    def check_cartesian_pose_distance_client(self, required_pose):
+        wait_for_service('check_cartesian_pose_distance')
+        try:
+            check_cartesian_pose_distance = rospy.ServiceProxy('check_cartesian_pose_distance',
+                                                               CheckCartesianPoseDistance)
+            req = CheckCartesianPoseDistanceRequest()
+            req.required_pose = required_pose
+            res = check_cartesian_pose_distance(req)
+
+        except rospy.ServiceException, e:
+            rospy.logerr('Service check_cartesian_pose_distance call failed: %s' % e)
+        rospy.logdebug('Service check_cartesian_pose_distance is executed.')
+        return res.distance
 
     def record_collision_data_client(self):
         """ self.heuristic_preshapes stores all grasp poses. Self.prune_idxs contains idxs of poses in collision. Store 
@@ -776,6 +796,7 @@ class GraspClient():
             self.object_segment_response = segment_object(req)
             self.object_metadata["seg_pose"] = PoseStamped(
                 header=Header(frame_id='world'), pose=self.object_segment_response.object.pose)
+            # whd: Width Height Depth
             self.object_metadata["seg_dim_whd"] = [
                 self.object_segment_response.object.width,
                 self.object_segment_response.object.height,
@@ -925,7 +946,8 @@ class GraspClient():
         pose.pose.position.z += np.random.uniform(0, 0.3)
         return pose
 
-    def approach_pose_from_palm_pose(self, palm_pose):
+    @staticmethod
+    def approach_pose_from_palm_pose(palm_pose):
         """Compute an appraoch pose from a desired palm pose, by subtracting a vector parallel to x-direction
         of palm pose (x-direction points towards object, therefore we can get further away from the object with this.)
 
@@ -1021,8 +1043,8 @@ class GraspClient():
 
         elif pose_type == "init":
             # set the roll angle
-            pose_arr[3] = self.object_metadata["spawn_angle_roll"]
-            pose_arr[2] = self.object_metadata["spawn_height_z"]
+            pose_arr[3] = self.object_metadata["spawn_angle_roll"]  # 0
+            pose_arr[2] = self.object_metadata["spawn_height_z"]  # 0.05
 
             self.object_metadata["mesh_frame_pose"] = get_pose_stamped_from_array(pose_arr)
 
@@ -1100,7 +1122,7 @@ class GraspClient():
     def filter_preshapes(self):
         self.prune_idxs = list(self.filter_palm_goal_poses_client())
 
-        print(self.prune_idxs)
+        # print(self.prune_idxs)
 
         self.top_idxs = [x for x in self.top_idxs if x not in self.prune_idxs]
         self.side1_idxs = [x for x in self.side1_idxs if x not in self.prune_idxs]
@@ -1259,46 +1281,52 @@ class GraspClient():
         # Compute an approach pose and try to reach it. Add object mesh to moveit to avoid hitting it with the approach plan. Delete it after
         self.create_moveit_scene_client()
 
-        # approach_pose = self.approach_pose_from_palm_pose(palm_pose_world)
+        approach_pose = self.approach_pose_from_palm_pose(palm_pose_world)
+        approach_plan_exists = self.plan_arm_trajectory_client(approach_pose)
+        if not approach_plan_exists:
+            count = 0
+            while not approach_plan_exists and count < 3:
+                approach_pose = self.add_position_noise(approach_pose)
+                approach_plan_exists = self.plan_arm_trajectory_client(approach_pose)
+                count += 1
 
-        self.plan_cartesian_path_trajectory_client(palm_pose_world)
-        ### Move J Motion ###
-        # approach_pose = self.approach_pose_from_palm_pose(palm_pose_world)
-        # approach_plan_exists = self.plan_arm_trajectory_client(approach_pose)
-        # if not approach_plan_exists:
-        #     count = 0
-        #     while not approach_plan_exists and count < 3:
-        #         approach_pose = self.add_position_noise(approach_pose)
-        #         approach_plan_exists = self.plan_arm_trajectory_client(approach_pose)
-        #         count += 1
+        if approach_plan_exists:
+            self.clean_moveit_scene_client()
+        else:
+            rospy.logerr("no traj found to approach pose")
+            return False
+        # Execute to approach pose
+        self.execute_joint_trajectory_client(speed='mid')
 
-        # if approach_plan_exists:
-        #     self.clean_moveit_scene_client()
-        # else:
-        #     rospy.logerr("no traj found to approach pose")
-        # # Execute to approach pose
-        # self.execute_joint_trajectory_client(speed='mid')
+        # Detect object pose to check if collision happened
+        if check_if_object_moved(object_pose):
+            self.collision_to_approach_pose = 1
+            rospy.logerr("Object moved during way to approach pose")
+        else:
+            self.collision_to_approach_pose = 0
 
-        # # Detect object pose to check if collision happened
-        # if check_if_object_moved(object_pose):
-        #     self.collision_to_approach_pose = 1
-        #     rospy.logerr("Object moved during way to approach pose")
-        # else:
-        #     self.collision_to_approach_pose = 0
+        # Try to find a plan to the final destination
+        plan_exists = self.plan_arm_trajectory_client(palm_pose_world)
 
-        # # Try to find a plan to the final destination
-        # plan_exists = self.plan_arm_trajectory_client(palm_pose_world)
+        # Move L Motion not working
+        # self.plan_cartesian_path_trajectory_client(palm_pose_world)
 
-        # # Backup if no plan found
-        # if not plan_exists:
-        #     plan_exists = self.plan_arm_trajectory_client(palm_pose_world)
-        #     if not plan_exists:
-        #         self.grasp_label = -1
-        #         rospy.logerr("no traj found to final grasp pose")
-        #         return False
-        ###############
+        # Backup if no plan found
+        if not plan_exists:
+            plan_exists = self.plan_arm_trajectory_client(palm_pose_world)
+            if not plan_exists:
+                self.grasp_label = -1
+                rospy.logerr("no traj found to final grasp pose")
+                return False
+
         # Execute joint trajectory
         self.execute_joint_trajectory_client(speed='mid')
+
+        distance = self.check_cartesian_pose_distance_client(palm_pose_world)
+        if distance > 0.01:
+            rospy.logerr("Cannot reach goal pose with error: %f m" % distance)
+        else:
+            rospy.loginfo("Distance to target pose %f" % distance)
 
         # Detect object pose to check if collision happened
         if check_if_object_moved(object_pose):

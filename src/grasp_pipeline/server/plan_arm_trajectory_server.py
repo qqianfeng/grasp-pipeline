@@ -13,6 +13,7 @@ from trac_ik_python.trac_ik import IK
 
 
 class CartesianPoseMoveitPlanner():
+
     def __init__(self):
         moveit_commander.roscpp_initialize(sys.argv)
         rospy.init_node('moveit_goal_pose_planner_node')
@@ -56,7 +57,7 @@ class CartesianPoseMoveitPlanner():
             self.solver_margin_ori)
 
         if ik_js is None:
-            rospy.logerr('No IK solution found')
+            rospy.logdebug('No IK solution found')
             return None
         self.move_group.set_joint_value_target(np.array(ik_js))
         plan_goal = self.move_group.plan()
@@ -126,11 +127,13 @@ class CartesianPoseMoveitPlanner():
         # Add 3 waypoints: current pose, approach pose and goal pose
         waypoints = []
         waypoints.append(self.get_ee_pose())
+
+        waypoints.append(copy.deepcopy(req.palm_approach_pose_world.pose))
         waypoints.append(copy.deepcopy(req.palm_goal_pose_world.pose))
 
         # Plan path through these waypoints
         (plan, fraction) = self.move_group.compute_cartesian_path(waypoints, 0.01, 0.0)
-
+        rospy.loginfo('fraction: %f' % fraction)
         res = PlanCartesianPathTrajectoryResponse()
         if plan is None:
             res.success = False
@@ -138,7 +141,29 @@ class CartesianPoseMoveitPlanner():
         if len(plan.joint_trajectory.points) > 0:
             res.success = True
             res.trajectory = plan.joint_trajectory
+            rospy.loginfo('plan.joint_trajectory is %s' % str(plan.joint_trajectory.points))
+            res.fraction = fraction
         return res
+
+    def handle_check_cartesian_pose_distance(self, req):
+        current_pose = self.get_ee_pose()
+        required_pose = req.required_pose.pose
+        delta_x = abs(current_pose.position.x - required_pose.position.x)
+        delta_y = abs(current_pose.position.y - required_pose.position.y)
+        delta_z = abs(current_pose.position.z - required_pose.position.z)
+        distance = np.sqrt(delta_x**2 + delta_y**2 + delta_z**2)
+        rospy.logdebug("delta_x, %f" % (current_pose.position.x - required_pose.position.x))
+        rospy.logdebug("delta_y, %f" % (current_pose.position.y - required_pose.position.y))
+        rospy.logdebug("delta_z, %f" % (current_pose.position.z - required_pose.position.z))
+        res = CheckCartesianPoseDistanceResponse()
+        res.distance = distance
+        return res
+
+    def create_check_cartesian_pose_distance(self):
+        rospy.Service('check_cartesian_pose_distance', CheckCartesianPoseDistance,
+                      self.handle_check_cartesian_pose_distance)
+        rospy.loginfo('Service check_cartesian_pose_distance:')
+        rospy.loginfo('Ready to calculate catesian goal pose distance.')
 
     def create_plan_arm_trajectory_server(self):
         rospy.Service('plan_arm_trajectory', PlanArmTrajectory, self.handle_plan_arm_trajectory)
@@ -164,5 +189,34 @@ if __name__ == '__main__':
     planner = CartesianPoseMoveitPlanner()
     planner.create_plan_arm_trajectory_server()
     planner.create_plan_arm_reset_trajectory()
-    #planner.create_plan_cartesian_path_trajectory()
+    planner.create_plan_cartesian_path_trajectory()
+    planner.create_check_cartesian_pose_distance()
+
+    DEBUG = False
+    if DEBUG:
+
+        ee_pose = PoseStamped()
+        ee_pose.pose.position.x = 0.48074272179180777
+        ee_pose.pose.position.y = 0.1280189956862769
+        ee_pose.pose.position.z = 0.06839975362456746
+        ee_pose.pose.orientation.x = 0.5478170055099875
+        ee_pose.pose.orientation.y = 0.013352065752940073
+        ee_pose.pose.orientation.z = 0.07366870805281238
+        ee_pose.pose.orientation.w = 0.8332413555246935
+
+        via_pose = PoseStamped()
+        via_pose.pose.position.x = 0.48074272179180777
+        via_pose.pose.position.y = 0.1280189956862769
+        via_pose.pose.position.z = 0.06839975362456746
+        via_pose.pose.orientation.x = 0.5478170055099875
+        via_pose.pose.orientation.y = 0.013352065752940073
+        via_pose.pose.orientation.z = 0.07366870805281238
+        via_pose.pose.orientation.w = 0.8332413555246935
+        plan_cartesian_path_trajectory = rospy.ServiceProxy('plan_cartesian_path_trajectory',
+                                                            PlanCartesianPathTrajectory)
+        req = PlanCartesianPathTrajectoryRequest()
+        req.palm_approach_pose_world = via_pose
+        req.palm_goal_pose_world = ee_pose
+        res = plan_cartesian_path_trajectory(req)
+
     rospy.spin()
