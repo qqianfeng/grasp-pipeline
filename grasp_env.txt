@@ -1,7 +1,8 @@
 # Activate conda environment
 conda activate grasp-pipeline
 
-# Start shell environment
+# Start shell environments
+eval $(arpm_env ar-frankenstein_legacy_interfaces/3.0.0@yb/testing)
 eval $(arpm_env ar-toolkit/9.0.0@ar/stable)
 
 # Set environment variables
