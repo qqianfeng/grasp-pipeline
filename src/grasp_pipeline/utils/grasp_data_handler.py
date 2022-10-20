@@ -16,6 +16,7 @@ NC = 'no_collision'
 
 
 class GraspDataHandlerVae:
+
     def __init__(self, file_path):
         assert os.path.exists(file_path)
         self.file_path = file_path
@@ -24,6 +25,7 @@ class GraspDataHandlerVae:
         """ Returns either all grasps for an outcome in [positive, negative, collision, all]. 
         All means all outcomes are combined and returned.
         """
+
         def grasps_for_outcome(file_path, outcome):
             if outcome == 'collision':
                 joint_preshape_name = "desired_preshape_joint_state"
@@ -89,6 +91,7 @@ class GraspDataHandlerVae:
 
 
 class GraspDataHandler():
+
     def __init__(self, file_path, sess_name='-1'):
         self.file_path = file_path
         self.set_sess_name(sess_name)
@@ -124,6 +127,7 @@ class GraspDataHandler():
             obj_grasp_gp = hdf[RS][self.sess_name][GT][obj_name][G][NC]
             num_pos = 0
             num_neg = 0
+            num_col = 0
             pos_idxs = []
             for i, key in enumerate(obj_grasp_gp.keys()):
                 label = obj_grasp_gp[key]['grasp_success_label'][()]
@@ -141,16 +145,22 @@ class GraspDataHandler():
                         cv2.destroyAllWindows()
                 elif label == 0:
                     num_neg += 1
+                    collision_to_grasp_pose_label = obj_grasp_gp[key]['collision_to_grasp_pose'][(
+                    )]
+                    if collision_to_grasp_pose_label == 1:
+                        num_col += 1
             print("Number of negative and positive grasps for object: %s" % obj_name)
             print("{:<20} {}".format('negatives', num_neg))
             print("{:<20} {}".format('positives', num_pos))
+            print("{:<20} {}".format('collision', num_col))
+
             succ_ratio = num_pos / (num_pos + num_neg)
             print("Success ratio ", succ_ratio)
             if print_idxs:
                 print("Indexes of positive grasps: ", pos_idxs)
             print("\n\n")
 
-        return num_pos, num_neg, succ_ratio
+        return num_pos, num_neg, num_col, succ_ratio
 
     def print_objects(self):
         with h5py.File(self.file_path, "r") as grasp_file:
@@ -224,19 +234,17 @@ class GraspDataHandler():
 
 if __name__ == '__main__':
     # file_path = os.path.join('/home/vm/Documents/2021-05-09_ffhgen_400', 'grasp_data.h5')
-    file_path = os.path.join(
-        '/tmp',
-        'grasp_data.h5')
+    file_path = os.path.join('/tmp', 'grasp_data.h5')
     gdh = GraspDataHandler(file_path=file_path)
     gdh.set_sess_name(sess_name='-1')
     gdh.print_metadata()
     objs = gdh.print_objects()
     d = []
     for obj in objs:
-        p, n, succ = gdh.print_object_metadata(obj, show_grasp=False)
-        d.append((obj, p, n, succ))
+        p, n, c, succ = gdh.print_object_metadata(obj, show_grasp=False)
+        d.append((obj, p, n, c, succ))
 
-    df = pd.DataFrame(d, columns=('object', 'n_pos', 'n_neg', 'succ_r'))
+    df = pd.DataFrame(d, columns=('object', 'n_pos', 'n_neg', 'n_col', 'succ_r'))
     df.to_csv('results_400_thresh_90.csv')
 
     df_2 = pd.DataFrame().from_csv('results_400_thresh_90.csv')

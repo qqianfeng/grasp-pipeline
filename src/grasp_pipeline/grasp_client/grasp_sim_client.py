@@ -194,8 +194,8 @@ class GraspClient():
             rand_x, rand_y, self.object_metadata["spawn_height_z"],
             self.object_metadata["spawn_angle_roll"], 0, rand_z_orientation
         ]
-        rospy.loginfo('Generated random object pose:')
-        rospy.loginfo(object_pose)
+        rospy.logdebug('Generated random object pose:')
+        rospy.logdebug(object_pose)
         object_pose_stamped = get_pose_stamped_from_array(object_pose)
         self.object_metadata["mesh_frame_pose"] = object_pose_stamped
 
@@ -240,7 +240,7 @@ class GraspClient():
 
         # Check if the desired grasp type is available
         if not len(available_grasp_types):
-            print('No grasp type is available anymore')
+            rospy.logerr('No grasp type is available anymore')
             self.grasps_available = False
             return False
         elif grasp_type in available_grasp_types:
@@ -265,7 +265,7 @@ class GraspClient():
         self.chosen_grasp_idx = grasp_idx
 
         self.chosen_grasp_type = grasp_type
-        print("Chosen grasp type is: " + str(self.chosen_grasp_type))
+        rospy.loginfo("Chosen grasp type is: " + str(self.chosen_grasp_type))
         # If this IS the first execution initialize previous grasp_type with current:
         if (len(self.top_idxs) + len(self.side1_idxs) +
                 len(self.side2_idxs)) == self.num_preshapes:
@@ -809,8 +809,8 @@ class GraspClient():
                 self.object_metadata["aligned_pose"] = PoseStamped(
                     header=Header(frame_id='world'), pose=self.object_segment_response.object.pose)
 
-                print("whd before alignment: ")
-                print(self.object_metadata["seg_dim_whd"])
+                rospy.logdebug("whd before alignment: ")
+                rospy.logdebug(self.object_metadata["seg_dim_whd"])
 
                 self.update_object_pose_aligned_client()
                 self.object_metadata["aligned_dim_whd_utah"] = [
@@ -818,8 +818,8 @@ class GraspClient():
                     self.object_segment_response.object.height,
                     self.object_segment_response.object.depth
                 ]
-                print("whd from alignment: ")
-                print(self.object_metadata["aligned_dim_whd_utah"])
+                rospy.logdebug("whd from alignment: ")
+                rospy.logdebug(self.object_metadata["aligned_dim_whd_utah"])
                 rospy.sleep(0.2)
                 if not self.is_rec_sess:
                     rospy.sleep(2)
@@ -836,8 +836,8 @@ class GraspClient():
                 self.object_segment_response.object.width = bb_extent_aligned[0]
                 self.object_segment_response.object.height = bb_extent_aligned[1]
                 self.object_segment_response.object.depth = bb_extent_aligned[2]
-                print("whd Vincent: ")
-                print([
+                rospy.logdebug("whd Vincent: ")
+                rospy.logdebug([
                     self.object_segment_response.object.width,
                     self.object_segment_response.object.height,
                     self.object_segment_response.object.depth
@@ -991,8 +991,8 @@ class GraspClient():
         if visualize_poses:
             self.visualize_grasp_pose_list_client(palm_poses_f)
         n_after = len(joint_confs_f)
-        print("Remaining grasps after filtering: %.2f" % (n_after / n_before))
-        print("This means %d grasps were removed." % (n_before - n_after))
+        rospy.logdebug("Remaining grasps after filtering: %.2f" % (n_after / n_before))
+        rospy.logdebug("This means %d grasps were removed." % (n_before - n_after))
         self.log_num_grasps_removed(n_before, n_after, thresh)
         return palm_poses_f, joint_confs_f
 
@@ -1013,6 +1013,7 @@ class GraspClient():
         if object_pos_delta_z > (self.object_lift_height - self.success_tolerance_lift_height):
             self.grasp_label = 1
         else:
+            rospy.logdebug("object_pose_delta_z: %f" % object_pose_delta_z)
             self.grasp_label = 0
 
         rospy.loginfo("The grasp label is: " + str(self.grasp_label))
@@ -1107,11 +1108,11 @@ class GraspClient():
             object_pcd_record_path (str, optional): [description]. Defaults to ''.
         """
         if down_sample_pcd == True:
-            print(
+            rospy.logdebug(
                 "Point cloud will be down sampled AND transformed to WORLD frame. This is not correct for testing grasp sampler!"
             )
         else:
-            print(
+            rospy.logdebug(
                 "Point cloud will not be down sampled BUT transformed to OBJECT CENTROID frame, which is parallel to camera frame. This is necessary for testing grasp sampler."
             )
         self.object_pcd_record_path = object_pcd_record_path
@@ -1323,10 +1324,10 @@ class GraspClient():
         self.execute_joint_trajectory_client(speed='mid')
 
         distance = self.check_cartesian_pose_distance_client(palm_pose_world)
-        if distance > 0.01:
+        if distance > 0.07:  # there is constant error of 0.06, no idea why
             rospy.logerr("Cannot reach goal pose with error: %f m" % distance)
         else:
-            rospy.loginfo("Distance to target pose %f" % distance)
+            rospy.logdebug("Distance to target pose %f" % distance)
 
         # Detect object pose to check if collision happened
         if check_if_object_moved(object_pose):
