@@ -13,7 +13,7 @@ from grasp_pipeline.utils.object_names_in_datasets import OBJECTS_FOR_EVAL as ob
 N_POSES = 400
 FILTER_THRESH = -1  # set to -1 if no filtering desired, default 0.9
 FILTER_NUM_GRASPS = 20
-NUM_TRIALS_PER_OBJ = 10
+NUM_TRIALS_PER_OBJ = 20
 
 shutil.rmtree('/home/vm/grasp_data', ignore_errors=True)
 grasp_client = GraspClient(grasp_data_recording_path='/tmp/', is_rec_sess=True, is_eval_sess=True)
@@ -38,7 +38,7 @@ for obj_full in obj_list:
 
     rospy.loginfo("Now start experiement of object: %s" % obj_name)
 
-    for trial in range(NUM_TRIALS_PER_OBJ - 1):
+    for trial in range(NUM_TRIALS_PER_OBJ):
         # Reset
         grasp_client.reset_hithand_and_panda()
 

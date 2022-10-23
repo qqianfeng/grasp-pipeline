@@ -1013,7 +1013,7 @@ class GraspClient():
         if object_pos_delta_z > (self.object_lift_height - self.success_tolerance_lift_height):
             self.grasp_label = 1
         else:
-            rospy.logdebug("object_pose_delta_z: %f" % object_pose_delta_z)
+            rospy.logdebug("object_pos_delta_z: %f" % object_pos_delta_z)
             self.grasp_label = 0
 
         rospy.loginfo("The grasp label is: " + str(self.grasp_label))
