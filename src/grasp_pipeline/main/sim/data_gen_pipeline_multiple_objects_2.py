@@ -13,6 +13,7 @@ poses = [[0.5, 0.0, 0.2, 0, 0, 0], [0.5, 0.0, 0.2, 0, 0, 1.571], [0.5, 0.0, 0.2,
 
 
 def get_objects(amount=4):
+    # TODO add to choose random object
     objects = []
     metadata_handler = MetadataHandler()
     num_total = metadata_handler.get_total_num_objects()
@@ -36,6 +37,8 @@ if __name__ == '__main__':
     metadata_handler = MetadataHandler(gazebo_objects_path=gazebo_objects_path)
 
     grasp_objects = get_objects()
+    for idx, obj in enumerate(grasp_objects):
+        grasp_objects[idx] = grasp_client.set_to_random_pose(obj)
 
     # This loop runs for all objects, 4 poses, and evaluates N grasps per pose
     for i in range(metadata_handler.get_total_num_objects()):
@@ -65,8 +68,11 @@ if __name__ == '__main__':
             # Also one specific desired grasp preshape should be chosen. This preshape (characterized by the palm position, hithand joint states, and the is_top boolean gets stored in other instance variables)
             grasp_client.get_valid_preshape_for_all_points()
 
-            grasp_client.update_gazebo_object_client(grasp_objects)
-            # grasp_client.update_multiple_gazebo_objects_client(grasp_objects)
+            # grasp_client.update_gazebo_object_client(grasp_objects)
+
+            # TODO: grasp_objects has no attribute of "mesh_frame_pose"
+            grasp_client.update_multiple_gazebo_objects_client(grasp_objects)
+
             j = 0
             while grasp_client.grasps_available:
                 # Save pre grasp visual data
@@ -83,7 +89,7 @@ if __name__ == '__main__':
                     # Spawn object in same position
                     grasp_client.spawn_object(pose_type="same")
 
-                    grasp_client.update_gazebo_object_client(grasp_objects)
+                    grasp_client.update_multiple_gazebo_objects_client(grasp_objects)
 
                 # Grasp and lift object
                 grasp_arm_plan = grasp_client.grasp_and_lift_object()

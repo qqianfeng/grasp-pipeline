@@ -9,12 +9,13 @@ YCB_PI_HALF_ROLL = ["008_pudding_box", "009_gelatin_box", "035_power_drill"]
 class MetadataHandler():
     """ Simple class to help iterate through objects and 
     """
+
     def __init__(self, gazebo_objects_path='/home/vm/gazebo-objects/objects_gazebo'):
         #self.datasets = [BIGBIRD_OBJECTS]
-        self.datasets = [YCB_OBJECTS, BIGBIRD_OBJECTS, KIT_OBJECTS]
+        self.datasets = [BIGBIRD_OBJECTS, KIT_OBJECTS, YCB_OBJECTS]
 
         #self.datasets_name = ['bigbird']
-        self.datasets_name = ['ycb', 'bigbird', 'kit']
+        self.datasets_name = ['bigbird', 'kit', 'ycb']
 
         self.object_ix = -1
         self.dataset_ix = 0
@@ -51,7 +52,8 @@ class MetadataHandler():
 
                 if dset_name == 'kit' and object_metadata["name"] in KIT_OBJECTS_DATA_GENERATED:
                     choose_success = False
-            except:
+            except Exception as e:
+                rospy.logerr("%s" % e)
                 self.object_ix += 1
 
         return object_metadata
@@ -103,6 +105,7 @@ class MetadataHandler():
 class MetadataHandlerFinalDataGen(MetadataHandler):
     """ Simple class to help iterate through objects and 
     """
+
     def __init__(self, gazebo_objects_path='/home/vm/gazebo-objects/objects_gazebo'):
         self.dset_obj_names = OBJECTS_TO_GENERATE_DATA_FOR_AFTER_15_04_Desktop
 

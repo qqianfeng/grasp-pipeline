@@ -79,7 +79,7 @@ class GazeboSceneManager():
     #####################################################
 
     def create_server_create_new_scene(self):
-        rospy.Service('create_new_scene', CreateNewScene, self.handel_create_new_scene)
+        rospy.Service('create_new_scene', CreateNewScene, self.handle_create_new_scene)
         rospy.loginfo('Service create_new_scene:')
         rospy.loginfo('Ready to create new gazebo scene')
 
@@ -92,6 +92,7 @@ class GazeboSceneManager():
 
         self.spawn_multiple_objects(req.objects_in_new_scene)
         if len(self.objcets_in_scene) < len(req.objects_in_new_scene):
+            # TODO how to avoid the failure of spawning new object
             response.success = False
             return response
         rospy.sleep(3)
@@ -220,5 +221,6 @@ class Scene():
 if __name__ == '__main__':
     manager = GazeboSceneManager()
     manager.create_update_gazebo_object_server()
-    # manager.create_server_create_new_scene()
+    manager.create_server_create_new_scene()
+    manager.create_server_reset_scene()
     rospy.spin()

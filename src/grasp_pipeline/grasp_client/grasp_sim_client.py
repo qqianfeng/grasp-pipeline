@@ -874,16 +874,16 @@ class GraspClient():
 
     def update_multiple_gazebo_objects_client(self, objects):
         wait_for_service('create_new_scene')
-        create_new_scene = rospy.ServiceProxy('create_new_scene', UpdateMultipleObjectsGazebo)
-        req = UpdateMultipleObjectsGazeboRequest()
-        for grasp_objcet in objects:
+        create_new_scene = rospy.ServiceProxy('create_new_scene', CreateNewScene)
+        req = CreateNewSceneRequest()
+        for grasp_object in objects:
             single_object = ObjectToBeSpawned()
-            object_pose_array = get_pose_array_from_stamped(grasp_objcet["mesh_frame_pose"])
-            single_object.object_name = grasp_objcet["name"]
-            single_object.object_model_file = grasp_objcet["model_file"]
+            object_pose_array = get_pose_array_from_stamped(grasp_object["mesh_frame_pose"])
+            single_object.object_name = grasp_object["name"]
+            single_object.object_model_file = grasp_object["model_file"]
             single_object.object_pose_array = object_pose_array
             single_object.model_type = 'sdf'
-            req.objects_to_be_spawned.append(single_object)
+            req.objects_in_new_scene.append(single_object)
         try:
             res = create_new_scene(req)
         except rospy.ServiceException, e:
@@ -898,6 +898,7 @@ class GraspClient():
         pass
 
     def reset_scene(self):
+        # TODO: call reset scene server
         pass
 
     #####################################################
