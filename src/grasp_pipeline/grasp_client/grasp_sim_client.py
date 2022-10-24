@@ -24,6 +24,17 @@ import time
 import sys
 
 sys.path.append('..')
+from gazebo_msgs.srv import GetModelState, GetModelStateRequest
+from geometry_msgs.msg import PoseStamped
+from std_msgs.msg import Header, Bool
+from sensor_msgs.msg import JointState
+from std_srvs.srv import SetBool, SetBoolRequest
+
+from grasp_pipeline.utils.utils import wait_for_service, get_pose_stamped_from_array, get_pose_array_from_stamped, plot_voxel
+from grasp_pipeline.utils import utils
+from grasp_pipeline.utils.align_object_frame import align_object
+from grasp_pipeline.srv import *
+from grasp_pipeline.msg import *
 
 
 class GraspClient():
@@ -475,7 +486,7 @@ class GraspClient():
         trans = self.tf_buffer.lookup_transform('world',
                                                 'palm_link_hithand',
                                                 rospy.Time(0),
-                                                timeout=rospy.Duration(100))
+                                                timeout=rospy.Duration(10))
 
         palm_pose = PoseStamped()
         palm_pose.header.frame_id = 'world'
@@ -683,38 +694,37 @@ class GraspClient():
             rospy.logerr('Service record_grasp_trial_data call failed: %s' % e)
         rospy.logdebug('Service record_grasp_trial_data is executed.')
 
-    # This seems never used!!!
-    # def record_grasp_data_client(self):
-    #     wait_for_service('record_grasp_data')
-    #     try:
-    #         # Currently all poses are in the world frame. Transfer the desired pose into object frame
+    def record_grasp_data_client(self):
+        wait_for_service('record_grasp_data')
+        try:
+            # Currently all poses are in the world frame. Transfer the desired pose into object frame
 
-    #         record_grasp_data = rospy.ServiceProxy('record_grasp_data', RecordGraspDataSim)
-    #         req = RecordGraspDataSimRequest()
-    #         req.object_name = self.object_metadata["name"]
-    #         req.time_stamp = datetime.datetime.now().isoformat()
-    #         req.is_top_grasp = self.chosen_is_top_grasp
-    #         req.grasp_success_label = self.grasp_label
-    #         req.object_size_aligned = self.object_metadata["aligned_dim_whd"]
-    #         req.object_size_unaligned = self.object_metadata["seg_dim_whd"]
-    #         req.sparse_voxel_grid = self.object_metadata["sparse_voxel_grid"]
-    #         req.object_world_sim_pose = self.object_metadata["mesh_frame_pose"]
-    #         req.object_world_seg_unaligned_pose = self.object_metadata["seg_pose"]
-    #         req.object_world_aligned_pose = self.object_metadata["aligned_pose"]
-    #         req.desired_preshape_palm_world_pose = self.palm_poses["desired_pre"]
-    #         req.palm_in_object_aligned_frame_pose = self.palm_poses["palm_in_object_aligned_frame"]
-    #         req.true_preshape_palm_world_pose = self.palm_poses["true_pre"]
-    #         req.closed_palm_world_pose = self.palm_poses["closed"]
-    #         req.lifted_palm_world_pose = self.palm_poses["lifted"]
-    #         req.desired_preshape_hithand_joint_state = self.hand_joint_states["desired_pre"]
-    #         req.true_preshape_hithand_joint_state = self.hand_joint_states["true_pre"]
-    #         req.closed_hithand_joint_state = self.hand_joint_states["closed"]
-    #         req.lifted_hithand_joint_state = self.hand_joint_states["lifted"]
+            record_grasp_data = rospy.ServiceProxy('record_grasp_data', RecordGraspDataSim)
+            req = RecordGraspDataSimRequest()
+            req.object_name = self.object_metadata["name"]
+            req.time_stamp = datetime.datetime.now().isoformat()
+            req.is_top_grasp = self.chosen_is_top_grasp
+            req.grasp_success_label = self.grasp_label
+            req.object_size_aligned = self.object_metadata["aligned_dim_whd"]
+            req.object_size_unaligned = self.object_metadata["seg_dim_whd"]
+            req.sparse_voxel_grid = self.object_metadata["sparse_voxel_grid"]
+            req.object_world_sim_pose = self.object_metadata["mesh_frame_pose"]
+            req.object_world_seg_unaligned_pose = self.object_metadata["seg_pose"]
+            req.object_world_aligned_pose = self.object_metadata["aligned_pose"]
+            req.desired_preshape_palm_world_pose = self.palm_poses["desired_pre"]
+            req.palm_in_object_aligned_frame_pose = self.palm_poses["palm_in_object_aligned_frame"]
+            req.true_preshape_palm_world_pose = self.palm_poses["true_pre"]
+            req.closed_palm_world_pose = self.palm_poses["closed"]
+            req.lifted_palm_world_pose = self.palm_poses["lifted"]
+            req.desired_preshape_hithand_joint_state = self.hand_joint_states["desired_pre"]
+            req.true_preshape_hithand_joint_state = self.hand_joint_states["true_pre"]
+            req.closed_hithand_joint_state = self.hand_joint_states["closed"]
+            req.lifted_hithand_joint_state = self.hand_joint_states["lifted"]
 
-    #         res = record_grasp_data(req)
-    #     except rospy.ServiceException, e:
-    #         rospy.logerr('Service record_grasp_data call failed: %s' % e)
-    #     rospy.logdebug('Service record_grasp_data is executed.')
+            res = record_grasp_data(req)
+        except rospy.ServiceException, e:
+            rospy.loginfo('Service record_grasp_data call failed: %s' % e)
+        rospy.loginfo('Service record_grasp_data is executed.')
 
     def record_sim_grasp_data_utah_client(self, grasp_id, object_name, grasp_config_obj, is_top,
                                           label):
@@ -857,6 +867,42 @@ class GraspClient():
             rospy.logerr('Service update_gazebo_object call failed: %s' % e)
         rospy.logdebug('Service update_gazebo_object is executed %s.' % str(res.success))
         return res.success
+
+    #####################################################
+    ## below are codes for multiple objects generation ##
+    #####################################################
+
+    def update_multiple_gazebo_objects_client(self, objects):
+        wait_for_service('create_new_scene')
+        create_new_scene = rospy.ServiceProxy('create_new_scene', UpdateMultipleObjectsGazebo)
+        req = UpdateMultipleObjectsGazeboRequest()
+        for grasp_objcet in objects:
+            single_object = ObjectToBeSpawned()
+            object_pose_array = get_pose_array_from_stamped(grasp_objcet["mesh_frame_pose"])
+            single_object.object_name = grasp_objcet["name"]
+            single_object.object_model_file = grasp_objcet["model_file"]
+            single_object.object_pose_array = object_pose_array
+            single_object.model_type = 'sdf'
+            req.objects_to_be_spawned.append(single_object)
+        try:
+            res = create_new_scene(req)
+        except rospy.ServiceException, e:
+            rospy.loginfo('Service create_new_scene call failed %s' % e)
+        rospy.loginfo('Service create_new_scene is executed %s.' % str(res.success))
+        return res.success
+
+    def create_new_scene(self):
+        pass
+
+    def save_scene(self):
+        pass
+
+    def reset_scene(self):
+        pass
+
+    #####################################################
+    ## above are codes for multiple objects generation ##
+    #####################################################
 
     def update_grasp_palm_pose_client(self, palm_pose):
         wait_for_service("update_grasp_palm_pose")
@@ -1047,6 +1093,64 @@ class GraspClient():
 
         # Update the true mesh pose
         self.update_object_mesh_frame_pose_client()
+
+    #####################################################
+    ## below are codes for multiple objects generation ##
+    #####################################################
+
+    def spawn_multiple_objects(self, pose_type, pose_arr=None):
+        # Generate a random valid object pose
+        if pose_type == "random":
+            self.generate_random_object_pose_for_experiment()
+
+        elif pose_type == "init":
+            # set the roll angle
+            pose_arr[3] = self.object_metadata["spawn_angle_roll"]
+            pose_arr[2] = self.object_metadata["spawn_height_z"]
+
+            self.object_metadata["mesh_frame_pose"] = get_pose_stamped_from_array(pose_arr)
+
+        #print "Spawning object here:", pose_arr
+
+        # Update gazebo object, delete old object and spawn new one
+        self.update_multiple_gazebo_objects_client()
+
+        # Now wait for 2 seconds for object to rest and update actual object position
+        if pose_type == "init" or pose_type == "random":
+            if self.is_rec_sess:
+                rospy.sleep(3)
+            object_pose = self.get_grasp_object_pose_client()
+
+            # Update the sim_pose with the actual pose of the object after it came to rest
+            self.object_metadata["mesh_frame_pose"] = PoseStamped(header=Header(frame_id='world'),
+                                                                  pose=object_pose)
+
+        # Update moveit scene object
+        if not self.is_eval_sess:
+            self.update_moveit_scene_client()
+
+        # Update the true mesh pose
+        self.update_object_mesh_frame_pose_client()
+
+    def set_to_random_pose(self, object_metadata):
+        """Generates a random x,y position and z orientation within object_spawn boundaries for grasping experiments.
+        """
+        rand_x = np.random.uniform(self.spawn_object_x_min, self.spawn_object_x_max)
+        rand_y = np.random.uniform(self.spawn_object_y_min, self.spawn_object_y_max)
+        rand_z_orientation = np.random.uniform(0., 2 * np.pi)
+        object_pose = [
+            rand_x, rand_y, object_metadata["spawn_height_z"], object_metadata["spawn_angle_roll"],
+            0, rand_z_orientation
+        ]
+        rospy.loginfo('Generated random object pose:')
+        rospy.loginfo(object_pose)
+        object_pose_stamped = get_pose_stamped_from_array(object_pose)
+        object_metadata["mesh_frame_pose"] = object_pose_stamped
+        return object_metadata
+
+    #####################################################
+    ## above are codes for multiple objects generation ##
+    #####################################################
 
     def set_visual_data_save_paths(self, grasp_phase):
         if self.is_rec_sess:

@@ -9,6 +9,7 @@ from grasp_pipeline.utils.utils import wait_for_service
 
 
 class RobotTrajectoryManager():
+
     def __init__(self):
         rospy.init_node('execute_joint_trajectory_node')
         self.joint_command_pub = rospy.Publisher('panda/joint_cmd', JointState, queue_size=1)

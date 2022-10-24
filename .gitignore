@@ -1,4 +1,5 @@
 .vscode/
 build
 *.csv
+*.ods
 *.pyc

@@ -28,6 +28,7 @@ add_message_files(
   DIRECTORY msg
   FILES
   GraspObject.msg
+  ObjectToBeSpawned.msg
 )
 
 add_service_files(
@@ -56,6 +57,8 @@ add_service_files(
     UpdateObjectPose.srv
     UpdatePalmPose.srv
     VisualizeGraspPoseList.srv
+    CreateNewScene.srv
+    # ResetScene.srv
 )
 
 generate_messages(
