@@ -11,7 +11,7 @@ publisher = participant.create_publisher("ar::frankenstein_legacy_interfaces::dd
 rand_arr = np.random.rand(6) * np.pi
 
 while 1:
-    v_des = (0.2 * np.sin(time.time() + rand_arr)).astype(np.double)
+    v_des = (0.1 * np.sin(time.time() + rand_arr)).astype(np.double)
     publisher.message["dT"] = v_des
     publisher.publish()
 

@@ -66,7 +66,7 @@ listener = participant.create_subscriber_listener("ar::interfaces::dds::robot::g
 print("Subscriber is ready. Waiting for data ...")
 
 # Create Domain Participant and a publisher to publish velocity
-publisher = participant.create_publisher("ar::dds::des_cart_vel::Msg",
+publisher = participant.create_publisher("ar::frankenstein_legacy_interfaces::dds::robot::diana::linear_speed_servoing_v1",
                                          'des_cart_vel_msg')
 
 # Transformations
@@ -91,7 +91,7 @@ grasp_execution_threshold = 0.8     # Expected success by FFHEvaluator for grasp
 dist_align_rot = 10                 # Distance to object in cm when also considering rotation of
                                     # grasp (not only align z axis of EE with object direction)
 k_p = [0.1, 0.05]                   # Constant control parameters
-v_des_max =[0.01, 0.01]             # Limit of linear and angular velocity
+v_des_max =[0.05, 0.05]             # Limit of linear and angular velocity
 
 # Initialize variables
 start = time.process_time()
@@ -192,9 +192,13 @@ try:
         if np.linalg.norm(dr_update) > v_des_max[1]:
             dr_update = dr_update / np.linalg.norm(dr_update) * v_des_max[1]
 
+        # Only for diana x1 (TODO: remove)
+        dx_update = d7_T_dx1 @ dx_update
+        dr_update = d7_T_dx1 @ dr_update
+
         # Publish desired velocity
-        v_des = np.concatenate([dx_update, dr_update]).astype(np.float32)
-        publisher.message["tcp_velocity"] = v_des
+        v_des = np.concatenate([dx_update, dr_update])#.astype(np.float32)
+        publisher.message["dT"] = v_des
         publisher.publish()
 
         # Check probability of current configuration to succeed
@@ -226,6 +230,9 @@ except KeyboardInterrupt:
 
 print("Overall time: ", time_abs)
 print("Avg time per cicle: ", time_abs/i, " | Cicles per second: ", i/time_abs)
+
+publisher.message["dT"] = np.zeros(6)
+publisher.publish()
 
 # Plot result
 #plt.plot(palm_pos_list, label=["x", "y", "z"])
