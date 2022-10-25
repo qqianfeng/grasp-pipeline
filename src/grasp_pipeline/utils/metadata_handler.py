@@ -103,7 +103,7 @@ class MetadataHandler():
 class MetadataHandlerFinalDataGen(MetadataHandler):
     """ Simple class to help iterate through objects and 
     """
-    def __init__(self, gazebo_objects_path='/home/vm/gazebo-objects/objects_gazebo'):
+    def __init__(self, gazebo_objects_path):
         self.dset_obj_names = OBJECTS_TO_GENERATE_DATA_FOR_AFTER_15_04_Desktop
 
     def get_total_num_objects(self):

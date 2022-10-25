@@ -4,6 +4,7 @@ import numpy as np
 import shutil
 import torch
 import rospy
+import os
 
 from grasp_pipeline.grasp_client.grasp_sim_client import GraspClient
 from grasp_pipeline.utils.metadata_handler import MetadataHandler
@@ -15,13 +16,14 @@ N_POSES = 400
 FILTER_THRESH = -1  # set to -1 if no filtering desired, default 0.9
 FILTER_NUM_GRASPS = 20
 NUM_TRIALS_PER_OBJ = 20
-path2grasp_data = '/home/vm/grasp_data'
-path2gazebo_objects = '/home/vm/gazebo-objects/objects_gazebo'
+path2grasp_data = os.path.join(os.path.expanduser("~"), 'grasp_data')
+object_datasets_folder = rospy.get_param('object_datasets_folder')
+gazebo_objects_path = os.path.join(object_datasets_folder, 'objects_gazebo')
 
 shutil.rmtree(path2grasp_data, ignore_errors=True)
 data_recording_path = rospy.get_param('data_recording_path')
 grasp_client = GraspClient(grasp_data_recording_path=data_recording_path, is_rec_sess=True, is_eval_sess=True)
-metadata_handler = MetadataHandler(gazebo_objects_path=path2gazebo_objects)
+metadata_handler = MetadataHandler(gazebo_objects_path=gazebo_objects_path)
 
 for obj_full in obj_list:
     # Skip object

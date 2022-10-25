@@ -5,7 +5,7 @@
     <arg name="launch_rosbridge"        default="true"/>
     <!-- +++++++++++++++++++ Set the params needed by the different nodes ++++++++++++++++++++++++++++++++ -->
     <param name="object_pcd_path"         value="/home/vm/object.pcd"       type="string" />
-    <param name="object_pcd_enc_path" value="/home/vm/pcd_enc.npy" type="string"/>
+    <param name="object_pcd_enc_path"     value="/home/vm/pcd_enc.npy" type="string"/>
     <param name="scene_pcd_path"          value="/home/vm/scene.pcd"        type="string" />
     <param name="object_datasets_folder"  value="/home/vm/gazebo-objects"   type="string" />
     <param name="color_img_save_path"     value="/home/vm/scene.jpg"        type="string" />
@@ -14,12 +14,11 @@
     <param name="color_img_topic"         value="/camera/color/image_raw"   type="string" />
     <param name="depth_img_topic"         value="/camera/depth/image_raw"   type="string" />   
     <param name="/use_sim_time"           value="true"                      type="bool"   />
-    <param name="ffhnet_path" value="/home/vm/hand_ws/src/ffhnet" type="string"/>
-    <param name="hithand_ws_path" value="/home/vm/hand_ws" type="string"/>
-    <param name="data_recording_path" value="/tmp/" type="string"/>
-    <param name="ffhnet_path" value="/home/vm/hand_ws/src/ffhnet" type="string"/>
-    <!-- visualize flag used for other visualizations except final grasp poses-->
-    <param name="visualize" value="False"/> 
+    <param name="ffhnet_path"             value="/home/vm/hand_ws/src/ffhnet" type="string"/>
+    <param name="hithand_ws_path"         value="/home/vm/hand_ws" type="string"/>
+    <param name="data_recording_path"     value="/tmp/" type="string"/>
+    <param name="ffhnet_path"             value="/home/vm/hand_ws/src/ffhnet" type="string"/>
+    <param name="visualize"               value="False"/> 
 
     <!-- Gazebo scene manager -->
     <node name="manage_gazebo_scene_node" pkg="grasp_pipeline" type="manage_gazebo_scene_server.py" output="screen"/>

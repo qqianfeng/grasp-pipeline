@@ -13,7 +13,6 @@ import copy
 import datetime
 from multiprocessing import Process
 import numpy as np
-from math import sqrt
 import os
 import rospy
 import tf
@@ -121,7 +120,7 @@ class GraspClient():
             proc.join()
 
     def create_grasp_folder_structure(self, base_path):
-        rec_sess_path = base_path + 'grasp_data/recording_sessions'
+        rec_sess_path = os.path.join(base_path, 'grasp_data/recording_sessions')
         if os.path.exists(rec_sess_path):
             self.sess_id_num = int(sorted(os.listdir(rec_sess_path))[-1].split('_')[-1]) + 1
             self.grasp_id_num = 0
@@ -1261,7 +1260,7 @@ class GraspClient():
             dist_x = abs(current_pose.position.x - previous_pose.position.x)
             dist_y = abs(current_pose.position.y - previous_pose.position.y)
             dist_z = abs(current_pose.position.z - previous_pose.position.z)
-            dist = sqrt(dist_x**2 + dist_y**2 + dist_z**2)
+            dist = np.sqrt(dist_x**2 + dist_y**2 + dist_z**2)
             if dist > threshold:
                 return True
             else:
