@@ -12,14 +12,10 @@ from grasp_pipeline.srv import *
 
 
 class RecordGraspData():
-
     def __init__(self):
         if not DEBUG:
             rospy.init_node('record_grasp_and_collision_data_node')
         self.data_recording_path = rospy.get_param('data_recording_path')
-
-        # if os.path.exists('/home/vm/grasp_data.h5'):
-        #     os.remove('/home/vm/grasp_data.h5')
         self.grasp_data_file_name = os.path.join(self.data_recording_path, 'grasp_data.h5')
         self.recording_session_id = None
         self.initialize_data_file()

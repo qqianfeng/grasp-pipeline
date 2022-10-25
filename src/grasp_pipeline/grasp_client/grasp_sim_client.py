@@ -29,7 +29,6 @@ sys.path.append('..')
 class GraspClient():
     """ This class is a wrapper around all the individual functionality involved in grasping experiments.
     """
-
     def __init__(self, is_rec_sess, grasp_data_recording_path='', is_eval_sess=False):
         rospy.init_node('grasp_client')
         self.grasp_data_recording_path = grasp_data_recording_path
@@ -403,7 +402,7 @@ class GraspClient():
         return res.prune_idxs
 
     def generate_hithand_preshape_client(self):
-        """Generate preshape that is sampled from the 
+        """Generate preshape that is sampled from the each point cloud.
         """
         wait_for_service('generate_hithand_preshape')
         try:
@@ -577,7 +576,6 @@ class GraspClient():
 
     def plan_cartesian_path_trajectory_client(self, place_goal_pose=None):
         """Given place_goal_pose for evaluation. If not given, it's used for data generation.
-
         """
         wait_for_service('plan_cartesian_path_trajectory')
         try:
@@ -612,18 +610,19 @@ class GraspClient():
         rospy.logdebug('Service plan_reset_trajectory is executed.')
         return res.success
 
-    def check_cartesian_pose_distance_client(self, required_pose):
-        wait_for_service('check_cartesian_pose_distance')
+    def get_cartesian_position_error_client(self, required_pose):
+        """ Calculate the distance in xyz between target pose and current pose.
+        """
+        wait_for_service('get_cartesian_position_error')
         try:
-            check_cartesian_pose_distance = rospy.ServiceProxy('check_cartesian_pose_distance',
-                                                               CheckCartesianPoseDistance)
-            req = CheckCartesianPoseDistanceRequest()
+            get_cartesian_position_error = rospy.ServiceProxy('get_cartesian_position_error',
+                                                               GetCartesianPositionError)
+            req = GetCartesianPositionErrorRequest()
             req.required_pose = required_pose
-            res = check_cartesian_pose_distance(req)
-
+            res = get_cartesian_position_error(req)
         except rospy.ServiceException, e:
-            rospy.logerr('Service check_cartesian_pose_distance call failed: %s' % e)
-        rospy.logdebug('Service check_cartesian_pose_distance is executed.')
+            rospy.logerr('Service get_cartesian_position_error call failed: %s' % e)
+        rospy.logdebug('Service get_cartesian_position_error is executed.')
         return res.distance
 
     def record_collision_data_client(self):
@@ -1153,9 +1152,6 @@ class GraspClient():
 
     def grasp_and_lift_object(self):
         """ Used in data generation.
-
-        Returns:
-            _type_: _description_
         """
         # Control the hithand to it's preshape
         i = 0
@@ -1260,13 +1256,13 @@ class GraspClient():
 
         object_pose = self.get_grasp_object_pose_client()
 
-        def check_if_object_moved(object_pose, threshold=0.01):
-            new_pose = self.get_grasp_object_pose_client()
-            distance_x = abs(new_pose.position.x - object_pose.position.x)
-            distance_y = abs(new_pose.position.y - object_pose.position.y)
-            distance_z = abs(new_pose.position.z - object_pose.position.z)
-            distance = sqrt(distance_x**2 + distance_y**2 + distance_z**2)
-            if distance > threshold:
+        def check_if_object_moved(previous_pose, threshold=0.01):
+            current_pose = self.get_grasp_object_pose_client()
+            dist_x = abs(current_pose.position.x - previous_pose.position.x)
+            dist_y = abs(current_pose.position.y - previous_pose.position.y)
+            dist_z = abs(current_pose.position.z - previous_pose.position.z)
+            dist = sqrt(dist_x**2 + dist_y**2 + dist_z**2)
+            if dist > threshold:
                 return True
             else:
                 return False
@@ -1281,7 +1277,6 @@ class GraspClient():
 
         # Compute an approach pose and try to reach it. Add object mesh to moveit to avoid hitting it with the approach plan. Delete it after
         self.create_moveit_scene_client()
-
         approach_pose = self.approach_pose_from_palm_pose(palm_pose_world)
         approach_plan_exists = self.plan_arm_trajectory_client(approach_pose)
         if not approach_plan_exists:
@@ -1309,7 +1304,7 @@ class GraspClient():
         # Try to find a plan to the final destination
         plan_exists = self.plan_arm_trajectory_client(palm_pose_world)
 
-        # Move L Motion not working
+        # TODO: Move L Motion not working
         # self.plan_cartesian_path_trajectory_client(palm_pose_world)
 
         # Backup if no plan found
@@ -1323,11 +1318,12 @@ class GraspClient():
         # Execute joint trajectory
         self.execute_joint_trajectory_client(speed='mid')
 
-        distance = self.check_cartesian_pose_distance_client(palm_pose_world)
-        if distance > 0.07:  # there is constant error of 0.06, no idea why
-            rospy.logerr("Cannot reach goal pose with error: %f m" % distance)
+        pos_error = self.get_cartesian_position_error_client(palm_pose_world)
+         # TODO: there is constant error of 0.06
+        if pos_error > 0.07: 
+            rospy.logerr("Cannot reach goal pose with error: %f m" % pos_error)
         else:
-            rospy.logdebug("Distance to target pose %f" % distance)
+            rospy.logdebug("pos_error to target pose %f" % pos_error)
 
         # Detect object pose to check if collision happened
         if check_if_object_moved(object_pose):

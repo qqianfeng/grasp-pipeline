@@ -29,7 +29,6 @@ from grasp_pipeline.srv import *
 class GraspClient():
     """ This class is a wrapper around all the individual functionality involved in grasping experiments.
     """
-
     def __init__(self, is_rec_sess, grasp_data_recording_path=''):
         rospy.init_node('grasp_client', log_level=rospy.INFO)
         self.grasp_data_recording_path = grasp_data_recording_path
@@ -51,7 +50,7 @@ class GraspClient():
 
         # These variables get changed dynamically during execution to store relevant data under correct folder
 
-        self.base_path = '/home/vm'
+        self.base_path = os.path.expanduser("~")
         self.scene_pcd_save_path = os.path.join(self.base_path, 'scene.pcd')
         self.object_pcd_save_path = os.path.join(self.base_path, 'object.pcd')
         self.bps_object_path = os.path.join(self.base_path, 'pcd_enc.npy')

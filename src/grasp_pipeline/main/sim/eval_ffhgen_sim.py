@@ -10,14 +10,18 @@ from grasp_pipeline.utils.metadata_handler import MetadataHandler
 from grasp_pipeline.utils.object_names_in_datasets import OBJECTS_FOR_EVAL as obj_list
 # from grasp_pipeline.utils.object_names_in_datasets import OBJECTS_DATA_GEN_PAPER_VIDEO as obj_list
 
+# Define parameters:
 N_POSES = 400
 FILTER_THRESH = -1  # set to -1 if no filtering desired, default 0.9
 FILTER_NUM_GRASPS = 20
 NUM_TRIALS_PER_OBJ = 20
+path2grasp_data = '/home/vm/grasp_data'
+path2gazebo_objects = '/home/vm/gazebo-objects/objects_gazebo'
 
-shutil.rmtree('/home/vm/grasp_data', ignore_errors=True)
-grasp_client = GraspClient(grasp_data_recording_path='/tmp/', is_rec_sess=True, is_eval_sess=True)
-metadata_handler = MetadataHandler()
+shutil.rmtree(path2grasp_data, ignore_errors=True)
+data_recording_path = rospy.get_param('data_recording_path')
+grasp_client = GraspClient(grasp_data_recording_path=data_recording_path, is_rec_sess=True, is_eval_sess=True)
+metadata_handler = MetadataHandler(gazebo_objects_path=path2gazebo_objects)
 
 for obj_full in obj_list:
     # Skip object
@@ -77,10 +81,6 @@ for obj_full in obj_list:
             #     continue
             # else:
             #     is_skipped = False
-            # palm_poses_obj_frame[idx].pose.position.z += 0.015
-            # palm_poses_obj_frame[idx].pose.position.y += 0.025
-            # palm_poses_obj_frame[idx].pose.position.z -= 0.015
-            # palm_poses_obj_frame[idx].pose.position.y -= 0.025
 
             grasp_executed = grasp_client.grasp_from_inferred_pose(palm_poses_obj_frame[idx],
                                                                    joint_confs[idx])

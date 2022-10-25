@@ -4,6 +4,7 @@ import h5py
 import numpy as np
 import os
 import pandas as pd
+import rospy
 
 MD = 'metadata'
 RS = 'recording_sessions'
@@ -16,7 +17,6 @@ NC = 'no_collision'
 
 
 class GraspDataHandlerVae:
-
     def __init__(self, file_path):
         assert os.path.exists(file_path)
         self.file_path = file_path
@@ -25,7 +25,6 @@ class GraspDataHandlerVae:
         """ Returns either all grasps for an outcome in [positive, negative, collision, all]. 
         All means all outcomes are combined and returned.
         """
-
         def grasps_for_outcome(file_path, outcome):
             if outcome == 'collision':
                 joint_preshape_name = "desired_preshape_joint_state"
@@ -91,7 +90,6 @@ class GraspDataHandlerVae:
 
 
 class GraspDataHandler():
-
     def __init__(self, file_path, sess_name='-1'):
         self.file_path = file_path
         self.set_sess_name(sess_name)
@@ -233,8 +231,9 @@ class GraspDataHandler():
 
 
 if __name__ == '__main__':
-    # file_path = os.path.join('/home/vm/Documents/2021-05-09_ffhgen_400', 'grasp_data.h5')
-    file_path = os.path.join('/tmp', 'grasp_data.h5')
+    
+    data_recording_path = rospy.get_param('data_recording_path')
+    file_path = os.path.join(data_recording_path, 'grasp_data.h5')
     gdh = GraspDataHandler(file_path=file_path)
     gdh.set_sess_name(sess_name='-1')
     gdh.print_metadata()

@@ -20,7 +20,6 @@
     <param name="ffhnet_path" value="/home/vm/hand_ws/src/ffhnet" type="string"/>
     <!-- visualize flag used for other visualizations except final grasp poses-->
     <param name="visualize" value="False"/> 
-    <param name="visualize_grasp_poses" value="False"/> 
 
     <!-- Gazebo scene manager -->
     <node name="manage_gazebo_scene_node" pkg="grasp_pipeline" type="manage_gazebo_scene_server.py" output="screen"/>

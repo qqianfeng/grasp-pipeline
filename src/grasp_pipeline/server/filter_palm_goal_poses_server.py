@@ -11,7 +11,6 @@ from trac_ik_python.trac_ik import IK
 
 
 class PalmGoalPosesFilter():
-
     def __init__(self):
         rospy.init_node('filter_palm_goal_poses_node')
         self.tf_broadcaster_palm_poses = tf.TransformBroadcaster()

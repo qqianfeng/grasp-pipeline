@@ -22,7 +22,6 @@ from grasp_pipeline.utils.utils import get_pose_stamped_from_trans_and_quat
 class BoundingBoxFace():
     """Simple class to store properties of a bounding box face.
     """
-
     def __init__(self,
                  color,
                  center,
@@ -56,7 +55,6 @@ class BoundingBoxFace():
 
 
 class GetPreshapeForAllPoints():
-
     def __init__(self):
         rospy.init_node("get_preshape_for_all_points_node")
 
@@ -84,7 +82,7 @@ class GetPreshapeForAllPoints():
         self.listener = tf.TransformListener()
 
         # Segmented object vars
-        self.object_pcd_path = rospy.get_param('object_pcd_path', '/home/vm/object.pcd')
+        self.object_pcd_path = rospy.get_param('object_pcd_path')
         self.object_pcd = None
         self.object_points = None
         self.object_normals = None
