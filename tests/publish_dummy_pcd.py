@@ -2,6 +2,7 @@ import os
 import time
 import numpy as np
 import ar_dds as dds
+import copy
 
 # DDS subscriber functions
 def interrupt_signal_handler(self, _signal_number, _frame):
@@ -12,7 +13,7 @@ def interrupt_signal_handler(self, _signal_number, _frame):
 
 # Init path to save pcd
 enc_path = os.environ['OBJECT_PCD_ENC_PATH']
- 
+
 # Initialize DDS Domain Participant
 participant = dds.DomainParticipant(domain_id=0)
 
@@ -23,8 +24,12 @@ publisher = participant.create_publisher("ar::dds::pcd_enc::Msg",
 enc_np_center = np.load(enc_path)
 
 # Publish BPS encoded point cloud and centering data
+start_time = time.time()
 while 1:
-    publisher.message["message"] = enc_np_center[0]
+    pub_data = copy.deepcopy(enc_np_center)
+    pub_data[0, 0] += 0.05 * np.sin((time.time() - start_time) / 5)
+    pub_data[0, 1] += 0.05 * np.cos((time.time() - start_time) / 5)
+    publisher.message["message"] = pub_data[0]
     publisher.publish()
-    print("Published ", enc_np_center[0])
+    print("Published ", pub_data[0])
     time.sleep(0.04)

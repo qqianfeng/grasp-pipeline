@@ -152,7 +152,7 @@ try:
         
         # Calculate norm of translational and roational offsets
         diff_pos = np.linalg.norm(grasp_pos, 1, axis=1)
-        diff_rot = np.linalg.norm(grasp_rot.as_rotvec(), 1, axis=1) #abs(grasp_rot.as_rotvec()[:, 2])
+        diff_rot = np.linalg.norm(grasp_rot.as_rotvec(), 1, axis=1)
 
         # Find best grasp
         p_best = np.argmax(p_success - 1*diff_pos - 1*diff_rot)
@@ -197,7 +197,7 @@ try:
         #dr_update = d7_T_dx1 @ dr_update
 
         # Publish desired velocity
-        v_des = np.concatenate([dx_update, dr_update])#.astype(np.float32)
+        v_des = np.concatenate([dx_update, dr_update])
         publisher.message["dT"] = v_des
         publisher.publish()
 
