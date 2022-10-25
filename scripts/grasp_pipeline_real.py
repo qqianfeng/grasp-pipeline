@@ -146,7 +146,7 @@ try:
         # Update grasp poses (simulation, in reality point clouds are updated)
         grasp_pos = grasp_pos - robot_pos
         grasp_rot = R.from_rotvec(grasp_rot.as_rotvec() - robot_rot)
-        center_translation = center_translation @ robot_rot_mat
+        center_translation = center_translation @ robot_rot_mat @ d7_T_dx1.T
         center_translation -= robot_pos
         center_pos_list.append(copy.deepcopy(center_translation))
         
@@ -194,7 +194,7 @@ try:
 
         # Only for diana x1 (TODO: remove)
         dx_update = d7_T_dx1 @ dx_update
-        dr_update = d7_T_dx1 @ dr_update
+        #dr_update = d7_T_dx1 @ dr_update
 
         # Publish desired velocity
         v_des = np.concatenate([dx_update, dr_update])#.astype(np.float32)
