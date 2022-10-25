@@ -65,7 +65,7 @@ class GenerateHithandPreshape():
         self.listener = tf.TransformListener()
 
         # Segmented object vars
-        self.object_pcd_path = rospy.get_param('object_pcd_path', '/home/vm/object.pcd')
+        self.object_pcd_path = rospy.get_param('object_pcd_path')
         self.segmented_object_pcd = None
         self.segmented_object_points = None
         self.segmented_object_normals = None
@@ -422,6 +422,8 @@ class GenerateHithandPreshape():
         return (palm_pos, palm_q)
 
     def handle_generate_hithand_preshape(self, req):
+        """Generate sampled poses from all the bbox faces. For data generation.
+        """
         # Get new information on segmented object from rostopics/disk and store in instance attributes
         self.update_object_information()
         bounding_box_faces = self.get_oriented_bounding_box_faces(req.object)

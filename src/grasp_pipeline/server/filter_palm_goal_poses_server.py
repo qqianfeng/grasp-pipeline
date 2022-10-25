@@ -56,6 +56,7 @@ class PalmGoalPosesFilter():
         return ik_js
 
     def check_pose_for_collision(self, ik_js):
+        """It seems this checks the collision with environments and self collision, the feedback found online. But not verified so far."""
         gsvr = GetStateValidityRequest()
         self.robot_state.joint_state.position = ik_js
         gsvr.robot_state = self.robot_state

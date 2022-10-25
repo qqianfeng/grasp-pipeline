@@ -56,7 +56,7 @@ class CartesianPoseMoveitPlanner():
             self.solver_margin_ori)
 
         if ik_js is None:
-            rospy.logerr('No IK solution found')
+            rospy.logdebug('No IK solution found')
             return None
         self.move_group.set_joint_value_target(np.array(ik_js))
         plan_goal = self.move_group.plan()
@@ -81,6 +81,8 @@ class CartesianPoseMoveitPlanner():
         return ee_pose
 
     def handle_plan_arm_trajectory(self, req):
+        """It's a move joint command.
+        """
         self.update_seed_state()
         plan = None
         plan = self.go_goal_trac_ik(req.palm_goal_pose_world)
@@ -123,11 +125,12 @@ class CartesianPoseMoveitPlanner():
         # Add 3 waypoints: current pose, approach pose and goal pose
         waypoints = []
         waypoints.append(self.get_ee_pose())
+        waypoints.append(copy.deepcopy(req.palm_approach_pose_world.pose))
         waypoints.append(copy.deepcopy(req.palm_goal_pose_world.pose))
 
         # Plan path through these waypoints
         (plan, fraction) = self.move_group.compute_cartesian_path(waypoints, 0.01, 0.0)
-
+        rospy.loginfo('fraction: %f' % fraction)
         res = PlanCartesianPathTrajectoryResponse()
         if plan is None:
             res.success = False
@@ -135,7 +138,26 @@ class CartesianPoseMoveitPlanner():
         if len(plan.joint_trajectory.points) > 0:
             res.success = True
             res.trajectory = plan.joint_trajectory
+            rospy.loginfo('plan.joint_trajectory is %s' % str(plan.joint_trajectory.points))
+            res.fraction = fraction
         return res
+
+    def handle_get_cartesian_position_error(self, req):
+        current_pose = self.get_ee_pose()
+        required_pose = req.required_pose.pose
+        delta_x = abs(current_pose.position.x - required_pose.position.x)
+        delta_y = abs(current_pose.position.y - required_pose.position.y)
+        delta_z = abs(current_pose.position.z - required_pose.position.z)
+        distance = np.sqrt(delta_x**2 + delta_y**2 + delta_z**2)
+        res = GetCartesianPositionErrorResponse()
+        res.distance = distance
+        return res
+
+    def create_get_cartesian_position_error(self):
+        rospy.Service('get_cartesian_position_error', GetCartesianPositionError,
+                      self.handle_get_cartesian_position_error)
+        rospy.loginfo('Service get_cartesian_position_error:')
+        rospy.loginfo('Ready to get catesian goal position error.')
 
     def create_plan_arm_trajectory_server(self):
         rospy.Service('plan_arm_trajectory', PlanArmTrajectory, self.handle_plan_arm_trajectory)
@@ -161,5 +183,7 @@ if __name__ == '__main__':
     planner = CartesianPoseMoveitPlanner()
     planner.create_plan_arm_trajectory_server()
     planner.create_plan_arm_reset_trajectory()
-    #planner.create_plan_cartesian_path_trajectory()
+    planner.create_plan_cartesian_path_trajectory()
+    planner.create_get_cartesian_position_error()
+
     rospy.spin()

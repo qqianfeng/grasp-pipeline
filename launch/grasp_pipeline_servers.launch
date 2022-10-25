@@ -3,6 +3,7 @@
 <launch>
     <!-- +++++++NOTE: The different paths in the args must be modified for your machine. ++++++++ -->
     <arg name="sim"                     default="true"/>
+    <arg name="data_recording_path"     default="/tmp"/>
     <arg name="object_datasets_folder"  default="/home/vm/gazebo-objects"/>
     <arg name="object_pcd_path"         default="/home/vm/object.pcd"/>
     <arg name="scene_pcd_path"          default="/home/vm/scene.pcd"/>
@@ -15,12 +16,14 @@
     <param name="object_pcd_path"         value="$(arg object_pcd_path)"        type="string" />
     <param name="scene_pcd_path"          value="$(arg scene_pcd_path)"         type="string" />
     <param name="object_datasets_folder"  value="$(arg object_datasets_folder)" type="string" />
+    <param name="data_recording_path"     value="$(arg data_recording_path)" type="string" />
     <param name="color_img_save_path"     value="$(arg color_img_save_path)"    type="string" />
     <param name="depth_img_save_path"     value="$(arg depth_img_save_path)"    type="string" />
     <param name="scene_pcd_topic"         value="$(arg scene_pcd_topic)"        type="string" />
     <param name="color_img_topic"         value="$(arg color_img_topic)"        type="string" />
     <param name="depth_img_topic"         value="$(arg depth_img_topic)"        type="string" />   
-    <param name="/use_sim_time" value="true"/>
+    <param name="/use_sim_time"           value="true"/>
+    <param name="visualize"               value="false"/>
 
     <!-- +++++++++++++++++++++++++++++++++++++++++++++++++++ -->
     <group if="$(arg sim)">
