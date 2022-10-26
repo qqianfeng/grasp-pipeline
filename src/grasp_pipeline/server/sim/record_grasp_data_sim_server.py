@@ -12,11 +12,10 @@ from grasp_pipeline.srv import *
 
 
 class RecordGraspData():
-
     def __init__(self):
         rospy.init_node('record_grasp_data_node')
         self.num_grasps_per_object = rospy.get_param('num_grasps_per_object', 5)
-        self.data_recording_path = rospy.get_param('data_recording_path', '/home/vm/')
+        self.data_recording_path = rospy.get_param('data_recording_path')
         self.grasp_data_file_name = self.data_recording_path + 'grasp_data.h5'
         self.recording_session_id = None
         self.initialize_data_file()

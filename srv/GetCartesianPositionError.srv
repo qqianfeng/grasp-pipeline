@@ -1,0 +1,3 @@
+geometry_msgs/PoseStamped required_pose
+---
+float64 distance

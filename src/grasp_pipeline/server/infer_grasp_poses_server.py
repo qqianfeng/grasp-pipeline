@@ -17,16 +17,12 @@ from grasp_pipeline.srv import *
 from grasp_pipeline.utils import utils
 from sensor_msgs.msg import JointState
 
-# TODO: add visualization to the inference step with module from FFHNet
-
 
 class GraspInference():
-
     def __init__(self):
         rospy.init_node('grasp_inference_node')
         cfg = EvalConfig().parse()
         self.VISUALIZE = rospy.get_param('visualize', False)
-        self.visualize_grasp_poses = rospy.get_param('visualize_grasp_poses', False)
         self.pcd_path = rospy.get_param('object_pcd_path')
 
         self.FFHNet = FFHNet(cfg)
@@ -134,7 +130,7 @@ class GraspInference():
         print("n_grasps after filtering: %d" % n_grasps_filt)
         print("This means %.2f of grasps pass the filtering" % (n_grasps_filt / n_samples))
 
-        if self.visualize_grasp_poses:
+        if self.VISUALIZE:
             visualization.show_generated_grasp_distribution(self.pcd_path, results)
 
         # prepare response

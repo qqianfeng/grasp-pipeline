@@ -20,7 +20,6 @@ from eigengrasps_hithand import *
 class BoundingBoxFace():
     """Simple class to store properties of a bounding box face.
     """
-
     def __init__(self, color, center, orient_a, orient_b, size_a, size_b, is_top=False):
         self.center = np.array(center)
         self.orient_a = orient_a
@@ -42,7 +41,6 @@ class BoundingBoxFace():
 
 
 class GenerateHithandPreshape():
-
     def __init__(self):
         rospy.init_node("generate_hithand_preshape_node")
         # Publish information about bounding box
@@ -67,7 +65,7 @@ class GenerateHithandPreshape():
         self.listener = tf.TransformListener()
 
         # Segmented object vars
-        self.object_pcd_path = rospy.get_param('object_pcd_path', '/home/vm/object.pcd')
+        self.object_pcd_path = rospy.get_param('object_pcd_path')
         self.segmented_object_pcd = None
         self.segmented_object_points = None
         self.segmented_object_normals = None

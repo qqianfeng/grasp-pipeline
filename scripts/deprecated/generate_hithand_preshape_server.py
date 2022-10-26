@@ -75,7 +75,7 @@ class GenerateHithandPreshape():
             'generate_hithand_preshape_server_node/min_object_height', 0.03)
         self.num_samples_per_preshape = rospy.get_param(
             'generate_hithand_preshape_server_node/num_samples_per_preshape', 50)
-        self.object_pcd_path = rospy.get_param('object_pcd_path', '/home/vm/object.pcd')
+        self.object_pcd_path = rospy.get_param('object_pcd_path')
         self.VISUALIZE = rospy.get_param('visualize', False)
         print(self.num_samples_per_preshape)
         self.use_bb_orient_to_determine_wrist_roll = True
