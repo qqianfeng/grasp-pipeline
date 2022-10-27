@@ -12,10 +12,10 @@ poses = [[0.5, 0.0, 0.2, 0, 0, 0], [0.5, 0.0, 0.2, 0, 0, 1.571], [0.5, 0.0, 0.2,
          [0.5, 0.0, 0.2, 0, 0, -1.571]]
 
 
-def get_objects(amount=4):
+def get_objects(gazebo_objects_path, amount=4):
     # TODO add to choose random object
     objects = []
-    metadata_handler = MetadataHandler()
+    metadata_handler = MetadataHandler(gazebo_objects_path)
     num_total = metadata_handler.get_total_num_objects()
     amount = min(amount, num_total)
 
@@ -36,7 +36,7 @@ if __name__ == '__main__':
     grasp_client = GraspClient(is_rec_sess=True, grasp_data_recording_path=data_recording_path)
     metadata_handler = MetadataHandler(gazebo_objects_path=gazebo_objects_path)
 
-    grasp_objects = get_objects()
+    grasp_objects = get_objects(gazebo_objects_path)
     for idx, obj in enumerate(grasp_objects):
         grasp_objects[idx] = grasp_client.set_to_random_pose(obj)
 
@@ -56,13 +56,14 @@ if __name__ == '__main__':
 
             # Reset panda and hithand
             grasp_client.reset_hithand_and_panda()
+            # grasp_client.reset_scene()
 
             # Spawn a new object in Gazebo and moveit in a random valid pose and delete the old object
             grasp_client.spawn_object(pose_type="init", pose_arr=pose)
-
+            
             # First take a shot of the scene and store RGB, depth and point cloud to disk
             # Then segment the object point cloud from the rest of the scene
-            grasp_client.save_visual_data_and_segment_object()
+            grasp_client.segment_object_client(down_sample_pcd=True)
 
             # Generate hithand preshape, this is crucial. Samples multiple heuristics-based hithand preshapes, stores it in an instance variable
             # Also one specific desired grasp preshape should be chosen. This preshape (characterized by the palm position, hithand joint states, and the is_top boolean gets stored in other instance variables)
@@ -72,6 +73,8 @@ if __name__ == '__main__':
 
             # TODO: grasp_objects has no attribute of "mesh_frame_pose"
             grasp_client.update_multiple_gazebo_objects_client(grasp_objects)
+
+            grasp_client.save_visual_data()
 
             j = 0
             while grasp_client.grasps_available:
@@ -86,6 +89,9 @@ if __name__ == '__main__':
                     # Reset panda and hithand
                     grasp_client.reset_hithand_and_panda()
 
+                    # TODO reset the scene
+                    # grasp_client.reset_scene()
+                    
                     # Spawn object in same position
                     grasp_client.spawn_object(pose_type="same")
 

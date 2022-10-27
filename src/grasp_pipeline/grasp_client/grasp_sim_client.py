@@ -1224,6 +1224,11 @@ class GraspClient():
         self.save_visual_data_client()
         self.segment_object_client(down_sample_pcd=down_sample_pcd)
 
+    def save_visual_data(self,object_pcd_record_path=''):
+        self.object_pcd_record_path = object_pcd_record_path
+        self.set_visual_data_save_paths(grasp_phase='pre')
+        self.save_visual_data_client()
+        
     def filter_preshapes(self):
         self.prune_idxs = list(self.filter_palm_goal_poses_client())
 

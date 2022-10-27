@@ -134,7 +134,7 @@ class GazeboSceneManager():
         self.objcets_in_scene.add(object)
 
     def clear_scene(self):
-        for object in self.objcets_in_scene:
+        for object in self.objcets_in_scene.copy():
             self.delete_object(object.object_name)
             self.objcets_in_scene.discard(object)
 
