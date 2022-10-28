@@ -282,6 +282,7 @@ class GraspClient():
 
     # ++++++++ PART II: Second part consist of all clients that interact with different nodes/services ++++++++++++
     def create_moveit_scene_client(self):
+        # todo add multi objects
         wait_for_service('create_moveit_scene')
         try:
             req = ManageMoveitSceneRequest()
@@ -498,14 +499,17 @@ class GraspClient():
         joint_state = rospy.wait_for_message("/hithand/joint_states", JointState, timeout=5)
         return palm_pose, joint_state
 
-    def get_grasp_object_pose_client(self):
+    def get_grasp_object_pose_client(self, obj_name=''):
         """ Get the current pose (not stamped) of the grasp object from Gazebo.
         """
         wait_for_service('gazebo/get_model_state')
         try:
             get_model_state = rospy.ServiceProxy('gazebo/get_model_state', GetModelState)
             req = GetModelStateRequest()
-            req.model_name = self.object_metadata["name"]
+            if len(obj_name) == 0:
+                req.model_name = self.object_metadata["name"]
+            else:
+                req.model_name = obj_name
             res = get_model_state(req)
         except rospy.ServiceException, e:
             rospy.logerr('Service grasp_control_hithand call failed: %s' % e)
@@ -862,8 +866,9 @@ class GraspClient():
             update_moveit_scene = rospy.ServiceProxy('update_moveit_scene', ManageMoveitScene)
             # print(self.spawned_object_mesh_path)
             req = ManageMoveitSceneRequest()
-            req.object_mesh_path = self.object_metadata["collision_mesh_path"]
-            req.object_pose_world = self.object_metadata["mesh_frame_pose"]
+            req.object_names = [self.object_metadata["name"]]
+            req.object_mesh_paths = [self.object_metadata["collision_mesh_path"]]
+            req.object_pose_worlds = [self.object_metadata["mesh_frame_pose"]]
             self.update_scene_response = update_moveit_scene(req)
         except rospy.ServiceException, e:
             rospy.logerr('Service update_moveit_scene call failed: %s' % e)
@@ -911,6 +916,26 @@ class GraspClient():
         rospy.loginfo('Service create_new_scene is executed %s.' % str(res.success))
         return res.success
 
+    def update_multiple_moveit_objects_client(self, objects):
+        # TODO: debug this
+        wait_for_service('update_moveit_scene')
+        update_moveit_multi_scene = rospy.ServiceProxy('update_moveit_scene', ManageMoveitScene)
+        req = ManageMoveitSceneRequest()
+        req.object_names = []
+        req.object_mesh_paths = []
+        req.object_pose_worlds = []
+        
+        for grasp_object in objects:       
+            req.object_names.append(grasp_object["name"])
+            req.object_mesh_paths.append(grasp_object["collision_mesh_path"])
+            req.object_pose_worlds.append(grasp_object["mesh_frame_pose"])
+        try:
+            res = update_moveit_multi_scene(req)
+        except rospy.ServiceException, e:
+            rospy.loginfo('Service update_moveit_scene call failed %s' % e)
+        rospy.loginfo('Service update_moveit_scene is executed %s.' % str(res.success))
+        return res.success
+    
     def create_new_scene(self):
         pass
 
@@ -1121,7 +1146,7 @@ class GraspClient():
     ## below are codes for multiple objects generation ##
     #####################################################
 
-    def spawn_multiple_objects(self, pose_type, pose_arr=None):
+    def spawn_multiple_objects(self, objects, pose_type, pose_arr=None):
         # Generate a random valid object pose
         if pose_type == "random":
             self.generate_random_object_pose_for_experiment()
@@ -1136,23 +1161,28 @@ class GraspClient():
         #print "Spawning object here:", pose_arr
 
         # Update gazebo object, delete old object and spawn new one
-        self.update_multiple_gazebo_objects_client()
+        self.update_multiple_gazebo_objects_client(objects)
 
         # Now wait for 2 seconds for object to rest and update actual object position
         if pose_type == "init" or pose_type == "random":
             if self.is_rec_sess:
                 rospy.sleep(3)
-            object_pose = self.get_grasp_object_pose_client()
-
+            for obj in objects:
+                object_pose = self.get_grasp_object_pose_client(obj["name"])
+                obj["mesh_frame_pose"] = PoseStamped(header=Header(frame_id='world'),
+                                                                  pose=object_pose)
+                
             # Update the sim_pose with the actual pose of the object after it came to rest
             self.object_metadata["mesh_frame_pose"] = PoseStamped(header=Header(frame_id='world'),
                                                                   pose=object_pose)
 
         # Update moveit scene object
+        # TODO: The actually object pose changed (different from the pose saved in grasp_objects)
         if not self.is_eval_sess:
-            self.update_moveit_scene_client()
+            self.update_multiple_moveit_objects_client(objects)
 
         # Update the true mesh pose
+        # TODO: This function should update all object meshes.
         self.update_object_mesh_frame_pose_client()
 
     def set_to_random_pose(self, object_metadata):

@@ -49,8 +49,8 @@ class ManageSceneInMoveit():
     def handle_create_moveit_scene(self, req):
         scene = PlanningSceneInterface()
         rospy.sleep(0.5)
-        print req.object_mesh_path
-        scene.add_mesh('obj_mesh', req.object_pose_world, req.object_mesh_path)
+        for idx in range(len(req.object_mesh_paths)):
+            scene.add_mesh(req.object_names[idx], req.object_pose_worlds[idx], req.object_mesh_paths[idx])
         rospy.sleep(0.5)
 
         response = ManageMoveitSceneResponse()
@@ -60,7 +60,8 @@ class ManageSceneInMoveit():
     def handle_clean_moveit_scene(self, req):
         scene = PlanningSceneInterface()
         rospy.sleep(0.5)
-        scene.remove_world_object('obj_mesh')
+        for idx in range(len(req.object_mesh_paths)):
+            scene.remove_world_object(req.object_names[idx])
         rospy.sleep(0.5)
 
         response = ManageMoveitSceneResponse()
@@ -70,9 +71,11 @@ class ManageSceneInMoveit():
     def handle_update_moveit_scene(self, req):
         scene = PlanningSceneInterface()
         rospy.sleep(0.5)
-        scene.remove_world_object('obj_mesh')
+        for idx in range(len(req.object_mesh_paths)):
+            scene.remove_world_object(req.object_names[idx])
         rospy.sleep(0.5)
-        scene.add_mesh('obj_mesh', req.object_pose_world, req.object_mesh_path)
+        for idx in range(len(req.object_mesh_paths)):
+            scene.add_mesh(req.object_names[idx], req.object_pose_worlds[idx], req.object_mesh_paths[idx])
         rospy.sleep(0.5)
         response = ManageMoveitSceneResponse()
         response.success = True

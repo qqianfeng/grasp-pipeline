@@ -57,12 +57,13 @@ if __name__ == '__main__':
 
             # Reset panda and hithand
             grasp_client.reset_hithand_and_panda()
+            
+            # TODO: add reset scene
             # grasp_client.reset_scene()
 
             # Spawn a new object in Gazebo and moveit in a random valid pose and delete the old object
             grasp_client.spawn_object(pose_type="init", pose_arr=pose)
             
-            # First take a shot of the scene and store RGB, depth and point cloud to disk
             # Then segment the object point cloud from the rest of the scene
             grasp_client.segment_object_client(down_sample_pcd=True)
 
@@ -70,11 +71,10 @@ if __name__ == '__main__':
             # Also one specific desired grasp preshape should be chosen. This preshape (characterized by the palm position, hithand joint states, and the is_top boolean gets stored in other instance variables)
             grasp_client.get_valid_preshape_for_all_points()
 
-            # grasp_client.update_gazebo_object_client(grasp_objects)
-
-            # TODO: grasp_objects has no attribute of "mesh_frame_pose"
-            grasp_client.update_multiple_gazebo_objects_client(grasp_objects)
-
+            # grasp_client.update_multiple_gazebo_objects_client(grasp_objects)
+            grasp_client.spawn_multiple_objects(grasp_objects, pose_type="init", pose_arr=pose)
+            
+            # take a shot of the scene and store RGB, depth and point cloud to disk after all objects are spawned
             grasp_client.save_visual_data()
 
             j = 0
