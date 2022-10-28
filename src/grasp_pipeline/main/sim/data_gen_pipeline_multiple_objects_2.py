@@ -26,8 +26,9 @@ def get_objects(gazebo_objects_path, amount=4):
 
 if __name__ == '__main__':
     # Some relevant variables
-    data_recording_path = '/home/vm/'
-    gazebo_objects_path = '/home/vm/gazebo-objects/objects_gazebo'
+    data_recording_path = rospy.get_param('data_recording_path')
+    object_datasets_folder = rospy.get_param('object_datasets_folder')
+    gazebo_objects_path = os.path.join(object_datasets_folder, 'objects_gazebo')
 
     # Remove these while testing
     #shutil.rmtree('/home/ffh/grasp_data', ignore_errors=True)
