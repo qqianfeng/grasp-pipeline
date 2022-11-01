@@ -19,7 +19,7 @@ participant = dds.DomainParticipant(domain_id=0)
 
 # Create Domain Participant and a publisher to publish data
 publisher = participant.create_publisher("ar::dds::pcd_enc::Msg",
-                                                   'pcd_enc_msg')
+                                         'pcd_enc_msg')
 
 enc_np_center = np.load(enc_path)
 
@@ -27,8 +27,8 @@ enc_np_center = np.load(enc_path)
 start_time = time.time()
 while 1:
     pub_data = copy.deepcopy(enc_np_center)
-    pub_data[0, 0] += 0.05 * np.sin((time.time() - start_time) / 5)
-    pub_data[0, 1] += 0.05 * np.cos((time.time() - start_time) / 5)
+    pub_data[0, 0] += 0.05 * np.sin((time.time() - start_time) / 2)
+    pub_data[0, 1] += 0.05 * np.cos((time.time() - start_time) / 2)
     publisher.message["message"] = pub_data[0]
     publisher.publish()
     print("Published ", pub_data[0])
