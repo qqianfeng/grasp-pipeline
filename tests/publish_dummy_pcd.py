@@ -27,8 +27,9 @@ enc_np_center = np.load(enc_path)
 start_time = time.time()
 while 1:
     pub_data = copy.deepcopy(enc_np_center)
-    pub_data[0, 0] += 0.05 * np.sin((time.time() - start_time) / 2)
-    pub_data[0, 1] += 0.05 * np.cos((time.time() - start_time) / 2)
+    pub_data[0, 0] += 0.1 * (1 - np.cos(1 * (time.time() - start_time)))
+    pub_data[0, 1] += 0.2 * (np.sin(1 * (time.time() - start_time)))
+    pub_data[0, 2] += 0.05 * (np.sin(1.5 * (time.time() - start_time)))
     publisher.message["message"] = pub_data[0]
     publisher.publish()
     print("Published ", pub_data[0])
