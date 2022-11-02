@@ -34,10 +34,14 @@ def interrupt_signal_handler(_signal_number, _frame):
     global shutdown_requested
     shutdown_requested = True
 
-# Diana X1 rotation
-d7_T_dx1 = np.identity(3)
-d7_T_dx1[0,0] = -1
-d7_T_dx1[2,2] = -1
+simulation = int(os.environ["SIMULATION"])
+use_diana7 = int(os.environ["USE_DIANA7"])
+
+flange_rotation = np.identity(3)
+if not use_diana7:
+    # Diana X1 flange rotation
+    flange_rotation[0,0] = -1
+    flange_rotation[2,2] = -1
 
 def poll_telemetry_data():
     received_data = listener.take(True)
@@ -45,7 +49,7 @@ def poll_telemetry_data():
         if not sample.info.valid:
             continue
 
-        T = sample.data["T_flange2base"]
+        T = sample.data[dds_telemetry_topic_name]
 
         pos = T["translation"]
         robot_pos = np.array([pos['x'], pos['y'], pos['z']])
@@ -53,7 +57,7 @@ def poll_telemetry_data():
         quat = T["rotation"]
         quat_arr = np.array([quat['x'], quat['y'], quat['z'], quat['w']])
         robot_rot = R.from_quat(quat_arr)
-        robot_rot = R.from_matrix(d7_T_dx1 @ robot_rot.as_matrix())
+        robot_rot = R.from_matrix(flange_rotation @ robot_rot.as_matrix())
 
     return robot_pos, robot_rot
 
@@ -61,13 +65,27 @@ def poll_telemetry_data():
 participant = dds.DomainParticipant(domain_id=0)
 
 # Create subscriber using the participant
-listener = participant.create_subscriber_listener("ar::interfaces::dds::robot::generic::telemetry_v1",
-                                                  "diana.telemetry_v1", None)
-print("Subscriber is ready. Waiting for data ...")
+if use_diana7:
+    listener = participant.create_subscriber_listener("ar::interfaces::dds::robot::diana::diana7::telemetry_diana_v2",
+                                                      "diana7.telemetry_diana_v2", None)
+    dds_telemetry_topic_name = "flange_pose"
+    print("[Info] Telemetry subscriber is ready. Waiting for data ...")
+    
+    # Start velocity stream with ar-toolkit
+    from ar_toolkit.robots import Diana7Robot
+    robot = Diana7Robot("diana7")
+    robot.start_linear_speed_listener(1.0/30, 1) # 30 fps, flange (0: base, 1:flange, 2:tcp)
 
-# Create Domain Participant and a publisher to publish velocity
-publisher = participant.create_publisher("ar::frankenstein_legacy_interfaces::dds::robot::diana::linear_speed_servoing_v1",
-                                         'des_cart_vel_msg')
+else:
+    dds_telemetry_topic_name = "T_flange2base"
+    print("[Info] Using Diana X1.")
+    listener = participant.create_subscriber_listener("ar::interfaces::dds::robot::generic::telemetry_v1",
+                                                      "diana.telemetry_v1", None)
+    print("[Info] Telemetry subscriber is ready. Waiting for data ...")
+
+    # Create Domain Participant and a publisher to publish velocity
+    publisher = participant.create_publisher("ar::frankenstein_legacy_interfaces::dds::robot::diana::linear_speed_servoing_v1",
+                                            'des_cart_vel_msg')
 
 # Transformations
 hand_R_ee = np.zeros((3, 3))
@@ -93,7 +111,7 @@ dist_align_rot = 10                 # Distance to object in cm when also conside
 k_p = [1.0, 0.5]                    # Constant control parameters
 k_i = [0.0, 0.0]                    # Integrative control parameters
 k_d = [5.0, 5.0]                    # Derivative control parameters
-v_des_max =[1.0, 1.0]               # Limit of linear and angular velocity
+v_des_max = [1.0, 1.0]              # Limit of linear and angular velocity
 
 # Initialize variables
 start = time.process_time()
@@ -151,12 +169,13 @@ try:
         robot_rot_mat = robot_rot.as_matrix()
         robot_rot = robot_rot.as_rotvec()
 
-        # Update grasp poses (simulation, in reality point clouds are updated)
-        grasp_pos = grasp_pos - robot_pos
-        grasp_rot = R.from_rotvec(grasp_rot.as_rotvec() - robot_rot)
-        center_translation = center_translation @ robot_rot_mat @ d7_T_dx1.T
-        center_translation -= robot_pos
-        center_pos_list.append(copy.deepcopy(center_translation))
+        if simulation:
+            # Update grasp poses (simulation, in reality point clouds are updated)
+            grasp_pos = grasp_pos - robot_pos
+            grasp_rot = R.from_rotvec(grasp_rot.as_rotvec() - robot_rot)
+            center_translation = center_translation @ robot_rot_mat @ flange_rotation.T
+            center_translation -= robot_pos
+            center_pos_list.append(copy.deepcopy(center_translation))
         
         # Calculate norm of translational and roational offsets
         diff_pos = np.linalg.norm(grasp_pos, 1, axis=1)
@@ -210,14 +229,17 @@ try:
         if np.linalg.norm(rot_update) > v_des_max[1]:
             rot_update = rot_update / np.linalg.norm(rot_update) * v_des_max[1]
 
-        # Only for diana x1 (TODO: remove)
-        lin_update = d7_T_dx1 @ lin_update
-        #dr_update = d7_T_dx1 @ dr_update
+        # Only for diana x1
+        lin_update = flange_rotation @ lin_update
 
         # Publish desired velocity
         v_des = np.concatenate([lin_update, rot_update])
-        publisher.message["dT"] = v_des
-        publisher.publish()
+
+        if use_diana7:
+            robot.linear_speed_servoing(v_des)
+        else:
+            publisher.message["dT"] = v_des
+            publisher.publish()
 
         # Check probability of current configuration to succeed
         grasp_current = dict()
@@ -249,8 +271,12 @@ except KeyboardInterrupt:
 print("Overall time: ", time_abs)
 print("Avg time per cicle: ", time_abs/i, " | Cicles per second: ", i/time_abs)
 
-publisher.message["dT"] = np.zeros(6)
-publisher.publish()
+# Stop motion
+if use_diana7:
+    robot.linear_speed_servoing(np.zeros(6))
+else:
+    publisher.message["dT"] = np.zeros(6)
+    publisher.publish()
 
 # Plot result
 #plt.plot(palm_pos_list, label=["x", "y", "z"])

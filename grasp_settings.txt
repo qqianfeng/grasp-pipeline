@@ -9,4 +9,6 @@ export GRASP_PIPELINE_PATH=/home/yb/Projects/grasp-pipeline
 export AR_IDL_DIRS=$AR_IDL_DIRS:$GRASP_PIPELINE_PATH/idl
 
 # Adjust settings
+export SIMULATION=0
+export USE_DIANA7=1
 export VISUALIZE=0

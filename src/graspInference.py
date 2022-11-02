@@ -39,7 +39,7 @@ class GraspInference():
         # Create subscriber using the participant
         self.listener = participant.create_subscriber_listener("ar::dds::pcd_enc::Msg",
                                                           'pcd_enc_msg', self.listener_callback)
-        print("Subscriber is ready. Waiting for data ...")
+        print("[Info] Point-cloud subscriber is ready. Waiting for data ...")
 
     def interrupt_signal_handler(self, _signal_number, _frame):
         """SIGINT/SIGTSTP handler for gracefully stopping an application."""
