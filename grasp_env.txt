@@ -2,8 +2,8 @@
 conda activate grasp-pipeline
 
 # Start shell environments
-eval $(arpm_env ar-frankenstein_legacy_interfaces/3.0.0@yb/testing)
-eval $(arpm_env ar-toolkit/9.0.0@ar/stable)
+eval $(arpm_env -n ar-frankenstein_legacy_interfaces/3.0.0@yb/testing)
+eval $(arpm_env -n ar-toolkit/9.0.0@ar/stable)
 
 # Set environment variables
 source grasp_settings.txt
