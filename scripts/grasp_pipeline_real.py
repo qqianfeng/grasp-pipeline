@@ -85,13 +85,13 @@ else:
 
 # Transformations
 hand_R_ee = np.zeros((3, 3))
-hand_R_ee[0,2] = -1
-hand_R_ee[1,0] = 1
-hand_R_ee[2,1] = -1
+hand_R_ee[0,1] = 1
+hand_R_ee[1,2] = -1
+hand_R_ee[2,0] = -1
 
 cam_R_ee = np.zeros((3, 3))
-cam_R_ee[0,1] = 1
-cam_R_ee[1,0] = 1
+cam_R_ee[0,1] = -1
+cam_R_ee[1,0] = -1
 cam_R_ee[2,2] = -1
 cam_t_ee = np.array([0., 0, 0])
 
