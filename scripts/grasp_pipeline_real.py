@@ -85,8 +85,8 @@ else:
 
 # Transformations
 hand_R_ee = np.zeros((3, 3))
-hand_R_ee[0,1] = 1
-hand_R_ee[1,2] = -1
+hand_R_ee[0,2] = -1
+hand_R_ee[1,1] = -1
 hand_R_ee[2,0] = -1
 
 cam_R_ee = np.zeros((3, 3))
@@ -164,7 +164,7 @@ try:
             break
 
         # Rotate grasp poses into end effector frame
-        grasp_dict_rot = grasp_dict['rot_matrix'].detach().cpu().numpy() @ hand_R_ee.T
+        grasp_dict_rot = grasp_dict['rot_matrix'].detach().cpu().numpy() @ cam_R_ee.T @ hand_R_ee.T
 
         # Save rotation and translation of grasp poses
         grasp_rot = R.from_matrix(grasp_dict_rot)
