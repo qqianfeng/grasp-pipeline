@@ -8,21 +8,34 @@ import time
 import shutil
 from grasp_pipeline.utils.metadata_handler import MetadataHandler
 
+import numpy as np
+
 poses = [[0.5, 0.0, 0.2, 0, 0, 0], [0.5, 0.0, 0.2, 0, 0, 1.571], [0.5, 0.0, 0.2, 0, 0, 3.14],
          [0.5, 0.0, 0.2, 0, 0, -1.571]]
 
 
-def get_objects(gazebo_objects_path, amount=4):
+def get_objects(gazebo_objects_path, amount=3):
     # TODO add to choose random object
     objects = []
     metadata_handler = MetadataHandler(gazebo_objects_path)
     num_total = metadata_handler.get_total_num_objects()
     amount = min(amount, num_total)
-
-    for _ in range(amount):
+    metadata_handler.choose_next_grasp_object()
+    for _ in range(amount): 
         objects.append(metadata_handler.choose_next_grasp_object())
     return objects
 
+
+def distribute_obstacle_objects_randomly(grasp_object_pose, obstacle_objects, min_center_to_center_distance=0.1):
+    existing_object_positions = [np.array(grasp_object_pose)[:3]]
+    for idx, obj in enumerate(obstacle_objects):
+        obstacle_objects[idx] = grasp_client.set_to_random_pose(obj)
+        position = np.array([obstacle_objects[idx]['mesh_frame_pose'].pose.position.x, obstacle_objects[idx]['mesh_frame_pose'].pose.position.y, obstacle_objects[idx]['mesh_frame_pose'].pose.position.z])
+        while not all([ np.linalg.norm(position - existing_position) > min_center_to_center_distance for existing_position in existing_object_positions]):
+            obstacle_objects[idx] = grasp_client.set_to_random_pose(obj)
+            position = np.array([obstacle_objects[idx]['mesh_frame_pose'].pose.position.x, obstacle_objects[idx]['mesh_frame_pose'].pose.position.y, obstacle_objects[idx]['mesh_frame_pose'].pose.position.z])
+        existing_object_positions.append(position)
+    return obstacle_objects
 
 if __name__ == '__main__':
     # Some relevant variables
@@ -37,20 +50,19 @@ if __name__ == '__main__':
     grasp_client = GraspClient(is_rec_sess=True, grasp_data_recording_path=data_recording_path)
     metadata_handler = MetadataHandler(gazebo_objects_path=gazebo_objects_path)
 
-    obstacle_objects = get_objects(gazebo_objects_path)
-    for idx, obj in enumerate(obstacle_objects):
-        obstacle_objects[idx] = grasp_client.set_to_random_pose(obj)
-
     # This loop runs for all objects, 4 poses, and evaluates N grasps per pose
     for i in range(metadata_handler.get_total_num_objects()):
-
         # Specify the object to be grasped, its pose, dataset, type, name etc.
         object_metadata = metadata_handler.choose_next_grasp_object()
         grasp_client.update_object_metadata(object_metadata)
 
+
         for pose in poses:
             object_cycle_start = time.time()
             start = object_cycle_start
+
+            obstacle_objects = get_objects(gazebo_objects_path)
+            obstacle_objects = distribute_obstacle_objects_randomly(pose, obstacle_objects)
 
             # Create dirs
             grasp_client.create_dirs_new_grasp_trial(is_new_pose_or_object=True)
@@ -73,6 +85,7 @@ if __name__ == '__main__':
             # grasp_client.update_gazebo_object_client(grasp_objects)
 
             # TODO: grasp_objects has no attribute of "mesh_frame_pose"
+            grasp_client.remove_obstacle_objects(obstacle_objects)
             grasp_client.spawn_obstacle_objects(obstacle_objects)
 
             grasp_client.save_visual_data()

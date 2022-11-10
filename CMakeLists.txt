@@ -59,7 +59,8 @@ add_service_files(
     UpdatePalmPose.srv
     VisualizeGraspPoseList.srv
     CreateNewScene.srv
-    # ResetScene.srv
+    ClearScene.srv
+    ResetScene.srv
 )
 
 generate_messages(

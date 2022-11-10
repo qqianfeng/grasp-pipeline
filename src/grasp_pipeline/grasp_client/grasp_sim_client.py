@@ -35,6 +35,7 @@ from grasp_pipeline.utils.align_object_frame import align_object
 from grasp_pipeline.srv import *
 from grasp_pipeline.msg import *
 
+from uuid import uuid4
 
 class GraspClient():
     """ This class is a wrapper around all the individual functionality involved in grasping experiments.
@@ -910,6 +911,7 @@ class GraspClient():
             res = create_new_scene(req)
         except rospy.ServiceException, e:
             rospy.loginfo('Service create_new_scene call failed %s' % e)
+            return False
         rospy.loginfo('Service create_new_scene is executed %s.' % str(res.success))
 
         for grasp_object in objects:
@@ -918,15 +920,28 @@ class GraspClient():
                 # Update the sim_pose with the actual pose of the object after it came to rest
                 grasp_object["mesh_frame_pose"] = PoseStamped(header=Header(frame_id='world'),
                                                                     pose=pose)
-                self.add_to_moveit_scene(grasp_object)
+                self.add_to_moveit_scene(str(uuid4()), grasp_object)
 
         return res.success
     
     def remove_obstacle_objects(self, objects):
-        pass
+        self.remove_obstacle_objects_from_moveit_scene()
+        wait_for_service('clear_scene')
+        clear_scene = rospy.ServiceProxy('clear_scene', ClearScene)
+        req = ClearSceneRequest()
+        req.confirm = len(objects) > 0
+        try:
+            res = clear_scene(req)
+        except rospy.ServiceException, e:
+            rospy.loginfo('Service clear_scene call failed %s' % e)
+        rospy.loginfo('Service clear_scene is executed %s.' % str(res.success))
+
+        return res.success
 
     def reset_obstacle_objects(self, objects):
-        pass
+        if not self.reset_scene(len(objects) > 0):
+            print 'reset_obstacle_objects failed'
+            exit()
 
     def get_object_pose(self, object_metadata):
         """ Get the current pose (not stamped) of the grasp object from Gazebo.
@@ -957,15 +972,21 @@ class GraspClient():
             scene.remove_world_object(name)
             rospy.sleep(0.5)
 
-    def create_new_scene(self):
-        pass
-
     def save_scene(self):
         pass
 
-    def reset_scene(self):
-        # TODO: call reset scene server
-        pass
+    def reset_scene(self, confirm):
+        wait_for_service('reset_scene')
+        reset_scene = rospy.ServiceProxy('reset_scene', ResetScene)
+        req = ResetSceneRequest()
+        req.confirm = confirm
+        try:
+            res = reset_scene(req)
+        except rospy.ServiceException, e:
+            rospy.logerr('Service reset_scene call failed: %s' % e)
+            return None
+        rospy.logdebug('Service reset_scene is executed.')
+        return res.success
 
     #####################################################
     ## above are codes for multiple objects generation ##
