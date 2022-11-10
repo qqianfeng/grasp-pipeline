@@ -74,7 +74,7 @@ def compute_inertia(in_file,
 
 
 if __name__ == '__main__':
-    in_folder = "/home/vm/meshes_inertia/"
+    in_folder = "/home/ffh/meshes_inertia/"
     out_folder = in_folder + "output/"
     os.mkdir(out_folder)
     for filename in os.listdir(in_folder):

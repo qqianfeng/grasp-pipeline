@@ -8,7 +8,7 @@ def show_pcd(pcd):
 
 
 if __name__ == '__main__':
-    base_path = '/home/vm/data/vae-grasp/point_clouds'
+    base_path = '/home/ffh/data/vae-grasp/point_clouds'
     for obj in os.listdir(base_path):
         obj_path = os.path.join(base_path, obj)
         for pcd in os.listdir(obj_path):

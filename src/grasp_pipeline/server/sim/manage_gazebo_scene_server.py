@@ -11,6 +11,8 @@ from gazebo_msgs.srv import SpawnModel, DeleteModel, SetModelState
 
 from grasp_pipeline.srv import *
 
+import sys
+
 
 class GazeboSceneManager():
 
@@ -56,6 +58,8 @@ class GazeboSceneManager():
             self.prev_object_model_name = object_name
         except rospy.ServiceException as e:
             print "Service call failed: %s" % e
+            return False
+        return True
 
     def handle_update_gazebo_object(self, req):
         print("RECEIVED REQUEST")
@@ -77,6 +81,29 @@ class GazeboSceneManager():
     #####################################################
     ## below are codes for multiple objects generation ##
     #####################################################
+
+    def spawn_object_do_not_modify_prev_object(self, object_name, object_model_file, object_pose_array, model_type):
+        rospy.wait_for_service('/gazebo/spawn_' + model_type + '_model')
+        try:
+            with open(object_model_file, 'r') as f:
+                model_file = f.read()
+            quaternion = quaternion_from_euler(object_pose_array[3], object_pose_array[4],
+                                               object_pose_array[5])
+            initial_pose = Pose()
+            initial_pose.position.x = object_pose_array[0]
+            initial_pose.position.y = object_pose_array[1]
+            initial_pose.position.z = object_pose_array[2]
+            initial_pose.orientation.x = quaternion[0]
+            initial_pose.orientation.y = quaternion[1]
+            initial_pose.orientation.z = quaternion[2]
+            initial_pose.orientation.w = quaternion[3]
+            rospy.loginfo('Spawning model: ' + object_name)
+            spawn_model = rospy.ServiceProxy('/gazebo/spawn_' + model_type + '_model', SpawnModel)
+            spawn_model(object_name, model_file, '', initial_pose, 'world')
+        except rospy.ServiceException as e:
+            print "Service call failed: %s" % e
+            return False
+        return True
 
     def create_server_create_new_scene(self):
         rospy.Service('create_new_scene', CreateNewScene, self.handle_create_new_scene)
@@ -106,6 +133,20 @@ class GazeboSceneManager():
         response.success = True
         return response
 
+    def create_server_clear_scene(self):
+        rospy.Service('clear_scene', ClearScene, self.handle_clear_scene)
+        rospy.loginfo('Service create_new_scene:')
+        rospy.loginfo('Ready to create new gazebo scene')
+
+    def handle_clear_scene(self, req):
+        print("RECEIVED REQUEST")
+        print(req)
+        self.clear_scene()
+        self.clear_scene_snapshot()
+        response = ClearSceneResponse()
+        response.success = True
+        return response
+
     def create_server_reset_scene(self):
         rospy.Service('reset_scene', ResetScene, self.handel_reset_scene)
         rospy.loginfo('Service reset_scene:')
@@ -117,7 +158,7 @@ class GazeboSceneManager():
         response = ResetSceneResponse()
 
         if not req.confirm:
-            response.success = False
+            response.success = True
             return response
         try:
             self.recover_scene_to_snapshot()
@@ -129,9 +170,9 @@ class GazeboSceneManager():
 
     def spawn_multiple_objects(self, object_list):
         for object in object_list:
-            self.spawn_object(object.object_name, object.object_model_file,
-                              object.object_pose_array, object.model_type)
-        self.objcets_in_scene.add(object)
+            if self.spawn_object_do_not_modify_prev_object(object.object_name, object.object_model_file,
+                            object.object_pose_array, object.model_type):
+                self.objcets_in_scene.add(object)
 
     def clear_scene(self):
         for object in self.objcets_in_scene.copy():
@@ -188,9 +229,8 @@ def _check_all_are_stationary(twists):
 
 def _check_is_stationary(twist):
     epsilon = 0.01
-    return np.linalg.norm(np.array(twist.linear ), ord=2) < epsilon and \
-           np.linalg.norm(np.array(twist.angular), ord=2) < epsilon
-
+    return np.linalg.norm(np.array([twist.linear.x, twist.linear.y, twist.linear.z]), ord=2) < epsilon and \
+           np.linalg.norm(np.array([twist.angular.x, twist.angular.y, twist.angular.z]), ord=2) < epsilon
 
 class ObjectForSpawn():
 
@@ -223,4 +263,5 @@ if __name__ == '__main__':
     manager.create_update_gazebo_object_server()
     manager.create_server_create_new_scene()
     manager.create_server_reset_scene()
+    manager.create_server_clear_scene()
     rospy.spin()
