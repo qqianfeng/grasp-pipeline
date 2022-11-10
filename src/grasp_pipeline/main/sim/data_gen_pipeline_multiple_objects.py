@@ -27,6 +27,7 @@ def get_objects(gazebo_objects_path, amount=3):
 
 
 def distribute_obstacle_objects_randomly(grasp_object_pose, obstacle_objects, min_center_to_center_distance=0.1):
+    # TODO make sure there is no name duplication
     existing_object_positions = [np.array(grasp_object_pose)[:3]]
     for idx, obj in enumerate(obstacle_objects):
         obstacle_objects[idx] = grasp_client.set_to_random_pose(obj)
@@ -69,11 +70,11 @@ if __name__ == '__main__':
 
             # Reset panda and hithand
             grasp_client.reset_hithand_and_panda()
-            # grasp_client.reset_scene()
 
             # Spawn a new object in Gazebo and moveit in a random valid pose and delete the old object
             grasp_client.spawn_object(pose_type="init", pose_arr=pose)
             
+            grasp_client.save_visual_data()
             # First take a shot of the scene and store RGB, depth and point cloud to disk
             # Then segment the object point cloud from the rest of the scene
             grasp_client.segment_object_client(down_sample_pcd=True)
