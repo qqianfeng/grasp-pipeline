@@ -258,7 +258,7 @@ class GenerateHithandPreshape():
         vis.add_geometry(bb)
         vis.add_geometry(self.segmented_object_pcd)
         vis.add_geometry(pcd_vis)
-        vis.get_render_option().load_from_json("/home/vm/hand_ws/src/grasp-pipeline/save.json")
+        vis.get_render_option().load_from_json("/home/ffh/ffh_ws/src/grasp-pipeline/save.json")
         vis.run()
         #vis.get_render_option().save_to_json("save.json")
         print('Done')

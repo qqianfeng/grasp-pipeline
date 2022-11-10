@@ -37,9 +37,9 @@ if __name__ == '__main__':
     grasp_client = GraspClient(is_rec_sess=True, grasp_data_recording_path=data_recording_path)
     metadata_handler = MetadataHandler(gazebo_objects_path=gazebo_objects_path)
 
-    grasp_objects = get_objects(gazebo_objects_path)
-    for idx, obj in enumerate(grasp_objects):
-        grasp_objects[idx] = grasp_client.set_to_random_pose(obj)
+    obstacle_objects = get_objects(gazebo_objects_path)
+    for idx, obj in enumerate(obstacle_objects):
+        obstacle_objects[idx] = grasp_client.set_to_random_pose(obj)
 
     # This loop runs for all objects, 4 poses, and evaluates N grasps per pose
     for i in range(metadata_handler.get_total_num_objects()):
@@ -73,7 +73,7 @@ if __name__ == '__main__':
             # grasp_client.update_gazebo_object_client(grasp_objects)
 
             # TODO: grasp_objects has no attribute of "mesh_frame_pose"
-            grasp_client.update_multiple_gazebo_objects_client(grasp_objects)
+            grasp_client.spawn_obstacle_objects(obstacle_objects)
 
             grasp_client.save_visual_data()
 
@@ -89,14 +89,11 @@ if __name__ == '__main__':
 
                     # Reset panda and hithand
                     grasp_client.reset_hithand_and_panda()
-
-                    # TODO reset the scene
-                    # grasp_client.reset_scene()
                     
                     # Spawn object in same position
                     grasp_client.spawn_object(pose_type="same")
 
-                    grasp_client.update_multiple_gazebo_objects_client(grasp_objects)
+                    grasp_client.reset_obstacle_objects(obstacle_objects)
 
                 # Grasp and lift object
                 grasp_arm_plan = grasp_client.grasp_and_lift_object()
@@ -110,3 +107,5 @@ if __name__ == '__main__':
 
             # Finally write the time to file it took to test all poses
             grasp_client.log_object_cycle_time(time.time() - object_cycle_start)
+
+            grasp_client.remove_obstacle_objects_from_moveit_scene()

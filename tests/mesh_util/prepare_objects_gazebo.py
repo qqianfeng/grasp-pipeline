@@ -12,7 +12,7 @@ import sys
 3. the directory templates with templates of the files needed to create Gazebo objects
 """
 
-base_folder = '/home/vm/object_datasets'
+base_folder = '/home/ffh/object_datasets'
 
 # datasets = ['kit', 'ycb', 'bigbird']
 datasets = ['bigbird']

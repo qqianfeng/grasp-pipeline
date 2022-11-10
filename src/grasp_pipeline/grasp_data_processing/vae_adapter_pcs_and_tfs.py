@@ -23,7 +23,7 @@ def mkdir(base_folder, folder_name=None):
 def test_grasp_pose_transform(dset_obj_name, grasp_client):
     # Create data and metadata handler
     # TODO: Where is this data???????????????
-    file_path = os.path.join("/home/vm/data", "grasp_data.h5")
+    file_path = os.path.join("/home/ffh/data", "grasp_data.h5")
     data_handler = GraspDataHandler(file_path=file_path, sess_name='recording_session_0001')
 
     # Get a single successful grasp example
@@ -106,14 +106,14 @@ def save_mesh_frame_centroid_tf(obj_full, full_save_path, obj_full_pcd, tf_list)
 if __name__ == '__main__':
     # Some "hyperparameters"
     n_pcds_per_obj = 50
-    input_grasp_data_file = '/home/vm/data/vae-grasp/vae-grasp.h5'
+    input_grasp_data_file = '/home/ffh/data/vae-grasp/vae-grasp.h5'
 
     # Get all available objects and choose one
     with h5py.File(input_grasp_data_file, 'r') as hdf:
         objects = hdf.keys()
 
     # Make the base directory
-    dest_folder = '/home/vm/data/vae-grasp'
+    dest_folder = '/home/ffh/data/vae-grasp'
     pcds_folder = os.path.join(dest_folder, 'point_clouds')
     pcd_tfs_path = os.path.join(dest_folder, 'pcd_transforms.h5')
     mkdir(pcds_folder)

@@ -25,13 +25,13 @@ class ServerUnitTester():
         self.grasp_object = None  # This stores information obtained from the scene segmentation server on the grasp object (like pose, size etc.)
 
         self.object_datasets_folder = rospy.get_param('object_datasets_folder',
-                                                      default='/home/vm/object_datasets')
+                                                      default='/home/ffh/object_datasets')
         self.color_img_save_path = rospy.get_param('color_img_save_path',
-                                                   default='/home/vm/scene.ppm')
+                                                   default='/home/ffh/scene.ppm')
         self.depth_img_save_path = rospy.get_param('depth_img_save_path',
-                                                   default='/home/vm/depth.pgm')
-        self.object_pcd_path = rospy.get_param('object_pcd_path', default='/home/vm/object.pcd')
-        self.scene_pcd_path = rospy.get_param('scene_pcd_path', default='/home/vm/scene.pcd')
+                                                   default='/home/ffh/depth.pgm')
+        self.object_pcd_path = rospy.get_param('object_pcd_path', default='/home/ffh/object.pcd')
+        self.scene_pcd_path = rospy.get_param('scene_pcd_path', default='/home/ffh/scene.pcd')
         self.depth_topic = rospy.get_param('scene_pcd_topic', default='/camera/depth/points')
 
         self.test_count = 0
@@ -132,9 +132,9 @@ class ServerUnitTester():
             req.depth_img = msg_depth
             req.scene_pcd = msg_pcd
         # req.color_img_save_path = self.color_img_save_path
-        req.color_img_save_path = '/home/vm/color.jpg'
+        req.color_img_save_path = '/home/ffh/color.jpg'
         # req.depth_img_save_path = self.depth_img_save_path
-        req.depth_img_save_path = '/home/vm/depth.png'
+        req.depth_img_save_path = '/home/ffh/depth.png'
         req.scene_pcd_save_path = self.scene_pcd_path
         res = save_visual_data(req)
         # Print result
@@ -440,16 +440,16 @@ if __name__ == '__main__':
     # ++++++++++++++++++++++++++++++++++++
     # Test spawn/delete Gazebo
     object_name = '006_mustard_bottle'
-    model_file = '/home/vm/object_datasets/objects_gazebo/ycb/006_mustard_bottle/006_mustard_bottle.sdf'
+    model_file = '/home/ffh/object_datasets/objects_gazebo/ycb/006_mustard_bottle/006_mustard_bottle.sdf'
     # Test create_moveit_scene
-    datasets_base_path = '/home/vm/object_datasets'
+    datasets_base_path = '/home/ffh/object_datasets'
     object_mesh_path = datasets_base_path + '/' + 'ycb'+ \
         '/models/' + object_name + '/google_16k/downsampled.stl'
     # Test control_hithand_config
     hithand_joint_states = JointState()
     hithand_joint_states.position = [0.2] * 20
     # Test segment table and object
-    object_pcd_path = "/home/vm/object.pcd"
+    object_pcd_path = "/home/ffh/object.pcd"
 
     # Tester
     sut = ServerUnitTester()

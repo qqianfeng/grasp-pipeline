@@ -21,7 +21,7 @@ import tf2_geometry_msgs
 import tf2_ros
 import time
 import sys
-
+from moveit_commander import PlanningSceneInterface
 sys.path.append('..')
 from gazebo_msgs.srv import GetModelState, GetModelStateRequest
 from geometry_msgs.msg import PoseStamped
@@ -96,6 +96,8 @@ class GraspClient():
 
         self.is_rec_sess = is_rec_sess
         self.is_eval_sess = is_eval_sess
+
+        self.name_of_obstacle_objects_in_moveit_scene = set()
 
     # +++++++ PART I: First part are all the "helper functions" w/o interface to any other nodes/services ++++++++++
     def log_object_cycle_time(self, cycle_time):
@@ -892,7 +894,7 @@ class GraspClient():
     ## below are codes for multiple objects generation ##
     #####################################################
 
-    def update_multiple_gazebo_objects_client(self, objects):
+    def spawn_obstacle_objects(self, objects):
         wait_for_service('create_new_scene')
         create_new_scene = rospy.ServiceProxy('create_new_scene', CreateNewScene)
         req = CreateNewSceneRequest()
@@ -909,7 +911,51 @@ class GraspClient():
         except rospy.ServiceException, e:
             rospy.loginfo('Service create_new_scene call failed %s' % e)
         rospy.loginfo('Service create_new_scene is executed %s.' % str(res.success))
+
+        for grasp_object in objects:
+            pose = self.get_object_pose(grasp_object)
+            if pose:
+                # Update the sim_pose with the actual pose of the object after it came to rest
+                grasp_object["mesh_frame_pose"] = PoseStamped(header=Header(frame_id='world'),
+                                                                    pose=pose)
+                self.add_to_moveit_scene(grasp_object)
+
         return res.success
+    
+    def remove_obstacle_objects(self, objects):
+        pass
+
+    def reset_obstacle_objects(self, objects):
+        pass
+
+    def get_object_pose(self, object_metadata):
+        """ Get the current pose (not stamped) of the grasp object from Gazebo.
+        """
+        wait_for_service('gazebo/get_model_state')
+        try:
+            get_model_state = rospy.ServiceProxy('gazebo/get_model_state', GetModelState)
+            req = GetModelStateRequest()
+            req.model_name = object_metadata["name"]
+            res = get_model_state(req)
+        except rospy.ServiceException, e:
+            rospy.logerr('Service gazebo/get_model_state call failed: %s' % e)
+            return None
+        rospy.logdebug('Service gazebo/get_model_state is executed.')
+        return res.pose
+    
+    def add_to_moveit_scene(self, name, object_metadata):
+        scene = PlanningSceneInterface()
+        rospy.sleep(0.5)
+        scene.add_mesh(name, object_metadata['mesh_frame_pose'], object_metadata["collision_mesh_path"])
+        rospy.sleep(0.5)
+        self.name_of_obstacle_objects_in_moveit_scene.add(name)
+    
+    def remove_obstacle_objects_from_moveit_scene(self):
+        scene = PlanningSceneInterface()
+        rospy.sleep(0.5)
+        for name in self.name_of_obstacle_objects_in_moveit_scene:
+            scene.remove_world_object(name)
+            rospy.sleep(0.5)
 
     def create_new_scene(self):
         pass

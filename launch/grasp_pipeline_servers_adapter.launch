@@ -5,11 +5,11 @@
     and data used to train VAE or UTAH baseline  -->
     <!-- +++++++NOTE: The different paths in the args must be modified for your machine. ++++++++ -->
     <arg name="sim"                     default="true"/>
-    <arg name="object_datasets_folder"  default="/home/vm/gazebo-objects"/>
-    <arg name="object_pcd_path"         default="/home/vm/object.pcd"/>
-    <arg name="scene_pcd_path"          default="/home/vm/scene.pcd"/>
-    <arg name="color_img_save_path"     default="/home/vm/scene.ppm"/>
-    <arg name="depth_img_save_path"     default="/home/vm/depth.pgm"/>
+    <arg name="object_datasets_folder"  default="/home/ffh/ffh_ws/gazebo-objects"/>
+    <arg name="object_pcd_path"         default="/home/ffh/object.pcd"/>
+    <arg name="scene_pcd_path"          default="/home/ffh/scene.pcd"/>
+    <arg name="color_img_save_path"     default="/home/ffh/scene.ppm"/>
+    <arg name="depth_img_save_path"     default="/home/ffh/depth.pgm"/>
     <arg name="scene_pcd_topic"         default="/camera/depth/points"/>  <!-- /depth_registered/points -->   
     <arg name="color_img_topic"         default="/camera/color/image_raw"/>    
     <arg name="depth_img_topic"         default="/camera/depth/image_raw"/>    
