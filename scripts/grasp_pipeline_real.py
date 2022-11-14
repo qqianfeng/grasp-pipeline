@@ -152,8 +152,9 @@ try:
         if int(os.environ['VISUALIZE']):
             grasp_dict, _ = gi.handle_infer_grasp_poses(n_poses)
 
-            palm_poses, joint_confs = gi.handle_evaluate_and_filter_grasp_poses(
+            grasp_dict = gi.handle_evaluate_and_filter_grasp_poses(
                 grasp_dict, thresh=0.0)
+            exit()
 
         else:
             grasp_dict, center_transf = gi.handle_infer_grasp_poses(n_poses)
