@@ -934,6 +934,7 @@ class GraspClient():
             res = clear_scene(req)
         except rospy.ServiceException, e:
             rospy.loginfo('Service clear_scene call failed %s' % e)
+            exit()
         rospy.loginfo('Service clear_scene is executed %s.' % str(res.success))
 
         return res.success

@@ -3,7 +3,7 @@
 <launch>
     <!-- +++++++NOTE: The different paths in the args must be modified for your machine. ++++++++ -->
     <arg name="sim"                     default="true"/>
-    <arg name="data_recording_path"     default="/tmp"/>
+    <arg name="data_recording_path"     default="/home/ffh/training_data_for_collision_detector"/>
     <arg name="object_datasets_folder"  default="/home/ffh/ffh_ws/gazebo-objects"/>
     <arg name="object_pcd_path"         default="/home/ffh/object.pcd"/>
     <arg name="scene_pcd_path"          default="/home/ffh/scene.pcd"/>
