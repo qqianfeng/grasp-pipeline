@@ -77,7 +77,7 @@ class GraspInference():
         r = torch.tensor(R.from_rotvec(r_axis_angle).as_matrix()).cuda()
         transf = T.Rotate(r)
         results['rot_matrix'] = torch.matmul(r.float(), results['rot_matrix'])
-        results['transl'] = transf.transform_points(results['transl'])
+        results['transl'] = transf.inverse().transform_points(results['transl'])
         results['transl'] += torch.from_numpy(self.center_transf[:, :3]).cuda()
 
         """if self.VISUALIZE:
@@ -96,7 +96,7 @@ class GraspInference():
         r_numpy = R.from_rotvec(r_axis_angle).as_matrix()
         r = torch.tensor(r_numpy).cuda()
         transf = T.Rotate(r)
-        grasp_dict['transl'] = transf.inverse().transform_points(grasp_dict['transl'])
+        grasp_dict['transl'] = transf.transform_points(grasp_dict['transl'])
         grasp_dict['rot_matrix'] = torch.matmul(r[0].t().float(), grasp_dict['rot_matrix'])
         results = self.FFHNet.filter_grasps(
             self.bps_object, grasp_dict, thresh=thresh)
@@ -109,7 +109,7 @@ class GraspInference():
 
         # Shift grasps back to original coordinate frame
         results['rot_matrix'] = r_numpy[0] @ results['rot_matrix']
-        results['transl'] = results['transl'] @ r_numpy[0].T
+        results['transl'] = results['transl'] @ r_numpy[0]
         results['transl'] += self.center_transf[:, :3]
 
         if self.VISUALIZE:
@@ -128,7 +128,7 @@ class GraspInference():
         r_axis_angle = self.center_transf[:, 3:6]
         r = torch.tensor(R.from_rotvec(r_axis_angle).as_matrix()).cuda()
         transf = T.Rotate(r)
-        grasp_dict['transl'] = transf.inverse().transform_points(grasp_dict['transl'])
+        grasp_dict['transl'] = transf.transform_points(grasp_dict['transl'])
         grasp_dict['rot_matrix'] = torch.matmul(r[0].t().float(), grasp_dict['rot_matrix'])
 
         # Get score for all grasps
@@ -137,7 +137,7 @@ class GraspInference():
 
         # Shift grasps back to original coordinate frame
         grasp_dict['rot_matrix'] = torch.matmul(r.float(), grasp_dict['rot_matrix'])
-        grasp_dict['transl'] = transf.transform_points(grasp_dict['transl'])
+        grasp_dict['transl'] = transf.inverse().transform_points(grasp_dict['transl'])
         grasp_dict['transl'] += torch.from_numpy(self.center_transf[:, :3]).cuda()
 
         return p_success
