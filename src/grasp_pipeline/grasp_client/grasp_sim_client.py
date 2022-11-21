@@ -879,7 +879,7 @@ class GraspClient():
             'Service update_moveit_scene is executed %s.' % str(self.update_scene_response))
 
     def update_gazebo_object_client(self):
-        """Gazebo management client, deletes previous object and spawns new object
+        """Gazebo management client, spawns new object
         """
         wait_for_service('update_gazebo_object')
         object_pose_array = get_pose_array_from_stamped(self.object_metadata["mesh_frame_pose"])
@@ -973,6 +973,7 @@ class GraspClient():
     def remove_obstacle_objects_from_moveit_scene(self):
         scene = PlanningSceneInterface()
         rospy.sleep(0.5)
+        # TODO: for first time, nothing to remove but there are stuff in the moveit scene.
         for name in self.name_of_obstacle_objects_in_moveit_scene:
             scene.remove_world_object(name)
             rospy.sleep(0.5)
@@ -1307,6 +1308,8 @@ class GraspClient():
         self.save_visual_data_client()
         
     def filter_preshapes(self):
+        """ Remove grasp poses which have no ik solution or if has IK solution, colliding with environment.
+        """
         self.prune_idxs = list(self.filter_palm_goal_poses_client())
 
         # print(self.prune_idxs)
@@ -1332,6 +1335,7 @@ class GraspClient():
     def get_valid_preshape_for_all_points(self):
         """ First generates preshpes from the hithand preshape server and then prunes out all preshapes which are either in collision or have no IK solution.
         """
+        # Only record ones which 
         self.get_preshape_for_all_points_client()
         self.filter_preshapes()
         if self.prune_idxs:

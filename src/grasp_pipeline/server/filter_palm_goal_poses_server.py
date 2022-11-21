@@ -75,12 +75,12 @@ class PalmGoalPosesFilter():
         for i, pose in enumerate(goal_poses):
             start = time.time()
             ik_js = self.get_ik_for_palm_pose(pose)
-            print("IK took: " + str(time.time() - start))
+            # print("IK took: " + str(time.time() - start))
 
             if ik_js is not None:
                 start = time.time()
                 result = self.check_pose_for_collision(ik_js)
-                print("Collision check took: " + str(time.time() - start))
+                # print("Collision check took: " + str(time.time() - start))
                 if not result.valid:
                     prune_idxs.append(i)
                 else:

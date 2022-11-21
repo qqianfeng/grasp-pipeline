@@ -39,13 +39,20 @@ def get_objects(gazebo_objects_path, grasp_object, amount=3):
 
 
 def distribute_obstacle_objects_randomly(grasp_object_pose, obstacle_objects, min_center_to_center_distance=0.1):
+    """Generate objects with random poses, where each has distance larger than min_center_to_center_distance
+
+    """
     existing_object_positions = [np.array(grasp_object_pose)[:3]]
     for idx, obj in enumerate(obstacle_objects):
         obstacle_objects[idx] = grasp_client.set_to_random_pose(obj)
-        position = np.array([obstacle_objects[idx]['mesh_frame_pose'].pose.position.x, obstacle_objects[idx]['mesh_frame_pose'].pose.position.y, obstacle_objects[idx]['mesh_frame_pose'].pose.position.z])
-        while not all([ np.linalg.norm(position - existing_position) > min_center_to_center_distance for existing_position in existing_object_positions]):
+        position = np.array([obstacle_objects[idx]['mesh_frame_pose'].pose.position.x, 
+                             obstacle_objects[idx]['mesh_frame_pose'].pose.position.y, 
+                             obstacle_objects[idx]['mesh_frame_pose'].pose.position.z])
+        while not all([np.linalg.norm(position - existing_position) > min_center_to_center_distance for existing_position in existing_object_positions]):
             obstacle_objects[idx] = grasp_client.set_to_random_pose(obj)
-            position = np.array([obstacle_objects[idx]['mesh_frame_pose'].pose.position.x, obstacle_objects[idx]['mesh_frame_pose'].pose.position.y, obstacle_objects[idx]['mesh_frame_pose'].pose.position.z])
+            position = np.array([obstacle_objects[idx]['mesh_frame_pose'].pose.position.x, 
+                                 obstacle_objects[idx]['mesh_frame_pose'].pose.position.y, 
+                                 obstacle_objects[idx]['mesh_frame_pose'].pose.position.z])
         existing_object_positions.append(position)
     return obstacle_objects
 
@@ -77,7 +84,7 @@ if __name__ == '__main__':
             obstacle_objects = distribute_obstacle_objects_randomly(pose, obstacle_objects)
 
             # Create dirs
-            grasp_client.create_dirs_new_grasp_trial(is_new_pose_or_object=True)
+            grasp_client.create_dirs_new_grasp_trial(is_new_pose_or_object=True) # TODO: here True is not always true?
 
             # Reset panda and hithand
             grasp_client.reset_hithand_and_panda()
@@ -95,7 +102,7 @@ if __name__ == '__main__':
             grasp_client.get_valid_preshape_for_all_points()
 
             # grasp_client.update_gazebo_object_client(grasp_objects)
-            grasp_client.remove_obstacle_objects(obstacle_objects)
+            grasp_client.remove_obstacle_objects(obstacle_objects) # TODO: should we do this line ealier
             grasp_client.spawn_obstacle_objects(obstacle_objects)
 
             grasp_client.save_visual_data()
