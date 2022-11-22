@@ -290,8 +290,9 @@ class GraspClient():
         try:
             req = ManageMoveitSceneRequest()
             create_moveit_scene = rospy.ServiceProxy('create_moveit_scene', ManageMoveitScene)
-            req.object_mesh_path = self.object_metadata["collision_mesh_path"]
-            req.object_pose_world = self.object_metadata["mesh_frame_pose"]
+            req.object_names = [self.object_metadata["name"]]
+            req.object_mesh_paths = [self.object_metadata["collision_mesh_path"]]
+            req.object_pose_worlds = [self.object_metadata["mesh_frame_pose"]]
             create_scene_response = create_moveit_scene(req)
         except rospy.ServiceException, e:
             rospy.logerr('Service create_moveit_scene call failed: %s' % e)
@@ -1435,6 +1436,17 @@ class GraspClient():
 
         return True
 
+    def check_if_target_object_moved(self, previous_pose, threshold=0.01):
+        current_pose = self.get_grasp_object_pose_client()
+        dist_x = abs(current_pose.position.x - previous_pose.position.x)
+        dist_y = abs(current_pose.position.y - previous_pose.position.y)
+        dist_z = abs(current_pose.position.z - previous_pose.position.z)
+        dist = np.sqrt(dist_x**2 + dist_y**2 + dist_z**2)
+        if dist > threshold:
+            return True
+        else:
+            return False
+            
     def grasp_from_inferred_pose(self, pose_obj_frame, joint_conf):
         """ Used in FFHNet evaluataion. Try to reach the pose and joint conf and attempt grasp given grasps from FFHNet.
 
@@ -1446,17 +1458,6 @@ class GraspClient():
         palm_pose_world = self.transform_pose(pose_obj_frame, 'object_centroid_vae', 'world')
 
         object_pose = self.get_grasp_object_pose_client()
-
-        def check_if_object_moved(previous_pose, threshold=0.01):
-            current_pose = self.get_grasp_object_pose_client()
-            dist_x = abs(current_pose.position.x - previous_pose.position.x)
-            dist_y = abs(current_pose.position.y - previous_pose.position.y)
-            dist_z = abs(current_pose.position.z - previous_pose.position.z)
-            dist = np.sqrt(dist_x**2 + dist_y**2 + dist_z**2)
-            if dist > threshold:
-                return True
-            else:
-                return False
 
         # save the desired pre of the palm and joints (given to function call) in an ins
         # tance variable
@@ -1486,7 +1487,7 @@ class GraspClient():
         self.execute_joint_trajectory_client(speed='mid')
 
         # Detect object pose to check if collision happened
-        if check_if_object_moved(object_pose):
+        if self.check_if_target_object_moved(object_pose):
             self.collision_to_approach_pose = 1
             rospy.logerr("Object moved during way to approach pose")
         else:
@@ -1517,7 +1518,7 @@ class GraspClient():
             rospy.logdebug("pos_error to target pose %f" % pos_error)
 
         # Detect object pose to check if collision happened
-        if check_if_object_moved(object_pose):
+        if self.check_if_target_object_moved(object_pose):
             self.collision_to_grasp_pose = 1
             rospy.logerr("Object moved during way to final pose")
         else:
