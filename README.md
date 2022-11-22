@@ -8,6 +8,7 @@ gazebo --verbose dianav2.world
 
 ## Usage
 Source environment variables:
+
 ```
 source grasp_env.txt
 ```
