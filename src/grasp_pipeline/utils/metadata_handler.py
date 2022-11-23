@@ -9,7 +9,7 @@ YCB_PI_HALF_ROLL = ["008_pudding_box", "009_gelatin_box", "035_power_drill"]
 class MetadataHandler():
     """ Simple class to help iterate through objects and 
     """
-    def __init__(self, gazebo_objects_path='/home/vm/gazebo-objects/objects_gazebo'):
+    def __init__(self, gazebo_objects_path):
         #self.datasets = [BIGBIRD_OBJECTS]
         self.datasets = [YCB_OBJECTS, BIGBIRD_OBJECTS, KIT_OBJECTS]
 
@@ -103,7 +103,7 @@ class MetadataHandler():
 class MetadataHandlerFinalDataGen(MetadataHandler):
     """ Simple class to help iterate through objects and 
     """
-    def __init__(self, gazebo_objects_path='/home/vm/gazebo-objects/objects_gazebo'):
+    def __init__(self, gazebo_objects_path):
         self.dset_obj_names = OBJECTS_TO_GENERATE_DATA_FOR_AFTER_15_04_Desktop
 
     def get_total_num_objects(self):
@@ -135,8 +135,8 @@ class MetadataHandlerFinalDataGen(MetadataHandler):
         return object_metadata
 
 
-if __name__ == '__main__':
-    a = MetadataHandlerFinalDataGen()
-    for i in range(0, a.get_total_num_objects()):
-        obj = a.choose_next_grasp_object()
-        print(i)
+# if __name__ == '__main__':
+#     a = MetadataHandlerFinalDataGen()
+#     for i in range(0, a.get_total_num_objects()):
+#         obj = a.choose_next_grasp_object()
+#         print(i)

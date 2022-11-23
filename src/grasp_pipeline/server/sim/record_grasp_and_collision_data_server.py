@@ -16,9 +16,6 @@ class RecordGraspData():
         if not DEBUG:
             rospy.init_node('record_grasp_and_collision_data_node')
         self.data_recording_path = rospy.get_param('data_recording_path')
-
-        # if os.path.exists('/home/vm/grasp_data.h5'):
-        #     os.remove('/home/vm/grasp_data.h5')
         self.grasp_data_file_name = os.path.join(self.data_recording_path, 'grasp_data.h5')
         self.recording_session_id = None
         self.initialize_data_file()
@@ -54,6 +51,8 @@ class RecordGraspData():
         sess_metadata_gp.create_dataset("sess_num_successes", data=0, dtype='u4')
         sess_metadata_gp.create_dataset("sess_num_failures", data=0, dtype='u4')
         sess_metadata_gp.create_dataset("sess_num_collisions", data=0, dtype='u4')
+        sess_metadata_gp.create_dataset("sess_num_collision_to_approach_pose", data=0, dtype='u4')
+        sess_metadata_gp.create_dataset("sess_num_collision_to_grasp_pose", data=0, dtype='u4')
 
     def initialize_file_metadata(self, metadata_gp):
         metadata_gp.create_dataset("datetime_recording_start",
@@ -64,6 +63,9 @@ class RecordGraspData():
         metadata_gp.create_dataset("total_num_successes", data=0, dtype='u4')
         metadata_gp.create_dataset("total_num_failures", data=0, dtype='u4')
         metadata_gp.create_dataset("total_num_collisions", data=0, dtype='u4')
+        metadata_gp.create_dataset("total_num_collision_to_approach_pose", data=0, dtype='u4')
+        metadata_gp.create_dataset("total_num_collision_to_grasp_pose", data=0, dtype='u4')
+
         metadata_gp.create_dataset("total_num_recordings", data=1, dtype='u4')
 
     def initialize_data_file(self):
@@ -114,7 +116,12 @@ class RecordGraspData():
     ###################################
     ######  PART III : Update  ########
     ###################################
-    def update_all_metadata(self, grasp_file, is_top_grasp, grasp_success_label, collision=False):
+    def update_all_metadata(self,
+                            grasp_file,
+                            is_top_grasp,
+                            grasp_success_label,
+                            collision_to_approach_pose=False,
+                            collision_to_grasp_pose=False):
         # Overall meta data and grasp trial metadata
         metadata_group = grasp_file['metadata']
         curr_sess_metadata_group = grasp_file['recording_sessions'][
@@ -125,9 +132,13 @@ class RecordGraspData():
         if is_top_grasp:
             metadata_group['total_num_tops'][()] += 1
             curr_sess_metadata_group['sess_num_tops'][()] += 1
-        if collision:
-            metadata_group['total_num_collisions'][()] += 1
-            curr_sess_metadata_group['sess_num_collisions'][()] += 1
+
+        if collision_to_approach_pose:
+            metadata_group['total_num_collision_to_approach_pose'][()] += 1
+            curr_sess_metadata_group['sess_num_collision_to_approach_pose'][()] += 1
+        if collision_to_grasp_pose:
+            metadata_group['total_num_collision_to_grasp_pose'][()] += 1
+            curr_sess_metadata_group['sess_num_collision_to_grasp_pose'][()] += 1
 
         if grasp_success_label:
             metadata_group['total_num_successes'][()] += 1
@@ -135,6 +146,32 @@ class RecordGraspData():
         else:
             metadata_group['total_num_failures'][()] += 1
             curr_sess_metadata_group['sess_num_failures'][()] += 1
+
+    def update_grasp_metadata(self,
+                              metadata_group,
+                              curr_sess_metadata_group,
+                              is_top_grasp,
+                              grasp_success_label,
+                              collision_to_approach_pose=False,
+                              collision_to_grasp_pose=False):
+
+        # Overall meta data and grasp trial metadata
+        metadata_group['total_num_grasps'][()] += 1
+        curr_sess_metadata_group['sess_num_grasps'][()] += 1
+        if is_top_grasp:
+            metadata_group['total_num_top_grasps'][()] += 1
+            curr_sess_metadata_group['sess_num_top_grasps'][()] += 1
+        if grasp_success_label:
+            metadata_group['total_num_success_grasps'][()] += 1
+            curr_sess_metadata_group['sess_num_success_grasps'][()] += 1
+        else:
+            metadata_group['total_num_failure_grasps'][()] += 1
+            curr_sess_metadata_group['sess_num_failure_grasps'][()] += 1
+
+        if collision_to_approach_pose:
+            metadata_group['total_num_collision_to_approach_pose'][()] += 1
+        if collision_to_grasp_pose:
+            metadata_group['total_num_collision_to_grasp_pose'][()] += 1
 
     def update_all_metadata_collision(self, grasp_file, num_grasps):
         # Update overall metadata
@@ -144,13 +181,13 @@ class RecordGraspData():
         # Update session metadata
         rec_sess_metadata_gp = grasp_file['recording_sessions'][self.curr_sess_name]['metadata']
         rec_sess_metadata_gp['sess_num_grasps'][()] += num_grasps
-        rec_sess_metadata_gp['sess_num_collisions'][()] += num_grasps
+        rec_sess_metadata_gp['sess_num_collisions'][()] += num_grasps  # why???
 
         # Update object
         object_metadata_gp = grasp_file['recording_sessions'][self.curr_sess_name]['grasp_trials'][
             self.curr_object_name]['metadata']
         object_metadata_gp['object_num_grasps'][()] += num_grasps
-        object_metadata_gp['object_num_collisions'][()] += num_grasps
+        object_metadata_gp['object_num_collisions'][()] += num_grasps  # why???
 
     def get_grasp_group(self, grasp_trials, grasp_class):
         """ Creates the entire folder structure under grasp_trials if it does not exist.
@@ -186,7 +223,8 @@ class RecordGraspData():
         # r+ : Read/write, file must exist
         with h5py.File(self.grasp_data_file_name, 'r+') as grasp_file:
             # Update grasp meta information and update sess metadata
-            self.update_all_metadata(grasp_file, req.is_top_grasp, req.grasp_success_label)
+            self.update_all_metadata(grasp_file, req.is_top_grasp, req.grasp_success_label,
+                                     req.collision_to_approach_pose, req.collision_to_grasp_pose)
 
             # Get a descriptor for grasp trials
             grasp_trials = grasp_file['recording_sessions'][self.curr_sess_name]['grasp_trials']
@@ -208,6 +246,10 @@ class RecordGraspData():
             grasp_group.create_dataset('is_top_grasp', data=req.is_top_grasp)
             # grasp_success_label
             grasp_group.create_dataset('grasp_success_label', data=req.grasp_success_label)
+            # collision label
+            grasp_group.create_dataset('collision_to_approach_pose',
+                                       data=req.collision_to_approach_pose)
+            grasp_group.create_dataset('collision_to_grasp_pose', data=req.collision_to_grasp_pose)
 
             # object_world_sim_pose
             grasp_group.create_dataset('object_mesh_frame_world',
@@ -310,15 +352,18 @@ if __name__ == '__main__':
         req.is_top_grasp = True
         req.grasp_success_label = 1
 
+        req.collision_to_approach_pose = 1
+        req.collision_to_grasp_pose = 1
+
         # The true spawn pose in world frame
-        req.object_world_sim_pose = [PoseStamped()]
-        req.desired_preshape_palm_world_pose = [PoseStamped()]
-        req.true_preshape_palm_world_pose = [PoseStamped()]
+        req.object_mesh_frame_world = [PoseStamped()]
+        req.desired_preshape_palm_mesh_frame = [PoseStamped()]
+        req.true_preshape_palm_mesh_frame = [PoseStamped()]
         # Hithand jointstates
-        req.desired_preshape_hithand_joint_state = [JointState()]
-        req.true_preshape_hithand_joint_state = [JointState()]
-        req.closed_hithand_joint_state = [JointState()]
-        req.lifted_hithand_joint_state = [JointState()]
+        req.desired_joint_state = [JointState()]
+        req.true_joint_state = [JointState()]
+        req.closed_joint_state = [JointState()]
+        req.lifted_joint_state = [JointState()]
         rgd.handle_record_grasp_trial_data(req)
 
     rospy.spin()
