@@ -1341,10 +1341,63 @@ class GraspClient():
         self.filter_preshapes()
         if self.prune_idxs:
             self.record_collision_data_client()
+    
+    ### Functions to check object status ###
+    # TODO: add these functions to grasp_and_lift_object() @Lixian.
+    def check_if_target_object_moved(self, previous_pose):
+        current_pose = self.get_grasp_object_pose_client()
+        self.check_if_object_moved(previous_pose, current_pose)
+    
+    @static_method
+    def check_if_object_moved(pose_1, pose_2, threshold=0.01):
+        """Given two poses of certain object, this function tells if two poses are closer than certain 
+        threshold or not. In this way we can tell if certain object is static or being moved during grasping.
+        """
+        dist_x = abs(pose_1.position.x - pose_2.position.x)
+        dist_y = abs(pose_1.position.y - pose_2.position.y)
+        dist_z = abs(pose_1.position.z - pose_2.position.z)
+        dist = np.sqrt(dist_x**2 + dist_y**2 + dist_z**2)
+        if dist > threshold:
+            return True
+        else:
+            return False
+        
+    def get_obstacle_objects_poses(obstacle_objects, threshold=0.01):
+        """
+        Args:
+            obstacle_objects (list)): _description_
+            threshold (float, optional): Defaults to 0.01.
 
-    def grasp_and_lift_object(self):
+        Returns:
+            obstacle_obj_poses (dict)
+        """
+        obstacle_obj_poses = {}
+        for idx, _ in enumerate(obstacle_objects):
+            current_pose = self.get_grasp_object_pose_client(obj_name=obstacle_objects[idx]['name'])
+            obstacle_obj_poses[obstacle_objects[idx]['name']] = current_pose
+        return obstacle_obj_poses
+    
+    def check_if_any_obstacble_object_moved(obstacle_obj_poses_1,obstacle_obj_poses_2):
+        """True if any of object is moved. False if all objects are not moved.
+        """
+        for key in obstacle_obj_poses_1:
+            moved = check_if_object_moved(obstacle_obj_poses_1[key],obstacle_obj_poses_2[key])
+            if moved:
+                return True
+        return False
+    
+    ################################################
+    
+    ### TODO: Functions to check if robot reaches the target pose ###
+    
+    ### TODO: Functions to add labels for grasping ###
+    
+    def grasp_and_lift_object(self, obstacle_objects):
         """ Used in data generation.
         """
+        target_obj_pose = self.get_grasp_object_pose_client()
+        obstacle_obj_poses = self.get_obstacle_objects_poses(obstacle_objects)
+        
         # Control the hithand to it's preshape
         i = 0
         # As long as there are viable poses
@@ -1435,18 +1488,7 @@ class GraspClient():
         self.remove_grasp_pose()
 
         return True
-
-    def check_if_target_object_moved(self, previous_pose, threshold=0.01):
-        current_pose = self.get_grasp_object_pose_client()
-        dist_x = abs(current_pose.position.x - previous_pose.position.x)
-        dist_y = abs(current_pose.position.y - previous_pose.position.y)
-        dist_z = abs(current_pose.position.z - previous_pose.position.z)
-        dist = np.sqrt(dist_x**2 + dist_y**2 + dist_z**2)
-        if dist > threshold:
-            return True
-        else:
-            return False
-            
+    
     def grasp_from_inferred_pose(self, pose_obj_frame, joint_conf):
         """ Used in FFHNet evaluataion. Try to reach the pose and joint conf and attempt grasp given grasps from FFHNet.
 

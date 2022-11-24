@@ -126,7 +126,7 @@ if __name__ == '__main__':
                     grasp_client.reset_obstacle_objects(obstacle_objects)
 
                 # Grasp and lift object
-                grasp_arm_plan = grasp_client.grasp_and_lift_object()
+                grasp_arm_plan = grasp_client.grasp_and_lift_object(obstacle_objects)
 
                 # Save all grasp data including post grasp images
                 grasp_client.save_visual_data_and_record_grasp()
