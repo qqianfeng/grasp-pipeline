@@ -17,6 +17,7 @@ all_grasp_objects = []
 
 
 def get_objects(gazebo_objects_path, grasp_object, amount=3):
+    # TODO remove YCB from here? @Lixian
     global all_grasp_objects
     if len(all_grasp_objects) == 0:
         # initilize once
@@ -103,6 +104,7 @@ if __name__ == '__main__':
 
             # grasp_client.update_gazebo_object_client(grasp_objects)
             grasp_client.remove_obstacle_objects(obstacle_objects) # TODO: should we do this line ealier
+            
             grasp_client.spawn_obstacle_objects(obstacle_objects)
 
             grasp_client.save_visual_data()

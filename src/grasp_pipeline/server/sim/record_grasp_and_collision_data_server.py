@@ -436,7 +436,7 @@ class RecordGraspData():
         rospy.loginfo('Ready to record your awesome grasp data.')
         
     def create_record_grasp_trial_multi_obj_data_server(self):
-        rospy.Service('record_grasp_trial__multi_obj_data', RecordGraspTrialMultiObjData,
+        rospy.Service('record_grasp_trial_multi_obj_data', RecordGraspTrialMultiObjData,
                       self.handle_record_grasp_trial_multi_obj_data)
         rospy.loginfo('Service record_grasp_trial_multi_obj_data:')
         rospy.loginfo('Ready to record your awesome grasp data.')

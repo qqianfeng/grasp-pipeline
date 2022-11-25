@@ -55,7 +55,7 @@ class GraspClient():
 
         self.tf_listener = tf.TransformListener()
         self.tf_buffer = tf2_ros.Buffer()
-        # listener = tf2_ros.TransformListener(self.tf_buffer)
+        listener = tf2_ros.TransformListener(self.tf_buffer)
 
         self.depth_img = None
         self.color_img = None
@@ -1410,10 +1410,10 @@ class GraspClient():
             self.record_collision_data_client()
     
     ### Functions to check object status ###
-    def get_obstacle_objects_poses(obstacle_objects, threshold=0.01):
+    def get_obstacle_objects_poses(self, obstacle_objects, threshold=0.01):
         """
         Args:
-            obstacle_objects (list)): _description_
+            obstacle_objects (list): _description_
             threshold (float, optional): Defaults to 0.01.
 
         Returns:
@@ -1443,7 +1443,7 @@ class GraspClient():
         current_pose = self.get_grasp_object_pose_client()
         self.check_if_object_moved(previous_pose, current_pose)
         
-    def check_if_any_obstacle_object_moved(obstacle_obj_poses_1, obstacle_obj_poses_2):
+    def check_if_any_obstacle_object_moved(self, obstacle_obj_poses_1, obstacle_obj_poses_2):
         """True if any of object is moved. False if all objects are not moved.
         """
         for key in obstacle_obj_poses_1:
