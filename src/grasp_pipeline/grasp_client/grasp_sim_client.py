@@ -637,22 +637,6 @@ class GraspClient():
         rospy.logdebug('Service plan_reset_trajectory is executed.')
         return res.success
 
-    def get_cartesian_position_error_client(self, required_pose):
-        # TODO: Delete this server and calculate the error by using self.palm_poses["desired_pre"] and self.palm_poses["true_pre"]
-        """ Calculate the distance in xyz between target pose and current pose.
-        """
-        wait_for_service('get_cartesian_position_error')
-        try:
-            get_cartesian_position_error = rospy.ServiceProxy('get_cartesian_position_error',
-                                                               GetCartesianPositionError)
-            req = GetCartesianPositionErrorRequest()
-            req.required_pose = required_pose
-            res = get_cartesian_position_error(req)
-        except rospy.ServiceException, e:
-            rospy.logerr('Service get_cartesian_position_error call failed: %s' % e)
-        rospy.logdebug('Service get_cartesian_position_error is executed.')
-        return res.distance
-
     def record_collision_data_client(self):
         """ self.heuristic_preshapes stores all grasp poses. Self.prune_idxs contains idxs of poses in collision. Store 
         these poses too, but convert to true object mesh frame first
@@ -1455,6 +1439,14 @@ class GraspClient():
                 return True
         return False
     
+    @staticmethod
+    def get_poses_distance(pose_1, pose_2):
+        delta_x = abs(pose_1.pose.position.x - pose_2.pose.position.x)
+        delta_y = abs(pose_1.pose.position.y - pose_2.pose.position.y)
+        delta_z = abs(pose_1.pose.position.z - pose_2.pose.position.z)
+        distance = np.sqrt(delta_x**2 + delta_y**2 + delta_z**2)
+        return distance
+        
     ################################################    
     
     def grasp_and_lift_object(self, obstacle_objects):
@@ -1507,13 +1499,6 @@ class GraspClient():
                 break
             else:
                 self.remove_grasp_pose()
-
-        # Check if robot reach the target grasp pose.
-        pos_error = self.get_cartesian_position_error_client(self.palm_poses["desired_pre"])
-        if pos_error > 0.01: 
-            rospy.logerr("Cannot reach goal pose with error: %f m" % pos_error)
-        else:
-            rospy.logdebug("pos_error to target pose %f" % pos_error)
             
         # Check if any object is being moved
         is_target_obj_moved = self.check_if_target_object_moved(target_obj_pose)
@@ -1544,6 +1529,13 @@ class GraspClient():
         self.palm_poses["closed"], self.hand_joint_states[
             "closed"] = self.get_hand_palm_pose_and_joint_state()
 
+        # Check if robot reach the target grasp pose.     
+        pos_error = self.get_poses_distance(self.palm_poses["desired_pre"],self.palm_poses["true_pre"])
+        if pos_error > 0.01: 
+            rospy.logerr("Cannot reach goal pose with error: %f m" % pos_error)
+        else:
+            rospy.logdebug("pos_error to target pose %f" % pos_error)
+            
         # Save visual data after hand is closed
         self.save_only_depth_and_color(grasp_phase='during')
 
@@ -1644,13 +1636,6 @@ class GraspClient():
         # Execute joint trajectory
         self.execute_joint_trajectory_client(speed='mid')
 
-        pos_error = self.get_cartesian_position_error_client(palm_pose_world)
-         # TODO: there is constant error of 0.06
-        if pos_error > 0.07: 
-            rospy.logerr("Cannot reach goal pose with error: %f m" % pos_error)
-        else:
-            rospy.logdebug("pos_error to target pose %f" % pos_error)
-
         # Detect object pose to check if collision happened
         if self.check_if_target_object_moved(object_pose):
             self.collision_to_grasp_pose = 1
@@ -1662,6 +1647,13 @@ class GraspClient():
         self.palm_poses["true_pre"], self.hand_joint_states[
             "true_pre"] = self.get_hand_palm_pose_and_joint_state()
 
+        # Check if robot reach the target grasp pose.     
+        pos_error = self.get_poses_distance(self.palm_poses["desired_pre"],self.palm_poses["true_pre"])
+        if pos_error > 0.01: 
+            rospy.logerr("Cannot reach goal pose with error: %f m" % pos_error)
+        else:
+            rospy.logdebug("pos_error to target pose %f" % pos_error)
+            
         # Go into the joint conf:
         self.control_hithand_config_client(joint_conf=joint_conf)
 

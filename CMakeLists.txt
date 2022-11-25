@@ -33,7 +33,6 @@ add_message_files(
 
 add_service_files(
     FILES
-    GetCartesianPositionError.srv
     CheckPoseValidity.srv
     ControlHithand.srv
     EvaluateAndFilterGraspPoses.srv
