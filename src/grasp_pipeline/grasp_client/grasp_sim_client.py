@@ -638,6 +638,7 @@ class GraspClient():
         return res.success
 
     def get_cartesian_position_error_client(self, required_pose):
+        # TODO: Delete this server and calculate the error by using self.palm_poses["desired_pre"] and self.palm_poses["true_pre"]
         """ Calculate the distance in xyz between target pose and current pose.
         """
         wait_for_service('get_cartesian_position_error')
@@ -751,11 +752,11 @@ class GraspClient():
             true_pose_mesh_frame = self.transform_pose(self.palm_poses["true_pre"], 'world',
                                                        'object_mesh_frame')
             # Get service proxy
-            record_grasp_trial_data = rospy.ServiceProxy('record_grasp_trial_data',
-                                                         RecordGraspTrialData)
+            record_grasp_trial_multi_obj_data = rospy.ServiceProxy('record_grasp_trial_multi_obj_data',
+                                                         RecordGraspTrialMultiObjData)
 
             # Build request
-            req = RecordGraspTrialDataRequest()
+            req = RecordGraspTrialMultiObjDataRequest()
             req.object_name = self.object_metadata["name_rec_path"]
             req.time_stamp = datetime.datetime.now().isoformat()
             req.is_top_grasp = self.chosen_is_top_grasp
@@ -776,11 +777,11 @@ class GraspClient():
             req.lifted_joint_state = self.hand_joint_states["lifted"]
 
             # Call service
-            res = record_grasp_trial_data(req)
+            res = record_grasp_trial_multi_obj_data(req)
 
         except rospy.ServiceException, e:
-            rospy.logerr('Service record_grasp_trial_data call failed: %s' % e)
-        rospy.logdebug('Service record_grasp_trial_data is executed.')
+            rospy.logerr('Service record_grasp_trial_multi_obj_data call failed: %s' % e)
+        rospy.logdebug('Service record_grasp_trial_multi_obj_data is executed.')
 
     # This seems never used!!!
     def record_grasp_data_client(self):
@@ -1045,6 +1046,8 @@ class GraspClient():
         pass
 
     def reset_scene(self, confirm):
+        """Reset all object poses to original pose which is saved in snapshot.
+        """
         wait_for_service('reset_scene')
         reset_scene = rospy.ServiceProxy('reset_scene', ResetScene)
         req = ResetSceneRequest()
@@ -1452,11 +1455,7 @@ class GraspClient():
                 return True
         return False
     
-    ################################################
-    
-    ### TODO: Functions to check if robot reaches the target pose ###
-    
-    ### TODO: Functions to add labels for grasping ###
+    ################################################    
     
     def grasp_and_lift_object(self, obstacle_objects):
         """ Used in data generation.
@@ -1496,6 +1495,7 @@ class GraspClient():
             # TODO: it's better for each grasp pose, try more times with diff. approach pose to avoid wired trajectory. 
             # Now once it failed once, we remove this grasp pose.
             if is_target_obj_moved or are_obstacle_obj_moved:
+                rospy.logerr("target_object_moved: %s or obstacle_object_mmoved: %s" % (is_target_obj_moved, are_obstacle_obj_moved))
                 self.remove_grasp_pose()
             
             # Step 3, try to move to the desired palm position
@@ -1508,6 +1508,13 @@ class GraspClient():
             else:
                 self.remove_grasp_pose()
 
+        # Check if robot reach the target grasp pose.
+        pos_error = self.get_cartesian_position_error_client(self.palm_poses["desired_pre"])
+        if pos_error > 0.01: 
+            rospy.logerr("Cannot reach goal pose with error: %f m" % pos_error)
+        else:
+            rospy.logdebug("pos_error to target pose %f" % pos_error)
+            
         # Check if any object is being moved
         is_target_obj_moved = self.check_if_target_object_moved(target_obj_pose)
         obstacle_obj_poses_tmp = self.get_obstacle_objects_poses(obstacle_objects)

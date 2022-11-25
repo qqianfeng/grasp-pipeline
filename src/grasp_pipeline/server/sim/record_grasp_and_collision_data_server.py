@@ -54,6 +54,11 @@ class RecordGraspData():
         sess_metadata_gp.create_dataset("sess_num_collision_to_approach_pose", data=0, dtype='u4')
         sess_metadata_gp.create_dataset("sess_num_collision_to_grasp_pose", data=0, dtype='u4')
 
+        sess_metadata_gp.create_dataset("sess_num_grasp_pose_collide_target_object", data=0, dtype='u4')
+        sess_metadata_gp.create_dataset("sess_num_grasp_pose_collide_obstacle_objects", data=0, dtype='u4')
+        sess_metadata_gp.create_dataset("sess_num_close_finger_collide_obstacle_objects", data=0, dtype='u4')
+        sess_metadata_gp.create_dataset("sess_num_lift_motion_moved_obstacle_objects", data=0, dtype='u4')
+        
     def initialize_file_metadata(self, metadata_gp):
         metadata_gp.create_dataset("datetime_recording_start",
                                    data=[datetime.now().isoformat()],
@@ -65,7 +70,12 @@ class RecordGraspData():
         metadata_gp.create_dataset("total_num_collisions", data=0, dtype='u4')
         metadata_gp.create_dataset("total_num_collision_to_approach_pose", data=0, dtype='u4')
         metadata_gp.create_dataset("total_num_collision_to_grasp_pose", data=0, dtype='u4')
-
+        
+        metadata_gp.create_dataset("total_num_grasp_pose_collide_target_object", data=0, dtype='u4')
+        metadata_gp.create_dataset("total_num_grasp_pose_collide_obstacle_objects", data=0, dtype='u4')
+        metadata_gp.create_dataset("total_num_close_finger_collide_obstacle_objects", data=0, dtype='u4')
+        metadata_gp.create_dataset("total_num_lift_motion_moved_obstacle_objects", data=0, dtype='u4')
+        
         metadata_gp.create_dataset("total_num_recordings", data=1, dtype='u4')
 
     def initialize_data_file(self):
