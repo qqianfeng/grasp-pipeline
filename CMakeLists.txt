@@ -51,6 +51,7 @@ add_service_files(
     RecordCollisionData.srv
     RecordGraspDataSim.srv
     RecordGraspTrialData.srv
+    RecordGraspTrialMultiObjData.srv
     ResetScene.srv
     SaveVisualData.srv
     SegmentGraspObject.srv

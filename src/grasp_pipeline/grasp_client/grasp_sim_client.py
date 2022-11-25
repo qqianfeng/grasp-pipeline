@@ -1425,7 +1425,7 @@ class GraspClient():
             obstacle_obj_poses[obstacle_objects[idx]['name']] = current_pose
         return obstacle_obj_poses
     
-    @static_method
+    @staticmethod
     def check_if_object_moved(pose_1, pose_2, threshold=0.01):
         """Given two poses of certain object, this function tells if two poses are closer than certain 
         threshold or not. In this way we can tell if certain object is static or being moved during grasping.
