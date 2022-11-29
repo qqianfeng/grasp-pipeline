@@ -41,7 +41,7 @@ class RecordGraspData():
         metadata_gp.create_dataset("object_num_successes", data=0, dtype='u4')
         metadata_gp.create_dataset("object_num_failures", data=0, dtype='u4')
         metadata_gp.create_dataset("object_num_collisions", data=0, dtype='u4')
-        self.collision_id = 0
+        self.collision_id = {'collision':0, 'no_ik':0}
         self.no_collision_id = 0
 
     def initialize_sess_metadata(self, sess_metadata_gp):
@@ -206,6 +206,7 @@ class RecordGraspData():
             grasps_gp = object_gp.create_group('grasps')
             # grasps --> collision/ no-collision
             grasps_gp.create_group('collision')
+            grasps_gp.create_group('no_ik')
             grasps_gp.create_group('no_collision')
 
         # Get the descriptor for the grasp group
@@ -289,7 +290,7 @@ class RecordGraspData():
             grasp_trials = grasp_file['recording_sessions'][self.curr_sess_name]['grasp_trials']
 
             # Verify if object name already exists, if not create first
-            collision_gp = self.get_grasp_group(grasp_trials, grasp_class='collision')
+            collision_gp = self.get_grasp_group(grasp_trials, grasp_class=req.failure_type)
 
             # Update all metadata
             self.update_all_metadata_collision(grasp_file,
@@ -304,8 +305,8 @@ class RecordGraspData():
                 palm_l = self.convert_pose_to_list(palm)
 
                 # Increase collision id counter
-                self.collision_id += 1
-                collision_id_str = 'collision_' + str(self.collision_id).zfill(4)
+                self.collision_id[req.failure_type] += 1
+                collision_id_str = req.failure_type + '_' + str(self.collision_id[req.failure_type]).zfill(4)
 
                 # Create new group under collision group for each grasp attempt
                 grasp_gp = collision_gp.create_group(collision_id_str)

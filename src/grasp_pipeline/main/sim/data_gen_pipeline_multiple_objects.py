@@ -37,12 +37,12 @@ def get_objects(gazebo_objects_path, grasp_object, amount=3):
         objects.append(obj)
     return objects
 
-def distribute_obstacle_objects_randomly(grasp_object_pose, obstacle_objects, min_center_to_center_distance=0.1):
+def distribute_obstacle_objects_randomly(grasp_object_pose, obstacle_objects, min_center_to_center_distance=0.15):
     existing_object_positions = [np.array(grasp_object_pose)[:3]]
     for idx, obj in enumerate(obstacle_objects):
         obstacle_objects[idx] = grasp_client.set_to_random_pose(obj)
         position = np.array([obstacle_objects[idx]['mesh_frame_pose'].pose.position.x, obstacle_objects[idx]['mesh_frame_pose'].pose.position.y, obstacle_objects[idx]['mesh_frame_pose'].pose.position.z])
-        while not all([ np.linalg.norm(position - existing_position) > min_center_to_center_distance for existing_position in existing_object_positions]):
+        while not all([ np.linalg.norm(position[:2] - existing_position[:2]) > min_center_to_center_distance for existing_position in existing_object_positions]):
             obstacle_objects[idx] = grasp_client.set_to_random_pose(obj)
             position = np.array([obstacle_objects[idx]['mesh_frame_pose'].pose.position.x, obstacle_objects[idx]['mesh_frame_pose'].pose.position.y, obstacle_objects[idx]['mesh_frame_pose'].pose.position.z])
         existing_object_positions.append(position)
@@ -80,6 +80,7 @@ if __name__ == '__main__':
 
             # Reset panda and hithand
             grasp_client.reset_hithand_and_panda()
+            grasp_client.remove_obstacle_objects(obstacle_objects)
 
             # Spawn a new object in Gazebo and moveit in a random valid pose and delete the old object
             grasp_client.spawn_object(pose_type="init", pose_arr=pose)
@@ -89,19 +90,24 @@ if __name__ == '__main__':
             # Then segment the object point cloud from the rest of the scene
             grasp_client.segment_object_client(down_sample_pcd=True)
 
+            grasp_client.spawn_obstacle_objects(obstacle_objects)
+
             # Generate hithand preshape, this is crucial. Samples multiple heuristics-based hithand preshapes, stores it in an instance variable
             # Also one specific desired grasp preshape should be chosen. This preshape (characterized by the palm position, hithand joint states, and the is_top boolean gets stored in other instance variables)
             grasp_client.get_valid_preshape_for_all_points()
-
-            # grasp_client.update_gazebo_object_client(grasp_objects)
-
-            grasp_client.remove_obstacle_objects(obstacle_objects)
-            grasp_client.spawn_obstacle_objects(obstacle_objects)
 
             grasp_client.save_visual_data()
 
             j = 0
             while grasp_client.grasps_available:
+                
+
+                # only try 5 grasps when testing
+                if j == 5:
+                    break
+
+
+
                 # Save pre grasp visual data
                 if j != 0:
                     # Measure time

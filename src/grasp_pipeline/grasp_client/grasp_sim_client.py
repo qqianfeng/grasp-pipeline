@@ -193,8 +193,8 @@ class GraspClient():
         """ Sets the boundaries in which an object can be spawned and placed.
         Gets called 
         """
-        self.spawn_object_x_min, self.spawn_object_x_max = 0.45, 0.65
-        self.spawn_object_y_min, self.spawn_object_y_max = -0.2, 0.2
+        self.spawn_object_x_min, self.spawn_object_x_max = 0.35, 0.75
+        self.spawn_object_y_min, self.spawn_object_y_max = -0.3, 0.3
 
     def generate_random_object_pose_for_experiment(self):
         """Generates a random x,y position and z orientation within object_spawn boundaries for grasping experiments.
@@ -412,7 +412,7 @@ class GraspClient():
         except rospy.ServiceException, e:
             rospy.logerr('Service filter_palm_goal_poses call failed: %s' % e)
         rospy.logdebug('Service filter_palm_goal_poses is executed.')
-        return res.prune_idxs
+        return res.prune_idxs, res.no_ik_idxs, res.collision_idxs
 
     def generate_hithand_preshape_client(self):
         """Generate preshape that is sampled from the each point cloud.
@@ -646,10 +646,10 @@ class GraspClient():
         try:
             # First select only the hithand joint states and heuristic preshapes which are in collision, as indicated by self.prune_idxs
             palm_poses_collision = [
-                self.heuristic_preshapes.palm_goal_poses_world[i] for i in self.prune_idxs
+                self.heuristic_preshapes.palm_goal_poses_world[i] for i in self.no_ik_idxs
             ]
             joint_states_collision = [
-                self.heuristic_preshapes.hithand_joint_states[i] for i in self.prune_idxs
+                self.heuristic_preshapes.hithand_joint_states[i] for i in self.no_ik_idxs
             ]
 
             # Then transform the poses from world frame to object mesh frame
@@ -664,9 +664,45 @@ class GraspClient():
 
             # Build request only send the joint states and palm goal poses which are in collision
             req = RecordCollisionDataRequest()
+            req.failure_type = 'no_ik'
             req.object_name = self.object_metadata["name_rec_path"]
             req.object_world_poses = len(
-                self.prune_idxs) * [self.object_metadata["mesh_frame_pose"]]
+                self.no_ik_idxs) * [self.object_metadata["mesh_frame_pose"]]
+            req.preshapes_palm_mesh_frame_poses = palm_goal_poses_mesh_frame
+            req.preshape_hithand_joint_states = joint_states_collision
+
+            res = record_collision_data(req)
+
+        except rospy.ServiceException, e:
+            rospy.logerr('Service record_collision_data call failed: %s' % e)
+        rospy.logdebug('Service record_collision_data is executed.')
+
+        wait_for_service('record_collision_data')
+        try:
+            # First select only the hithand joint states and heuristic preshapes which are in collision, as indicated by self.prune_idxs
+            palm_poses_collision = [
+                self.heuristic_preshapes.palm_goal_poses_world[i] for i in self.collision_idxs
+            ]
+            joint_states_collision = [
+                self.heuristic_preshapes.hithand_joint_states[i] for i in self.collision_idxs
+            ]
+
+            # Then transform the poses from world frame to object mesh frame
+            palm_goal_poses_mesh_frame = []
+            for pose in palm_poses_collision:
+                pose_mesh_frame = self.transform_pose(pose, 'world', 'object_mesh_frame')
+                palm_goal_poses_mesh_frame.append(pose_mesh_frame)
+
+            # Get service proxy
+            record_collision_data = rospy.ServiceProxy('record_collision_data',
+                                                       RecordCollisionData)
+
+            # Build request only send the joint states and palm goal poses which are in collision
+            req = RecordCollisionDataRequest()
+            req.failure_type = 'collision'
+            req.object_name = self.object_metadata["name_rec_path"]
+            req.object_world_poses = len(
+                self.collision_idxs) * [self.object_metadata["mesh_frame_pose"]]
             req.preshapes_palm_mesh_frame_poses = palm_goal_poses_mesh_frame
             req.preshape_hithand_joint_states = joint_states_collision
 
@@ -1298,9 +1334,10 @@ class GraspClient():
         self.save_visual_data_client()
         
     def filter_preshapes(self):
-        self.prune_idxs = list(self.filter_palm_goal_poses_client())
-
-        # print(self.prune_idxs)
+        total, no_ik, collision = self.filter_palm_goal_poses_client()
+        self.prune_idxs = list(total)
+        self.no_ik_idxs = list(no_ik)
+        self.collision_idxs = list(collision)
 
         self.top_idxs = [x for x in self.top_idxs if x not in self.prune_idxs]
         self.side1_idxs = [x for x in self.side1_idxs if x not in self.prune_idxs]
