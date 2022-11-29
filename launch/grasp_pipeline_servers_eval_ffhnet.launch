@@ -4,20 +4,20 @@
     <arg name="sim"                     default="true"/>           
     <arg name="launch_rosbridge"        default="true"/>
     <!-- +++++++++++++++++++ Set the params needed by the different nodes ++++++++++++++++++++++++++++++++ -->
-    <param name="object_pcd_path"         value="/home/ffh/object.pcd"       type="string" />
-    <param name="object_pcd_enc_path"     value="/home/ffh/pcd_enc.npy" type="string"/>
-    <param name="scene_pcd_path"          value="/home/ffh/scene.pcd"        type="string" />
-    <param name="object_datasets_folder"  value="/home/ffh/ffh_ws/gazebo-objects"   type="string" />
-    <param name="color_img_save_path"     value="/home/ffh/scene.jpg"        type="string" />
-    <param name="depth_img_save_path"     value="/home/ffh/depth.pgm"        type="string" />
+    <param name="object_pcd_path"         value="/home/vm/object.pcd"       type="string" />
+    <param name="object_pcd_enc_path"     value="/home/vm/pcd_enc.npy" type="string"/>
+    <param name="scene_pcd_path"          value="/home/vm/scene.pcd"        type="string" />
+    <param name="object_datasets_folder"  value="/home/vm/gazebo-objects"   type="string" />
+    <param name="color_img_save_path"     value="/home/vm/scene.jpg"        type="string" />
+    <param name="depth_img_save_path"     value="/home/vm/depth.pgm"        type="string" />
     <param name="scene_pcd_topic"         value="/camera/depth/points"      type="string" />
     <param name="color_img_topic"         value="/camera/color/image_raw"   type="string" />
     <param name="depth_img_topic"         value="/camera/depth/image_raw"   type="string" />   
     <param name="/use_sim_time"           value="true"                      type="bool"   />
-    <param name="ffhnet_path"             value="/home/ffh/ffh_ws/src/FFHNet" type="string"/>
-    <param name="hithand_ws_path"         value="/home/ffh/ffh_ws" type="string"/>
+    <param name="ffhnet_path"             value="/home/vm/hand_ws/src/ffhnet" type="string"/>
+    <param name="hithand_ws_path"         value="/home/vm/hand_ws" type="string"/>
     <param name="data_recording_path"     value="/tmp/" type="string"/>
-    <param name="ffhnet_path"             value="/home/ffh/ffh_ws/src/FFHNet" type="string"/>
+    <param name="ffhnet_path"             value="/home/vm/hand_ws/src/ffhnet" type="string"/>
     <param name="visualize"               value="False"/> 
 
     <!-- Gazebo scene manager -->

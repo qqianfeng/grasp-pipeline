@@ -33,7 +33,6 @@ add_message_files(
 
 add_service_files(
     FILES
-    GetCartesianPositionError.srv
     CheckPoseValidity.srv
     ControlHithand.srv
     EvaluateAndFilterGraspPoses.srv
@@ -51,6 +50,8 @@ add_service_files(
     RecordCollisionData.srv
     RecordGraspDataSim.srv
     RecordGraspTrialData.srv
+    RecordGraspTrialMultiObjData.srv
+    ResetScene.srv
     SaveVisualData.srv
     SegmentGraspObject.srv
     SimGraspData.srv

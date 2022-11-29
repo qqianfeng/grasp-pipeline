@@ -1,0 +1,23 @@
+string object_name
+string time_stamp
+bool is_top_grasp
+int32 grasp_success_label
+int32 collision_to_approach_pose
+int32 collision_to_grasp_pose
+int32 grasp_pose_collide_target_object
+int32 grasp_pose_collide_obstacle_objects
+int32 close_finger_collide_obstacle_objects
+int32 lift_motion_moved_obstacle_objects
+
+# The true spawn pose in world frame
+geometry_msgs/PoseStamped object_mesh_frame_world
+# Preshape and palm pose:
+geometry_msgs/PoseStamped desired_preshape_palm_mesh_frame
+geometry_msgs/PoseStamped true_preshape_palm_mesh_frame
+# Hithand jointstates
+sensor_msgs/JointState desired_joint_state
+sensor_msgs/JointState true_joint_state
+sensor_msgs/JointState closed_joint_state
+sensor_msgs/JointState lifted_joint_state
+---
+bool success

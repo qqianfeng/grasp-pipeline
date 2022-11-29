@@ -11,6 +11,11 @@ the (base) environment must hold the pip-installed packages listed in `misc/cond
 The script `scripts/encode_pcd_with_bps.sh` can be started from a ros launch file, creates an additional xterm terminal, sources
 the conda python 3.8 (base) environment and starts the server `encode_pcd_with_bps.py` from there. The server uses roslibpy to handle communication between ROS/python 2.7 and python 3.8.
 
+### VSCODE debugger for python2
+
+In order to debug the python2 script in vscode, you have to downgrade python extension to an old version in this link:
+<https://stackoverflow.com/questions/72214043/how-to-debug-python-2-7-code-with-vs-code>
+
 ## Run evaluation of model
 
 Start the panda_simulator\

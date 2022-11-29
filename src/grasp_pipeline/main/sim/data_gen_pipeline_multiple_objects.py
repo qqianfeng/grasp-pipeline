@@ -17,6 +17,7 @@ all_grasp_objects = []
 
 
 def get_objects(gazebo_objects_path, grasp_object, amount=3):
+    # TODO remove YCB from here? @Lixian
     global all_grasp_objects
     if len(all_grasp_objects) == 0:
         # initilize once
@@ -44,9 +45,12 @@ def distribute_obstacle_objects_randomly(grasp_object_pose, obstacle_objects, mi
         position = np.array([obstacle_objects[idx]['mesh_frame_pose'].pose.position.x, obstacle_objects[idx]['mesh_frame_pose'].pose.position.y, obstacle_objects[idx]['mesh_frame_pose'].pose.position.z])
         while not all([ np.linalg.norm(position[:2] - existing_position[:2]) > min_center_to_center_distance for existing_position in existing_object_positions]):
             obstacle_objects[idx] = grasp_client.set_to_random_pose(obj)
-            position = np.array([obstacle_objects[idx]['mesh_frame_pose'].pose.position.x, obstacle_objects[idx]['mesh_frame_pose'].pose.position.y, obstacle_objects[idx]['mesh_frame_pose'].pose.position.z])
+            position = np.array([obstacle_objects[idx]['mesh_frame_pose'].pose.position.x, 
+                                 obstacle_objects[idx]['mesh_frame_pose'].pose.position.y, 
+                                 obstacle_objects[idx]['mesh_frame_pose'].pose.position.z])
         existing_object_positions.append(position)
     return obstacle_objects
+
 
 if __name__ == '__main__':
     # Some relevant variables
@@ -67,7 +71,6 @@ if __name__ == '__main__':
         object_metadata = metadata_handler.choose_next_grasp_object()
         grasp_client.update_object_metadata(object_metadata)
 
-
         for pose in poses:
             object_cycle_start = time.time()
             start = object_cycle_start
@@ -76,7 +79,7 @@ if __name__ == '__main__':
             obstacle_objects = distribute_obstacle_objects_randomly(pose, obstacle_objects)
 
             # Create dirs
-            grasp_client.create_dirs_new_grasp_trial(is_new_pose_or_object=True)
+            grasp_client.create_dirs_new_grasp_trial(is_new_pose_or_object=True) # TODO: here True is not always true?
 
             # Reset panda and hithand
             grasp_client.reset_hithand_and_panda()
@@ -125,7 +128,7 @@ if __name__ == '__main__':
                     grasp_client.reset_obstacle_objects(obstacle_objects)
 
                 # Grasp and lift object
-                grasp_arm_plan = grasp_client.grasp_and_lift_object()
+                grasp_arm_plan = grasp_client.grasp_and_lift_object(obstacle_objects)
 
                 # Save all grasp data including post grasp images
                 grasp_client.save_visual_data_and_record_grasp()

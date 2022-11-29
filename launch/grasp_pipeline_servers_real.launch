@@ -6,11 +6,11 @@
 
     <!-- +++++++++++++++++++ Set the params needed by the different nodes ++++++++++++++++++++++++++++++++ -->
     <param name="simulation" value="$(arg simulation)" />
-    <param name="object_pcd_path" value="/home/ffh/object.pcd" type="string"/>
-    <param name="scene_pcd_path" value="/home/ffh/scene.pcd" type="string"/>
-    <param name="object_datasets_folder" value="/home/ffh/gazebo-objects" type="string"/>
-    <param name="color_img_save_path" value="/home/ffh/scene.jpg" type="string"/>
-    <param name="depth_img_save_path" value="/home/ffh/depth.pgn" type="string"/>
+    <param name="object_pcd_path" value="/home/vm/object.pcd" type="string"/>
+    <param name="scene_pcd_path" value="/home/vm/scene.pcd" type="string"/>
+    <param name="object_datasets_folder" value="/home/vm/gazebo-objects" type="string"/>
+    <param name="color_img_save_path" value="/home/vm/scene.jpg" type="string"/>
+    <param name="depth_img_save_path" value="/home/vm/depth.pgn" type="string"/>
     <param name="scene_pcd_topic" value="/camera/depth/points" if="$(arg simulation)" type="string"/>
     <param name="scene_pcd_topic" value="/camera/depth/color/points" unless="$(arg simulation)" type="string"/>
     <param name="color_img_topic" value="/camera/color/image_raw" type="string"/>
