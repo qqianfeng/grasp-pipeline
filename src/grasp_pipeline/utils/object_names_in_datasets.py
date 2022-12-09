@@ -46,9 +46,17 @@ YCB_OBJECTS = [
 ]
 
 BIGBIRD_OBJECTS = [
-    'red_bull', 'softsoap_gold', 'spam', 'spongebob_squarepants_fruit_snaks',
-    'sunkist_fruit_snacks_mixed_fruit', 'tapatio_hot_sauce', 'v8_fusion_peach_mango',
-    'vo5_extra_body_volumizing_shampoo', 'white_rain_sensations_apple_blossom_hydrating_body_wash'
+    '3m_high_tack_spray_adhesive', 'advil_liqui_gels', 'aunt_jemima_original_syrup',
+    'band_aid_clear_strips', 'band_aid_sheer_strips',
+    'canon_ack_e10_box', 'chewy_dipps_chocolate_chip', 'chewy_dipps_peanut_butter', 
+    'colgate_cool_mint', 'crayola_24_crayons',
+    'crest_complete_minty_fresh', 'crystal_hot_sauce', 'detergent', 'dove_go_fresh_burst',
+    'eating_right_for_healthy_living_raspberry', 'fruit_by_the_foot',
+    'hunts_paste', 'hunts_sauce', 
+    'krylon_crystal_clear', 'krylon_short_cuts',
+    'nature_valley_crunchy_oats_n_honey', 
+    'nutrigrain_apple_cinnamon', 'nutrigrain_fruit_crunch_apple_cobbler',
+    'pepto_bismol', 'pop_secret_butter'
 ]
 
 BIGBIRD_OBJECTS_PROBLEMS = [
@@ -58,16 +66,18 @@ BIGBIRD_OBJECTS_PROBLEMS = [
 ]
 
 BIGBIRD_OBJECTS_DATA_GENERATED = [
-    '3m_high_tack_spray_adhesive', 'advil_liqui_gels'
-    'aunt_jemima_original_syrup', 'chewy_dipps_peanut_butter', 'coffee_mate_french_vanilla',
-    'colgate_cool_mint', 'crayola_24_crayons', 'crest_complete_minty_fresh', 'crystal_hot_sauce',
-    'detergent', 'dove_go_fresh_burst', 'eating_right_for_healthy_living_raspberry',
-    'fruit_by_the_foot', 'hunts_paste', 'hunts_sauce', 'krylon_crystal_clear', 'krylon_short_cuts',
-    'nature_valley_crunchy_oats_n_honey', 'nutrigrain_apple_cinnamon',
-    'nutrigrain_fruit_crunch_apple_cobbler', 'pepto_bismol', 'pop_secret_butter',
-    'pop_secret_light_butter', 'pringles_bbq', 'quaker_chewy_peanut_butter_chocolate_chip',
-    'quaker_chewy_smores'
-]
+    '3m_high_tack_spray_adhesive', 'advil_liqui_gels', 'aunt_jemima_original_syrup',
+    'band_aid_clear_strips', 'band_aid_sheer_strips',
+    'canon_ack_e10_box', 'chewy_dipps_chocolate_chip', 'chewy_dipps_peanut_butter', 
+    'colgate_cool_mint', 'crayola_24_crayons',
+    'crest_complete_minty_fresh', 'crystal_hot_sauce', 'detergent', 'dove_go_fresh_burst',
+    'eating_right_for_healthy_living_raspberry', 'fruit_by_the_foot',
+    'hunts_paste', 'hunts_sauce', 
+    'krylon_crystal_clear', 'krylon_short_cuts',
+    'nature_valley_crunchy_oats_n_honey', 
+    'nutrigrain_apple_cinnamon', 'nutrigrain_fruit_crunch_apple_cobbler',
+    'pepto_bismol', 'pop_secret_butter'
+    ]
 
 # This should be BIGBIRD_OBJECTS + BIGBIRD_OBJECT_DATA_GENERATED
 BIGBIRD_OBJECTS_BEFORE_REMOVING_DATA_GEN = [
@@ -87,23 +97,47 @@ BIGBIRD_OBJECTS_BEFORE_REMOVING_DATA_GEN = [
 ]
 
 KIT_OBJECTS = [
-    'BakingSoda', 'BakingVanilla', 'BathDetergent', 'BlueSaltCube', 'BroccoliSoup', 'CeylonTea',
-    'ChickenSoup', 'ChocSticks', 'ChocolateBars', 'ChoppedTomatoes', 'CleaningCloths',
-    'CoffeeCookies', 'CoffeeFilters2', 'CoffeeFilters', 'CokePlasticSmallGrasp', 'CondensedMilk',
-    'CoughDropsBerries', 'CoughDropsHoney', 'CoughDropsLemon', 'Curry', 'Deodorant', 'DropsCherry',
-    'DropsOrange', 'FennelTea', 'FizzyTabletsCalcium', 'FizzyTablets', 'FlowerCup', 'FruitBars',
-    'FruitDrink', 'FruitTea', 'GreenCup', 'GreenSaltCylinder', 'HamburgerSauce', 'HerbSalt',
-    'HeringTin', 'HotPot2', 'HotPot', 'HygieneSpray', 'InstantDumplings', 'InstantMousse',
-    'InstantSauce2', 'InstantSauce', 'InstantSoup', 'InstantTomatoSoup', 'JamSugar', 'Knaeckebrot',
-    'LivioClassicOil', 'MashedPotatoes', 'MelforBottle', 'MilkDrinkVanilla', 'MilkRice',
-    'MuesliBars', 'NutCandy', 'NutellaGo', 'OrangeMarmelade', 'OrgFruitTea', 'Paprika', 'Patches',
-    'Peanuts2', 'Peanuts', 'Peas', 'PineappleSlices', 'Pitcher', 'PotatoeDumplings',
-    'PotatoeStarch', 'PowderedSugarMill', 'PowderedSugar', 'RedCup', 'Rice', 'SardinesCan',
-    'SauceThickener', 'Shampoo', 'ShowerGel', 'SmallGlass', 'SoftCakeOrange', 'Sprayflask',
-    'Sprudelflasche', 'StrawberryPorridge', 'Sweetener', 'TomatoHerbSauce', 'TomatoSauce',
-    'TomatoSoup', 'Toothpaste', 'Waterglass', 'WhippedCream', 'WhiteCup', 'Wineglass',
-    'YellowSaltCube2', 'YellowSaltCube', 'YellowSaltCylinderSmall', 'YellowSaltCylinder'
+    'BakingSoda', 'BakingVanilla', 'BathDetergent', 'BlueSaltCube', 'BroccoliSoup',
+    'CeylonTea', 'ChickenSoup', 
+    'ChocSticks', 'ChocolateBars', 'ChoppedTomatoes', 'CleaningCloths',
+    'CoffeeCookies', 'CoffeeFilters2', 'CoffeeFilters',
+    'CokePlasticSmallGrasp', 'CondensedMilk', 'CoughDropsBerries',
+    'CoughDropsHoney', 'CoughDropsLemon', 'Curry', 'Deodorant', 'DropsCherry',
+    'DropsOrange', 'FennelTea', 'FizzyTabletsCalcium', 'FizzyTablets',
+    'FlowerCup', 'FruitBars', 'FruitDrink', 'FruitTea', 'GreenCup',
+    'GreenSaltCylinder', 'HamburgerSauce', 'HerbSalt', 'HeringTin', 'HotPot2', 'HotPot',
+    'HygieneSpray', 'InstantDumplings', 'InstantMousse', 'InstantSauce2',
+    'InstantSauce', 'InstantSoup', 'InstantTomatoSoup', 'JamSugar',
+    'Knaeckebrot', 'LivioClassicOil', 'MashedPotatoes', 'MelforBottle', 'MilkDrinkVanilla', 'MilkRice',
+    'MuesliBars', 'NutCandy', 'NutellaGo', 'OrangeMarmelade', 'OrgFruitTea',
+    'Paprika', 'Patches', 'Peanuts2', 'Peanuts', 'Peas', 'PineappleSlices',
+    'Pitcher', 'PotatoeDumplings', 'PotatoeStarch', 'PowderedSugarMill',
+    'PowderedSugar', 'RedCup', 'Rice', 'SardinesCan',
+    'SauceThickener', 'SmallGlass', 'SoftCakeOrange', 'Sprayflask', 'Sprudelflasche',
+    'StrawberryPorridge', 'Sweetener', 'TomatoHerbSauce', 'TomatoSauce', 'TomatoSoup',
+    'Toothpaste', 'Waterglass',
+    'WhippedCream', 'WhiteCup', 'Wineglass', 'YellowSaltCube2', 'YellowSaltCube',
+    'YellowSaltCylinderSmall', 'YellowSaltCylinder'
 ]
+
+KIT_OBJECTS_DATA_GENERATED = ['BakingSoda', 'BakingVanilla', 'BathDetergent', 'BlueSaltCube', 'BroccoliSoup',
+                                'CeylonTea', 'ChickenSoup', 
+                                'ChocSticks', 'ChocolateBars', 'ChoppedTomatoes', 'CleaningCloths',
+                                'CoffeeCookies', 'CoffeeFilters2', 'CoffeeFilters',
+                                'CokePlasticSmallGrasp', 'CondensedMilk', 'CoughDropsBerries',
+                                'CoughDropsHoney', 'CoughDropsLemon', 'Curry', 'Deodorant', 'DropsCherry',
+                                'DropsOrange', 'FennelTea', 'FizzyTabletsCalcium', 'FizzyTablets',
+                                'FlowerCup', 'FruitBars', 'FruitDrink', 'FruitTea', 'GreenCup',
+                                'GreenSaltCylinder', 'HamburgerSauce', 'HerbSalt', 'HeringTin', 'HotPot2', 'HotPot',
+                                'HygieneSpray', 'InstantDumplings', 'InstantMousse', 'InstantSauce2',
+                                'InstantSauce', 'InstantSoup', 'InstantTomatoSoup', 'JamSugar',
+                                'Knaeckebrot', 'LivioClassicOil', 'MashedPotatoes', 'MelforBottle', 'MilkDrinkVanilla',
+                                'MilkRice', 'Moon',
+                                'MuesliBars', 'NutCandy', 'NutellaGo', 'OrangeMarmelade', 'OrgFruitTea', 'OrgHerbTea',
+                                'Paprika', 'PatchesSensitive', 'Patches', 'Peanuts2', 'Peanuts', 'Peas', 'PineappleSlices',
+                                'Pitcher', 'Pony', 'PotatoeDumplings', 'PotatoeStarch', 'PotatoeSticks', 'PowderedSugarMill',
+                                'PowderedSugar', 'RavioliLarge', 'RedCup', 'Rice', 'RuskWholemeal', 'Rusk', 'SardinesCan',
+                                'SauceThickener']
 
 ######### ORIGINAL FULL ITEM LISTS BELOW
 
@@ -148,7 +182,7 @@ YCB_OBJECTS_FULL = [
     "056_tennis_ball", "057_racquetball", "058_golf_ball", "059_chain", "061_foam_brick",
     "062_dice", "063-a_marbles", "063-b_marbles", "063-c_marbles", "063-d_marbles",
     "063-e_marbles", "063-f_marbles", "065-a_cups", "065-b_cups", "065-c_cups", "065-d_cups",
-    "065-e_cups", "065-f_cups", "065-g_cups", "065-h_cups", "065-i_cups", "065-j_cups",
+    "065-e_cups", "065-f_cups", "065-g_cups", "065-h_cups", "065-i_cups","065-j_cups",
     "070-a_colored_wood_blocks", "070-b_colored_wood_blocks", "071_nine_hole_peg_test",
     "072-a_toy_airplane", "072-b_toy_airplane", "072-c_toy_airplane", "072-d_toy_airplane",
     "072-e_toy_airplane", "072-f_toy_airplane", "072-g_toy_airplane", "072-h_toy_airplane",
@@ -227,7 +261,6 @@ SPAWN_HIGH_Z = [
     'eating_right_for_healthy_living_raspberry', 'sunkist_fruit_snacks_mixed_fruit'
 ]
 
-KIT_OBJECTS_DATA_GENERATED = []
 
 # OBJECTS FOR WHICH GRASPING PARTLY FAILED (E.G. DUE TO BAD MESHES) OR SHOULD BE CONSIDERED AGAIN
 

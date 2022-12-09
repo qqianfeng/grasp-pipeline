@@ -1,6 +1,7 @@
 import os
 import rospy
-from grasp_pipeline.utils.object_names_in_datasets import *
+from grasp_pipeline.utils.object_names_in_datasets import YCB_OBJECTS, KIT_OBJECTS, BIGBIRD_OBJECTS
+from grasp_pipeline.utils.object_names_in_datasets import BIGBIRD_OBJECTS_DATA_GENERATED, KIT_OBJECTS_DATA_GENERATED, SPAWN_HIGH_Z
 
 KIT_SMALL_HEIGHT_Z = ["BathDetergent", "ChoppedTomatoes"]
 YCB_PI_HALF_ROLL = ["008_pudding_box", "009_gelatin_box", "035_power_drill"]
@@ -12,17 +13,18 @@ class MetadataHandler():
     def __init__(self, gazebo_objects_path):
 
         #self.datasets = [BIGBIRD_OBJECTS]
-        self.datasets = [BIGBIRD_OBJECTS, KIT_OBJECTS, YCB_OBJECTS]
+        self.datasets = [BIGBIRD_OBJECTS, KIT_OBJECTS]#, YCB_OBJECTS]
 
         #self.datasets_name = ['bigbird']
-        self.datasets_name = ['bigbird', 'kit', 'ycb']
+        self.datasets_name = ['bigbird', 'kit']#, 'ycb']
 
         self.object_ix = -1
         self.dataset_ix = 0
         self.gazebo_objects_path = gazebo_objects_path
 
     def get_total_num_objects(self):
-        return len(YCB_OBJECTS + BIGBIRD_OBJECTS + KIT_OBJECTS)
+        # return len(YCB_OBJECTS + BIGBIRD_OBJECTS + KIT_OBJECTS)
+        return len(BIGBIRD_OBJECTS + KIT_OBJECTS)
 
     def choose_next_grasp_object(self):
         """ Iterates through all objects in all datasets and returns object_metadata. Gives a new object each time it is called.
@@ -37,7 +39,7 @@ class MetadataHandler():
                 if self.object_ix == len(self.datasets[self.dataset_ix]):
                     self.object_ix = 0
                     self.dataset_ix += 1
-                    if self.dataset_ix == 3:
+                    if self.dataset_ix == 2:
                         self.dataset_ix = 0
 
                 # Set some relevant variables
@@ -47,11 +49,14 @@ class MetadataHandler():
 
                 object_metadata = self.get_object_metadata(dset_name, obj_name)
 
-                rospy.loginfo('Trying to grasp object: %s' % object_metadata["name"])
                 choose_success = True
-
+                if dset_name == 'bigbird' and object_metadata["name"] in BIGBIRD_OBJECTS_DATA_GENERATED:
+                    choose_success = False
                 if dset_name == 'kit' and object_metadata["name"] in KIT_OBJECTS_DATA_GENERATED:
                     choose_success = False
+                if choose_success:
+                    rospy.loginfo('Trying to grasp object: %s in dataset: %s' % (object_metadata["name"], object_metadata['dataset']))
+
             except Exception as e:
                 rospy.logerr("%s" % e)
                 self.object_ix += 1

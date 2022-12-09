@@ -38,12 +38,13 @@ def get_objects(gazebo_objects_path, grasp_object, amount=3):
         objects.append(obj)
     return objects
 
-def distribute_obstacle_objects_randomly(grasp_object_pose, obstacle_objects, min_center_to_center_distance=0.15):
+
+def distribute_obstacle_objects_randomly(grasp_object_pose, obstacle_objects, min_center_to_center_distance=0.1):
     existing_object_positions = [np.array(grasp_object_pose)[:3]]
     for idx, obj in enumerate(obstacle_objects):
         obstacle_objects[idx] = grasp_client.set_to_random_pose(obj)
         position = np.array([obstacle_objects[idx]['mesh_frame_pose'].pose.position.x, obstacle_objects[idx]['mesh_frame_pose'].pose.position.y, obstacle_objects[idx]['mesh_frame_pose'].pose.position.z])
-        while not all([ np.linalg.norm(position[:2] - existing_position[:2]) > min_center_to_center_distance for existing_position in existing_object_positions]):
+        while not all([np.linalg.norm(position[:2] - existing_position[:2]) > min_center_to_center_distance for existing_position in existing_object_positions]):
             obstacle_objects[idx] = grasp_client.set_to_random_pose(obj)
             position = np.array([obstacle_objects[idx]['mesh_frame_pose'].pose.position.x, 
                                  obstacle_objects[idx]['mesh_frame_pose'].pose.position.y, 
@@ -59,7 +60,7 @@ if __name__ == '__main__':
     gazebo_objects_path = os.path.join(object_datasets_folder, 'objects_gazebo')
 
     # Remove these while testing
-    #shutil.rmtree('/home/ffh/grasp_data', ignore_errors=True)
+    # shutil.rmtree('/home/ffh/grasp_data', ignore_errors=True)
 
     # Create grasp client and metadata handler
     grasp_client = GraspClient(is_rec_sess=True, grasp_data_recording_path=data_recording_path)
@@ -124,18 +125,21 @@ if __name__ == '__main__':
                     
                     # Spawn object in same position
                     grasp_client.spawn_object(pose_type="same")
+                    rospy.logdebug("grasp_client.spawn_object(pose_type='same')")
 
                     grasp_client.reset_obstacle_objects(obstacle_objects)
+                    rospy.logdebug("grasp_client.reset_obstacle_objects(obstacle_objects)")
 
                 # Grasp and lift object
-                grasp_arm_plan = grasp_client.grasp_and_lift_object(obstacle_objects)
+                execution_success = grasp_client.grasp_and_lift_object(obstacle_objects)
 
                 # Save all grasp data including post grasp images
                 grasp_client.save_visual_data_and_record_grasp()
 
                 # measure time
                 print("One cycle took: " + str(time.time() - start))
-                j += 1
+                if execution_success:
+                    j += 1
 
             # Finally write the time to file it took to test all poses
             grasp_client.log_object_cycle_time(time.time() - object_cycle_start)

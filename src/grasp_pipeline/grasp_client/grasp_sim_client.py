@@ -202,8 +202,8 @@ class GraspClient():
         """ Sets the boundaries in which an object can be spawned and placed.
         Gets called 
         """
-        self.spawn_object_x_min, self.spawn_object_x_max = 0.35, 0.75
-        self.spawn_object_y_min, self.spawn_object_y_max = -0.3, 0.3
+        self.spawn_object_x_min, self.spawn_object_x_max = 0.25, 0.65
+        self.spawn_object_y_min, self.spawn_object_y_max = -0.2, 0.2
 
     def generate_random_object_pose_for_experiment(self):
         """Generates a random x,y position and z orientation within object_spawn boundaries for grasping experiments.
@@ -1496,10 +1496,11 @@ class GraspClient():
         # As long as there are viable poses
         if not self.grasps_available:
             rospy.logerr("No grasps are available")
-            return
+            return False
 
         desired_plan_exists = False
         while self.grasps_available:
+            # While loop to execute one feasible grasp, if one grasp pose is not feasible, go for next one, until no grasp pose left anymore
             i += 1
 
             # Step 1 choose a specific grasp. In first iteration self.chosen_grasp_type is unspecific, e.g. function will randomly choose grasp type
@@ -1606,7 +1607,7 @@ class GraspClient():
         # Finally remove the executed grasp from the list
         self.remove_grasp_pose()
 
-        return True
+        return execution_success
     
     def grasp_from_inferred_pose(self, pose_obj_frame, joint_conf):
         """ Used in FFHNet evaluataion. Try to reach the pose and joint conf and attempt grasp given grasps from FFHNet.
