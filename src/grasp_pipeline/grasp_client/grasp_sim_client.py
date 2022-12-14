@@ -42,7 +42,7 @@ class GraspClient():
     """ This class is a wrapper around all the individual functionality involved in grasping experiments.
     """
     def __init__(self, is_rec_sess, grasp_data_recording_path='', is_eval_sess=False):
-        rospy.init_node('grasp_client')
+        rospy.init_node('grasp_client', log_level=rospy.INFO)
         self.grasp_data_recording_path = grasp_data_recording_path
         if grasp_data_recording_path != '':
             self.create_grasp_folder_structure(self.grasp_data_recording_path)
@@ -197,6 +197,7 @@ class GraspClient():
         os.mkdir(self.curr_grasp_trial_path + '/post_grasp')
         if is_new_pose_or_object:
             os.mkdir(self.curr_grasp_trial_path + '/pre_grasp')
+            os.mkdir(self.curr_grasp_trial_path + '/single_grasp')
 
     def _setup_workspace_boundaries(self):
         """ Sets the boundaries in which an object can be spawned and placed.
@@ -1329,8 +1330,8 @@ class GraspClient():
             rand_x, rand_y, object_metadata["spawn_height_z"], object_metadata["spawn_angle_roll"],
             0, rand_z_orientation
         ]
-        rospy.loginfo('Generated random object pose:')
-        rospy.loginfo(object_pose)
+        rospy.logdebug('Generated random object pose:')
+        rospy.logdebug(object_pose)
         object_pose_stamped = get_pose_stamped_from_array(object_pose)
         object_metadata["mesh_frame_pose"] = object_pose_stamped
         return object_metadata
@@ -1341,7 +1342,7 @@ class GraspClient():
 
     def set_visual_data_save_paths(self, grasp_phase):
         if self.is_rec_sess:
-            if grasp_phase not in ['pre', 'during', 'post']:
+            if grasp_phase not in ['single','pre', 'during', 'post']:
                 rospy.logerr('Given grasp_phase is not valid. Must be pre, during or post.')
 
             self.depth_img_save_path = os.path.join(self.curr_grasp_trial_path,
@@ -1393,9 +1394,16 @@ class GraspClient():
         self.save_visual_data_client()
         self.segment_object_client(down_sample_pcd=down_sample_pcd)
 
-    def save_visual_data(self,object_pcd_record_path=''):
+    def save_visual_data_multi_obj(self,grasp_phase,object_pcd_record_path=''):
+        """ only for data generation with multiple objects.
+        grasp_phase: single, pre, during, post.
+        single: only with target object in the scene, for generating mask.
+        pre: all objects before grasping
+        during: during the grasp execution
+        post: after the grasp execution
+        """
         self.object_pcd_record_path = object_pcd_record_path
-        self.set_visual_data_save_paths(grasp_phase='pre')
+        self.set_visual_data_save_paths(grasp_phase)
         self.save_visual_data_client()
         
     def filter_preshapes(self):
@@ -1542,7 +1550,9 @@ class GraspClient():
         are_obstacle_obj_moved = self.check_if_any_obstacle_object_moved(obstacle_obj_poses,obstacle_obj_poses_tmp)
         self.grasp_pose_collide_target_object = 1 if is_target_obj_moved else 0
         self.grasp_pose_collide_obstacle_objects = 1 if are_obstacle_obj_moved else 0
-                
+        rospy.loginfo("The grasp_pose_collide_target_object label: %s" % self.grasp_pose_collide_target_object)
+        rospy.loginfo("The grasp_pose_collide_obstacle_objects label: %s" % self.grasp_pose_collide_obstacle_objects)
+
         # Get the current actual joint position and palm pose
         self.palm_poses["true_pre"], self.hand_joint_states[
             "true_pre"] = self.get_hand_palm_pose_and_joint_state()
@@ -1560,7 +1570,8 @@ class GraspClient():
         obstacle_obj_poses_tmp = self.get_obstacle_objects_poses(obstacle_objects)
         are_obstacle_obj_moved = self.check_if_any_obstacle_object_moved(obstacle_obj_poses,obstacle_obj_poses_tmp)  
         self.close_finger_collide_obstacle_objects = 1 if are_obstacle_obj_moved else 0        
-        
+        rospy.loginfo("The close_finger_collide_obstacle_objects label: %s" % self.close_finger_collide_obstacle_objects)
+
         # Get the current actual joint position and palm pose
         self.palm_poses["closed"], self.hand_joint_states[
             "closed"] = self.get_hand_palm_pose_and_joint_state()
@@ -1596,6 +1607,7 @@ class GraspClient():
         obstacle_obj_poses_tmp = self.get_obstacle_objects_poses(obstacle_objects)
         are_obstacle_obj_moved = self.check_if_any_obstacle_object_moved(obstacle_obj_poses,obstacle_obj_poses_tmp)          
         self.lift_motion_moved_obstacle_objects = 1 if are_obstacle_obj_moved else 0
+        rospy.loginfo("The lift_motion_moved_obstacle_objects label: %s" % self.lift_motion_moved_obstacle_objects)
 
         # Get the joint position and palm pose after lifting
         self.palm_poses["lifted"], self.hand_joint_states[

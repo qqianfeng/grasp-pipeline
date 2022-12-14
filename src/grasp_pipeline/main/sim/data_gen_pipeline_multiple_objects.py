@@ -28,12 +28,14 @@ def get_objects(gazebo_objects_path, grasp_object, amount=3):
     objects = []
     num_total = len(all_grasp_objects)
     if num_total < 20:
-        raise ValueError('There should be more than 20 objects in the dataset, however only ' + str(num_total) + ' is found.')
+        raise ValueError('There should be more than 20 objects in the dataset, however only '
+                         + str(num_total) + ' is found.')
     amount = min(amount, num_total)
     for _ in range(amount):
         obj = random.choice(all_grasp_objects)
         while obj['name'] == grasp_object['name']:
             obj = random.choice(all_grasp_objects)
+        rospy.loginfo("obstacle object: %s"% obj['name'])
         objects.append(obj)
     return objects
 
@@ -88,21 +90,24 @@ if __name__ == '__main__':
             # Spawn a new object in Gazebo and moveit in a random valid pose and delete the old object
             grasp_client.spawn_object(pose_type="init", pose_arr=pose)
             
-            grasp_client.save_visual_data()
+            grasp_client.save_visual_data_multi_obj(grasp_phase="single")
             # First take a shot of the scene and store RGB, depth and point cloud to disk
             # Then segment the object point cloud from the rest of the scene
             grasp_client.segment_object_client(down_sample_pcd=True)
 
+            rospy.logdebug("grasp_client.spawn_obstacle_objects(obstacle_objects)")
             grasp_client.spawn_obstacle_objects(obstacle_objects)
 
             # Generate hithand preshape, this is crucial. Samples multiple heuristics-based hithand preshapes, stores it in an instance variable
             # Also one specific desired grasp preshape should be chosen. This preshape (characterized by the palm position, hithand joint states, and the is_top boolean gets stored in other instance variables)
             grasp_client.get_valid_preshape_for_all_points()
 
-            grasp_client.save_visual_data()
+            grasp_client.save_visual_data_multi_obj(grasp_phase="pre")
 
             j = 0
+            rospy.logdebug("start while loop to execute all sampled grasp poses")
             while grasp_client.grasps_available:
+
                 # Save pre grasp visual data
                 if j != 0:
                     # Measure time
