@@ -64,7 +64,7 @@ class GraspClient():
         # These variables get changed dynamically during execution to store relevant data under correct folder
         self.color_img_save_path = None
         self.depth_img_save_path = None
-        self.base_path = os.path.join('/home/', os.environ.get('USERNAME'))
+        self.base_path = os.path.join('/home/', os.getlogin())
         self.scene_pcd_save_path = os.path.join(self.base_path, 'scene.pcd')
         self.object_pcd_save_path = os.path.join(self.base_path, 'object.pcd')
         self.bps_object_path = os.path.join(self.base_path, 'pcd_enc.npy')

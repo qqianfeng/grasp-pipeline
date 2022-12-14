@@ -17,7 +17,6 @@ all_grasp_objects = []
 
 
 def get_objects(gazebo_objects_path, grasp_object, amount=3):
-    # TODO remove YCB from here? @Lixian
     global all_grasp_objects
     if len(all_grasp_objects) == 0:
         # initilize once
@@ -104,14 +103,6 @@ if __name__ == '__main__':
 
             j = 0
             while grasp_client.grasps_available:
-                
-
-                # only try 5 grasps when testing
-                if j == 5:
-                    break
-
-
-
                 # Save pre grasp visual data
                 if j != 0:
                     # Measure time
