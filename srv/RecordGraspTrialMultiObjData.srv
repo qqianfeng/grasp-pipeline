@@ -1,4 +1,9 @@
 string object_name
+# Modify here for how many obstacle objects there are
+string obstacle1_name
+string obstacle2_name
+string obstacle3_name
+
 string time_stamp
 bool is_top_grasp
 int32 grasp_success_label
@@ -11,6 +16,11 @@ int32 lift_motion_moved_obstacle_objects
 
 # The true spawn pose in world frame
 geometry_msgs/PoseStamped object_mesh_frame_world
+
+geometry_msgs/PoseStamped obstacle1_mesh_frame_world
+geometry_msgs/PoseStamped obstacle2_mesh_frame_world
+geometry_msgs/PoseStamped obstacle3_mesh_frame_world
+
 # Preshape and palm pose:
 geometry_msgs/PoseStamped desired_preshape_palm_mesh_frame
 geometry_msgs/PoseStamped true_preshape_palm_mesh_frame

@@ -130,7 +130,7 @@ if __name__ == '__main__':
                 execution_success = grasp_client.grasp_and_lift_object(obstacle_objects)
 
                 # Save all grasp data including post grasp images
-                grasp_client.save_visual_data_and_record_grasp()
+                grasp_client.save_visual_data_and_record_grasp(obstacle_objects)
 
                 # measure time
                 print("One cycle took: " + str(time.time() - start))

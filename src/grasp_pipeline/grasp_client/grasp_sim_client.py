@@ -751,7 +751,7 @@ class GraspClient():
             rospy.logerr('Service record_grasp_trial_data call failed: %s' % e)
         rospy.logdebug('Service record_grasp_trial_data is executed.')
         
-    def record_grasp_trial_data_multi_obj_client(self):
+    def record_grasp_trial_data_multi_obj_client(self,objects=False):
         """ self.heuristic_preshapes stores all grasp poses. Self.prune_idxs contains idxs of poses in collision. Store 
         these poses too, but convert to true object mesh frame first
         
@@ -779,6 +779,10 @@ class GraspClient():
             # Build request
             req = RecordGraspTrialMultiObjDataRequest()
             req.object_name = self.object_metadata["name_rec_path"]
+            if objects is not False:
+                req.obstacle1_name = objects[0]['name']
+                req.obstacle2_name = objects[1]['name']
+                req.obstacle3_name = objects[2]['name']
             req.time_stamp = datetime.datetime.now().isoformat()
             req.is_top_grasp = self.chosen_is_top_grasp
             
@@ -790,6 +794,10 @@ class GraspClient():
             req.lift_motion_moved_obstacle_objects = self.lift_motion_moved_obstacle_objects
             
             req.object_mesh_frame_world = self.object_metadata["mesh_frame_pose"]
+            if objects is not False:
+                req.obstacle1_mesh_frame_world = objects[0]['mesh_frame_pose']
+                req.obstacle2_mesh_frame_world = objects[1]['mesh_frame_pose']
+                req.obstacle3_mesh_frame_world = objects[2]['mesh_frame_pose']
             req.desired_preshape_palm_mesh_frame = desired_pose_mesh_frame
             req.true_preshape_palm_mesh_frame = true_pose_mesh_frame
             req.desired_joint_state = self.hand_joint_states["desired_pre"]
@@ -1355,7 +1363,7 @@ class GraspClient():
             self.depth_img_save_path = os.path.join(self.base_path, 'depth.png')
             self.color_img_save_path = os.path.join(self.base_path, 'color.jpg')
 
-    def save_visual_data_and_record_grasp(self):
+    def save_visual_data_and_record_grasp(self,objects=False):
         # This function is used for data generation only.
         self.set_visual_data_save_paths(grasp_phase='post')
         self.save_visual_data_client(save_pcd=False)
@@ -1364,7 +1372,7 @@ class GraspClient():
         # if generate for single object
         # self.record_grasp_trial_data_client()
         # if generate for multi objects
-        self.record_grasp_trial_data_multi_obj_client()
+        self.record_grasp_trial_data_multi_obj_client(objects)
 
     def save_only_depth_and_color(self, grasp_phase):
         """ Saves only depth and color by setting scene_pcd_save_path to None. Resets scene_pcd_save_path afterwards.
