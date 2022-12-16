@@ -22,7 +22,7 @@ def mkdir(base_folder, folder_name=None):
 
 def test_grasp_pose_transform(dset_obj_name, grasp_client):
     # Create data and metadata handler
-    file_path = os.path.join("/home/ffh/data", "grasp_data.h5")
+    file_path = os.path.join("/home/vm/multi_grasp_data", "grasp_data_all.h5")
     data_handler = GraspDataHandler(file_path=file_path, sess_name='recording_session_0001')
 
     # Get a single successful grasp example
@@ -119,7 +119,7 @@ if __name__ == '__main__':
 
     # Instantiate grasp client
     grasp_client = GraspClient(is_rec_sess=False)
-    metadata_handler = MetadataHandler('/home/vm/gazebo-objects/objects_gazebo/')
+    metadata_handler = MetadataHandler()
 
     # Iterate over all objects
     for obj_full in objects:

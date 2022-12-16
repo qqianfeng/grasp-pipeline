@@ -99,6 +99,7 @@ class GraspDataHandler():
             self.sess_name = sess_name
         else:
             with h5py.File(self.file_path, "r") as grasp_file:
+                print(grasp_file[RS].keys())
                 self.sess_name = grasp_file[RS].keys()[-1]
 
     def check_sess_name(self, grasp_file):
@@ -236,10 +237,11 @@ class GraspDataHandler():
 
 if __name__ == '__main__':
     
-    data_recording_path = rospy.get_param('data_recording_path')
-    file_path = os.path.join(data_recording_path, 'grasp_data.h5')
+    # data_recording_path = rospy.get_param('data_recording_path')
+    # file_path = os.path.join(data_recording_path, 'grasp_data.h5')
+    file_path = '/home/vm/new_data_30_11/grasp_data.h5'
     gdh = GraspDataHandler(file_path=file_path)
-    gdh.set_sess_name(sess_name='-1')
+    gdh.set_sess_name(sess_name=u'recording_session_0001') # -1
     gdh.print_metadata()
     objs = gdh.print_objects()
     d = []
