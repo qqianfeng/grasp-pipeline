@@ -73,7 +73,6 @@ if __name__ == '__main__':
         # Specify the object to be grasped, its pose, dataset, type, name etc.
         object_metadata = metadata_handler.choose_next_grasp_object()
         grasp_client.update_object_metadata(object_metadata)
-
         for pose in poses:
             object_cycle_start = time.time()
             start = object_cycle_start
