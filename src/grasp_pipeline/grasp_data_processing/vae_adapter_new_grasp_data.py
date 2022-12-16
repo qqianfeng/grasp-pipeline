@@ -167,9 +167,9 @@ def log_idxs(path, obj, pos, neg, coll):
 
 if __name__ == "__main__":
 
-    base_path = '/home/vm/new_data'
+    base_path = '/home/yb/new_data'
     #dst_path = os.path.join(os.path.split(base_path)[0], 'vae-grasp', 'grasp_data_vae.h5')
-    dst_path = '/home/vm/multi_grasp_data/grasp_data_all.h5'
+    dst_path = '/home/yb/multi_grasp_data/grasp_data_all.h5'
     hdf_dst = h5py.File(dst_path, 'a')
 
     # go through all the dirs, each dir contains one grasp_data.h5

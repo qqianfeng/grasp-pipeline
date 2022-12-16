@@ -22,7 +22,7 @@ def mkdir(base_folder, folder_name=None):
 
 def test_grasp_pose_transform(dset_obj_name, grasp_client):
     # Create data and metadata handler
-    file_path = os.path.join("/home/vm/multi_grasp_data", "grasp_data_all.h5")
+    file_path = os.path.join("/home/yb/multi_grasp_data", "grasp_data_all.h5")
     data_handler = GraspDataHandler(file_path=file_path, sess_name='recording_session_0001')
 
     # Get a single successful grasp example
@@ -105,14 +105,14 @@ def save_mesh_frame_centroid_tf(obj_full, full_save_path, obj_full_pcd, tf_list)
 if __name__ == '__main__':
     # Some "hyperparameters"
     n_pcds_per_obj = 50
-    input_grasp_data_file = '/home/vm/multi_grasp_data/grasp_data_all.h5'
+    input_grasp_data_file = '/home/yb/multi_grasp_data/grasp_data_all.h5'
 
     # Get all available objects and choose one
     with h5py.File(input_grasp_data_file, 'r') as hdf:
         objects = hdf.keys()
 
     # Make the base directory
-    dest_folder = '/home/vm/multi_grasp_data/'
+    dest_folder = '/home/yb/multi_grasp_data/'
     pcds_folder = os.path.join(dest_folder, 'point_clouds')
     pcd_tfs_path = os.path.join(dest_folder, 'pcd_transforms.h5')
     mkdir(pcds_folder)
@@ -145,9 +145,26 @@ if __name__ == '__main__':
             # Spawn object in random position and orientation. NOTE: currently this will only spawn the objects upright with random z orientation
             grasp_client.spawn_object(pose_type='random')
 
-            # Segment object and save visual data
-            grasp_client.save_visual_data_and_segment_object(down_sample_pcd=False,
-                                                             object_pcd_record_path=pcd_save_path)
+            ######## TODO: get transformation between new object pose and old object pose #######
+
+            ###############################################################################
+
+            grasp_client.save_visual_data_multi_obj(grasp_phase="single",object_pcd_record_path=pcd_save_path)
+            # First take a shot of the scene and store RGB, depth and point cloud to disk
+            # Then segment the object point cloud from the rest of the scene
+
+            rospy.logdebug("grasp_client.spawn_obstacle_objects(obstacle_objects)")
+            ######### TODO create obstacle objects #########
+            # with correct name and pose
+            
+            ################################################
+            grasp_client.spawn_obstacle_objects(obstacle_objects)
+
+            # Generate hithand preshape, this is crucial. Samples multiple heuristics-based hithand preshapes, stores it in an instance variable
+            # Also one specific desired grasp preshape should be chosen. This preshape (characterized by the palm position, hithand joint states, and the is_top boolean gets stored in other instance variables)
+            grasp_client.segment_object_client(down_sample_pcd=True)
+            grasp_client.save_visual_data_multi_obj(grasp_phase="pre",object_pcd_record_path=pcd_save_path)
+
 
             ## TASK find the transformations to apply to the ground truth grasp to transfer it to object_frame and verify that the transformation is correct in RVIZ
             #test_grasp_pose_transform(dset_obj_name=obj_full, grasp_client=grasp_client)

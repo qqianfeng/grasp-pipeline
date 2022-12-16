@@ -780,6 +780,9 @@ class GraspClient():
             req = RecordGraspTrialMultiObjDataRequest()
             req.object_name = self.object_metadata["name_rec_path"]
             if objects is not False:
+                print("objects[0]['name']:",objects[0]['name'])
+                print("objects[1]['name']:",objects[1]['name'])
+                print("objects[2]['name']:",objects[2]['name'])
                 req.obstacle1_name = objects[0]['name']
                 req.obstacle2_name = objects[1]['name']
                 req.obstacle3_name = objects[2]['name']
