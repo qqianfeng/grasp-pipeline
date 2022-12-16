@@ -4,7 +4,7 @@
     <!-- +++++++NOTE: The different paths in the args must be modified for your machine. ++++++++ -->
     <arg name="sim"                     default="true"/>
     <arg name="data_recording_path"     default="/home/yb/new_data_14_12"/>
-    <arg name="object_datasets_folder"  default="/data/net/userstore/qf/hithand_data/data/gazebo-objects"/>
+    <arg name="object_datasets_folder"  default="/home/yb/Projects/gazebo-objects"/>
     <arg name="object_pcd_path"         default="/home/yb/object.pcd"/>
     <arg name="scene_pcd_path"          default="/home/yb/scene.pcd"/>
     <arg name="color_img_save_path"     default="/home/yb/scene.ppm"/>
