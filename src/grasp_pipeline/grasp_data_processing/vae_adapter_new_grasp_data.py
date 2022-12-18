@@ -132,6 +132,26 @@ def log_grasp(src_grasp_gp, dest_grasp_gp, is_coll=False):
         dest_grasp_gp.create_dataset("desired_preshape_joint_state", data=des_joint_conf)
         dest_grasp_gp.create_dataset("true_preshape_palm_mesh_frame", data=true_palm_mesh_frame)
         dest_grasp_gp.create_dataset("desired_preshape_palm_mesh_frame", data=des_palm_mesh_frame)
+        print(src_grasp_gp.keys())
+        object_name = src_grasp_gp["object_name"][()]
+        obstacle1_name = src_grasp_gp["obstacle1_name"][()]
+        obstacle2_name = src_grasp_gp["obstacle2_name"][()]
+        obstacle3_name = src_grasp_gp["obstacle3_name"][()]
+        
+        object_mesh_frame_world = src_grasp_gp["object_mesh_frame_world"][()]
+        obstacle1_mesh_frame_world = src_grasp_gp["obstacle1_mesh_frame_world"][()]
+        obstacle2_mesh_frame_world = src_grasp_gp["obstacle2_mesh_frame_world"][()]
+        obstacle3_mesh_frame_world = src_grasp_gp["obstacle3_mesh_frame_world"][()]
+        
+        dest_grasp_gp.create_dataset("object_name", data=object_name)
+        dest_grasp_gp.create_dataset("obstacle1_name", data=obstacle1_name)
+        dest_grasp_gp.create_dataset("obstacle2_name", data=obstacle2_name)
+        dest_grasp_gp.create_dataset("obstacle3_name", data=obstacle3_name)
+        dest_grasp_gp.create_dataset("object_mesh_frame_world", data=object_mesh_frame_world)
+        dest_grasp_gp.create_dataset("obstacle1_mesh_frame_world", data=obstacle1_mesh_frame_world)
+        dest_grasp_gp.create_dataset("obstacle2_mesh_frame_world", data=obstacle2_mesh_frame_world)
+        dest_grasp_gp.create_dataset("obstacle3_mesh_frame_world", data=obstacle3_mesh_frame_world)
+    
     else:
         des_joint_conf = src_grasp_gp["desired_joint_state"][()]
         if "desired_palm_pose_mesh_frame" in src_grasp_gp.keys():
@@ -167,9 +187,9 @@ def log_idxs(path, obj, pos, neg, coll):
 
 if __name__ == "__main__":
 
-    base_path = '/home/yb/new_data'
+    base_path = '/home/vm/new_data'
     #dst_path = os.path.join(os.path.split(base_path)[0], 'vae-grasp', 'grasp_data_vae.h5')
-    dst_path = '/home/yb/multi_grasp_data/grasp_data_all.h5'
+    dst_path = '/home/vm/multi_grasp_data/grasp_data_all.h5'
     hdf_dst = h5py.File(dst_path, 'a')
 
     # go through all the dirs, each dir contains one grasp_data.h5
@@ -183,8 +203,8 @@ if __name__ == "__main__":
             print 'All objects: ', src_objs_gp.keys()
             for obj in src_objs_gp.keys():
                 print('Processing object:', obj)
-                if obj == 'bigbird_3m_high_tack_spray_adhesive':
-                    print('here')
+                # if obj == 'bigbird_3m_high_tack_spray_adhesive':
+                #     print('here')
                 # Grasp idxs
                 pos_idx = 0
                 neg_idx = 0

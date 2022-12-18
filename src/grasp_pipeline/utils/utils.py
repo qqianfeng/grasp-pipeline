@@ -158,6 +158,14 @@ def hom_matrix_from_pose_stamped(pose_stamped):
     return hom_matrix
 
 
+def hom_matrix_from_pose(pose):
+    q = pose.orientation
+    r = pose.position
+    hom_matrix = tft.quaternion_matrix([q.x, q.y, q.z, q.w])
+    hom_matrix[:, 3] = [r.x, r.y, r.z, 1]
+    return hom_matrix
+
+
 def hom_matrix_from_ros_transform(transform_ros):
     """ Transform a ROS transform to a 4x4 homogenous numpy array
     """

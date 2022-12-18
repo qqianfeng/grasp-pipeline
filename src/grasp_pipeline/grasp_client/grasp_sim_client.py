@@ -199,6 +199,46 @@ class GraspClient():
             os.mkdir(self.curr_grasp_trial_path + '/pre_grasp')
             os.mkdir(self.curr_grasp_trial_path + '/single_grasp')
 
+    def create_dirs_new_grasp_trial_multi_obj(self, pose_idx, is_new_pose_or_object=False):
+        """ This should be called anytime before a new grasp trial is attempted as it will create the necessary folder structure.
+        """
+        # Check if directory for object name exists
+        if not is_new_pose_or_object:
+            object_rec_path = os.path.join(self.curr_rec_sess_path,
+                                            self.object_metadata["name_rec_path"]+ '_pose_' + str(pose_idx))
+            assert os.path.exists(object_rec_path)
+
+            self.grasp_id_num += 1
+            self.grasp_id_str = str(self.grasp_id_num).zfill(4)
+
+            rospy.loginfo('Grasp id: ' + self.grasp_id_str)
+
+            self.curr_grasp_trial_path = object_rec_path + '/grasp_' + self.grasp_id_str
+            if os.path.exists(self.curr_grasp_trial_path):
+                rospy.logerr("Path for grasp trial already exists, something is wrong.")
+            os.mkdir(self.curr_grasp_trial_path)
+            os.mkdir(self.curr_grasp_trial_path + '/during_grasp')
+            os.mkdir(self.curr_grasp_trial_path + '/post_grasp')
+        else:
+            object_rec_path = os.path.join(self.curr_rec_sess_path,
+                                            self.object_metadata["name_rec_path"]+ '_pose_' + str(pose_idx))
+            assert not os.path.exists(object_rec_path)
+            os.mkdir(object_rec_path)
+
+            self.grasp_id_num = 1
+            self.grasp_id_str = str(self.grasp_id_num).zfill(4)
+
+            rospy.loginfo('Grasp id: ' + self.grasp_id_str)
+
+            self.curr_grasp_trial_path = object_rec_path + '/grasp_' + self.grasp_id_str
+            if os.path.exists(self.curr_grasp_trial_path):
+                rospy.logerr("Path for grasp trial already exists, something is wrong.")
+            os.mkdir(self.curr_grasp_trial_path)
+            os.mkdir(self.curr_grasp_trial_path + '/during_grasp')
+            os.mkdir(self.curr_grasp_trial_path + '/post_grasp')
+            os.mkdir(self.curr_grasp_trial_path + '/pre_grasp')
+            os.mkdir(self.curr_grasp_trial_path + '/single_grasp')
+            
     def _setup_workspace_boundaries(self):
         """ Sets the boundaries in which an object can be spawned and placed.
         Gets called 
@@ -1405,7 +1445,7 @@ class GraspClient():
         self.save_visual_data_client()
         self.segment_object_client(down_sample_pcd=down_sample_pcd)
 
-    def save_visual_data_multi_obj(self,grasp_phase,object_pcd_record_path=''):
+    def set_path_and_save_visual_data(self,grasp_phase,object_pcd_record_path=''):
         """ only for data generation with multiple objects.
         grasp_phase: single, pre, during, post.
         single: only with target object in the scene, for generating mask.

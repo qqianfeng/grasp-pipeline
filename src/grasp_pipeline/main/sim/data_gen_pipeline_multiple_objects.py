@@ -72,7 +72,7 @@ if __name__ == '__main__':
         # Specify the object to be grasped, its pose, dataset, type, name etc.
         object_metadata = metadata_handler.choose_next_grasp_object()
         grasp_client.update_object_metadata(object_metadata)
-        for pose in poses:
+        for pose_idx, pose in enumerate(poses):
             object_cycle_start = time.time()
             start = object_cycle_start
 
@@ -80,7 +80,7 @@ if __name__ == '__main__':
             obstacle_objects = distribute_obstacle_objects_randomly(pose, obstacle_objects)
 
             # Create dirs
-            grasp_client.create_dirs_new_grasp_trial(is_new_pose_or_object=True) # TODO: here True is not always true?
+            grasp_client.create_dirs_new_grasp_trial_multi_obj(pose_idx, is_new_pose_or_object=True) # TODO: here True is not always true?
 
             # Reset panda and hithand
             grasp_client.reset_hithand_and_panda()
@@ -89,7 +89,7 @@ if __name__ == '__main__':
             # Spawn a new object in Gazebo and moveit in a random valid pose and delete the old object
             grasp_client.spawn_object(pose_type="init", pose_arr=pose)
             
-            grasp_client.save_visual_data_multi_obj(grasp_phase="single")
+            grasp_client.set_path_and_save_visual_data(grasp_phase="single")
             # First take a shot of the scene and store RGB, depth and point cloud to disk
             # Then segment the object point cloud from the rest of the scene
             grasp_client.segment_object_client(down_sample_pcd=True)
@@ -101,7 +101,7 @@ if __name__ == '__main__':
             # Also one specific desired grasp preshape should be chosen. This preshape (characterized by the palm position, hithand joint states, and the is_top boolean gets stored in other instance variables)
             grasp_client.get_valid_preshape_for_all_points()
 
-            grasp_client.save_visual_data_multi_obj(grasp_phase="pre")
+            grasp_client.set_path_and_save_visual_data(grasp_phase="pre")
 
             j = 0
             rospy.logdebug("start while loop to execute all sampled grasp poses")
@@ -113,7 +113,7 @@ if __name__ == '__main__':
                     start = time.time()
 
                     # Create dirs
-                    grasp_client.create_dirs_new_grasp_trial(is_new_pose_or_object=False)
+                    grasp_client.create_dirs_new_grasp_trial_multi_obj(pose_idx, is_new_pose_or_object=False)
 
                     # Reset panda and hithand
                     grasp_client.reset_hithand_and_panda()
