@@ -1,6 +1,7 @@
 """ This file is used to evaluate the model and sample grasps. 
 """
 import torch
+import time
 
 from grasp_pipeline.grasp_client.grasp_sim_client import GraspClient
 from grasp_pipeline.utils.metadata_handler import MetadataHandler
@@ -16,10 +17,16 @@ while i <= 1:
     # grasp_client.reset_hithand_and_panda()
 
     # Get point cloud (mean-free, orientation of camera frame)
-    grasp_client.save_visual_data_and_segment_object(down_sample_pcd=False)
+    #grasp_client.save_visual_data_and_segment_object(down_sample_pcd=False)
 
     # Compute BPS of point cloud, stores encoding to disk
-    grasp_client.encode_pcd_with_bps()
+    #grasp_client.encode_pcd_with_bps()
+
+    # Reset point cloud tracking
+    grasp_client.reset_tracking()
+
+    # Wait for new point cloud to be saved
+    time.sleep(1)
 
     # Sample N latent variables and get the poses
     palm_poses_obj_frame, joint_confs = grasp_client.infer_grasp_poses(n_poses=n_poses,
