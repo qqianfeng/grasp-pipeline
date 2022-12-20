@@ -28,7 +28,6 @@ sys.path.append('..')
 class GraspClient():
     """ This class is a wrapper around all the individual functionality involved in grasping experiments.
     """
-
     def __init__(self, is_rec_sess, grasp_data_recording_path='', is_eval_sess=False):
         rospy.init_node('grasp_client')
         self.grasp_data_recording_path = grasp_data_recording_path
@@ -76,12 +75,13 @@ class GraspClient():
         self.success_tolerance_lift_height = 0.05
         self.object_segment_response = None
         self.grasp_label = None
+        self.collision_to_approach_pose = 0
+        self.collision_to_grasp_pose = 0
 
         # For voxel server
         self.voxel_grid_dim = np.array([26, 26, 26])
         self.voxel_grid_dim_full = np.array([32, 32, 32])
-        self.voxel_translation_dim = (
-            self.voxel_grid_dim_full - self.voxel_grid_dim) // 2
+        self.voxel_translation_dim = (self.voxel_grid_dim_full - self.voxel_grid_dim) // 2
 
         self.is_rec_sess = is_rec_sess
         self.is_eval_sess = is_eval_sess
@@ -105,8 +105,7 @@ class GraspClient():
         tf2_pose = tf2_geometry_msgs.PoseStamped()
         tf2_pose.pose = pose.pose
         tf2_pose.header.frame_id = from_frame
-        pose_stamped = self.tf_buffer.transform(
-            tf2_pose, to_frame, rospy.Duration(5))
+        pose_stamped = self.tf_buffer.transform(tf2_pose, to_frame, rospy.Duration(5))
 
         return pose_stamped
 
@@ -121,10 +120,9 @@ class GraspClient():
             proc.join()
 
     def create_grasp_folder_structure(self, base_path):
-        rec_sess_path = base_path + 'grasp_data/recording_sessions'
+        rec_sess_path = os.path.join(base_path, 'grasp_data/recording_sessions')
         if os.path.exists(rec_sess_path):
-            self.ess_id_num = int(
-                sorted(os.listdir(rec_sess_path))[-1].split('_')[-1]) + 1
+            self.sess_id_num = int(sorted(os.listdir(rec_sess_path))[-1].split('_')[-1]) + 1
             self.grasp_id_num = 0
             # if os.listdir(rec_sess_path + '/recording_session_' +
             #               str(self.sess_id_num - 1).zfill(4)):
@@ -138,8 +136,7 @@ class GraspClient():
             self.sess_id_num = 1
             self.grasp_id_num = 0
             os.makedirs(rec_sess_path)
-            rospy.loginfo(
-                'This is the first recording, no prior recordings found.')
+            rospy.loginfo('This is the first recording, no prior recordings found.')
 
         self.sess_id_str = str(self.sess_id_num).zfill(4)
         self.grasp_id_str = str(self.grasp_id_num).zfill(4)
@@ -171,8 +168,7 @@ class GraspClient():
 
         self.curr_grasp_trial_path = object_rec_path + '/grasp_' + self.grasp_id_str
         if os.path.exists(self.curr_grasp_trial_path):
-            rospy.logerr(
-                "Path for grasp trial already exists, something is wrong.")
+            rospy.logerr("Path for grasp trial already exists, something is wrong.")
         os.mkdir(self.curr_grasp_trial_path)
         os.mkdir(self.curr_grasp_trial_path + '/during_grasp')
         os.mkdir(self.curr_grasp_trial_path + '/post_grasp')
@@ -189,23 +185,20 @@ class GraspClient():
     def generate_random_object_pose_for_experiment(self):
         """Generates a random x,y position and z orientation within object_spawn boundaries for grasping experiments.
         """
-        rand_x = np.random.uniform(
-            self.spawn_object_x_min, self.spawn_object_x_max)
-        rand_y = np.random.uniform(
-            self.spawn_object_y_min, self.spawn_object_y_max)
+        rand_x = np.random.uniform(self.spawn_object_x_min, self.spawn_object_x_max)
+        rand_y = np.random.uniform(self.spawn_object_y_min, self.spawn_object_y_max)
         rand_z_orientation = np.random.uniform(0., 2 * np.pi)
         object_pose = [
             rand_x, rand_y, self.object_metadata["spawn_height_z"],
             self.object_metadata["spawn_angle_roll"], 0, rand_z_orientation
         ]
-        rospy.loginfo('Generated random object pose:')
-        rospy.loginfo(object_pose)
+        rospy.logdebug('Generated random object pose:')
+        rospy.logdebug(object_pose)
         object_pose_stamped = get_pose_stamped_from_array(object_pose)
         self.object_metadata["mesh_frame_pose"] = object_pose_stamped
 
     def choose_random_grasp_preshape(self):
-        grasp_idx = np.random.randint(
-            0, len(self.heuristic_preshapes.palm_goal_poses_world))
+        grasp_idx = np.random.randint(0, len(self.heuristic_preshapes.palm_goal_poses_world))
         # Store the chosen grasp pose and appraoch pose as well as joint state in corresponding dicts
         self.palm_poses["desired_pre"] = self.heuristic_preshapes.palm_goal_poses_world[grasp_idx]
         self.palm_poses["approach"] = self.heuristic_preshapes.palm_approach_poses_world[grasp_idx]
@@ -231,8 +224,7 @@ class GraspClient():
 
         # If unspecified randomly select a grasp type:
         if grasp_type == 'unspecified':
-            grasp_type = self.grasp_types[np.random.randint(
-                0, len(self.grasp_types))]
+            grasp_type = self.grasp_types[np.random.randint(0, len(self.grasp_types))]
 
         available_grasp_types = copy.deepcopy(self.grasp_types)
 
@@ -246,21 +238,18 @@ class GraspClient():
 
         # Check if the desired grasp type is available
         if not len(available_grasp_types):
-            print('No grasp type is available anymore')
+            rospy.logerr('No grasp type is available anymore')
             self.grasps_available = False
             return False
         elif grasp_type in available_grasp_types:
             print('Grasp type is available. Chosen grasp type: ' + str(grasp_type))
         else:
-            grasp_type = available_grasp_types[np.random.randint(
-                0, len(available_grasp_types))]
+            grasp_type = available_grasp_types[np.random.randint(0, len(available_grasp_types))]
 
         if grasp_type == 'side1':
-            grasp_idx = self.side1_idxs[np.random.randint(
-                0, len(self.side1_idxs))]
+            grasp_idx = self.side1_idxs[np.random.randint(0, len(self.side1_idxs))]
         elif grasp_type == 'side2':
-            grasp_idx = self.side2_idxs[np.random.randint(
-                0, len(self.side2_idxs))]
+            grasp_idx = self.side2_idxs[np.random.randint(0, len(self.side2_idxs))]
         elif grasp_type == 'top':
             grasp_idx = self.top_idxs[np.random.randint(0, len(self.top_idxs))]
 
@@ -274,7 +263,7 @@ class GraspClient():
         self.chosen_grasp_idx = grasp_idx
 
         self.chosen_grasp_type = grasp_type
-        print("Chosen grasp type is: " + str(self.chosen_grasp_type))
+        rospy.loginfo("Chosen grasp type is: " + str(self.chosen_grasp_type))
         # If this IS the first execution initialize previous grasp_type with current:
         if (len(self.top_idxs) + len(self.side1_idxs) +
                 len(self.side2_idxs)) == self.num_preshapes:
@@ -285,32 +274,29 @@ class GraspClient():
         wait_for_service('create_moveit_scene')
         try:
             req = ManageMoveitSceneRequest()
-            create_moveit_scene = rospy.ServiceProxy(
-                'create_moveit_scene', ManageMoveitScene)
+            create_moveit_scene = rospy.ServiceProxy('create_moveit_scene', ManageMoveitScene)
             req.object_mesh_path = self.object_metadata["collision_mesh_path"]
             req.object_pose_world = self.object_metadata["mesh_frame_pose"]
             create_scene_response = create_moveit_scene(req)
         except rospy.ServiceException, e:
-            rospy.loginfo('Service create_moveit_scene call failed: %s' % e)
-        rospy.loginfo('Service create_moveit_scene is executed.')
+            rospy.logerr('Service create_moveit_scene call failed: %s' % e)
+        rospy.logdebug('Service create_moveit_scene is executed.')
 
     def clean_moveit_scene_client(self):
         wait_for_service('clean_moveit_scene')
         try:
             req = ManageMoveitSceneRequest()
-            clean_moveit_scene = rospy.ServiceProxy(
-                'clean_moveit_scene', ManageMoveitScene)
+            clean_moveit_scene = rospy.ServiceProxy('clean_moveit_scene', ManageMoveitScene)
             create_scene_response = clean_moveit_scene(req)
         except rospy.ServiceException, e:
-            rospy.loginfo('Service clean_moveit_scene call failed: %s' % e)
-        rospy.loginfo('Service clean_moveit_scene is executed.')
+            rospy.logerr('Service clean_moveit_scene call failed: %s' % e)
+        rospy.logdebug('Service clean_moveit_scene is executed.')
 
     def control_hithand_config_client(self, joint_conf=None):
         wait_for_service('control_hithand_config')
         try:
             req = ControlHithandRequest()
-            control_hithand_config = rospy.ServiceProxy(
-                'control_hithand_config', ControlHithand)
+            control_hithand_config = rospy.ServiceProxy('control_hithand_config', ControlHithand)
             if joint_conf == None:
                 jc = self.hand_joint_states["desired_pre"]
                 print("##### THUMB 0 ANGLE: " + str(jc.position[16]))
@@ -320,13 +306,12 @@ class GraspClient():
                 elif len(joint_conf.position) == 20:
                     jc = joint_conf
                 else:
-                    raise Exception(
-                        'Given joint state has wrong dimension, must be 15 or 20')
+                    raise Exception('Given joint state has wrong dimension, must be 15 or 20')
             req.hithand_target_joint_state = jc
             res = control_hithand_config(req)
         except rospy.ServiceException as e:
-            rospy.loginfo('Service control_hithand_config call failed: %s' % e)
-        rospy.loginfo('Service control_allegro_config is executed.')
+            rospy.logerr('Service control_hithand_config call failed: %s' % e)
+        rospy.logdebug('Service control_allegro_config is executed.')
 
     def check_pose_validity_utah_client(self, grasp_pose):
         wait_for_service('check_pose_validity_utah')
@@ -338,9 +323,8 @@ class GraspClient():
             req.pose = grasp_pose
             res = check_pose_validity_utah(req)
         except rospy.ServiceException as e:
-            rospy.loginfo(
-                'Service check_pose_validity_utah call failed: %s' % e)
-        rospy.loginfo('Service check_pose_validity_utah is executed.')
+            rospy.logerr('Service check_pose_validity_utah call failed: %s' % e)
+        rospy.logdebug('Service check_pose_validity_utah is executed.')
         return res.is_valid
 
     def encode_pcd_with_bps_client(self):
@@ -349,13 +333,12 @@ class GraspClient():
         """
         wait_for_service('encode_pcd_with_bps')
         try:
-            encode_pcd_with_bps = rospy.ServiceProxy(
-                'encode_pcd_with_bps', SetBool)
+            encode_pcd_with_bps = rospy.ServiceProxy('encode_pcd_with_bps', SetBool)
             req = SetBoolRequest(data=True)
             res = encode_pcd_with_bps(req)
         except rospy.ServiceException as e:
-            rospy.loginfo('Service encode_pcd_with_bps call failed: %s' % e)
-        rospy.loginfo('Service encode_pcd_with_bps is executed.')
+            rospy.logerr('Service encode_pcd_with_bps call failed: %s' % e)
+        rospy.logdebug('Service encode_pcd_with_bps is executed.')
 
     def evaluate_and_filter_grasp_poses_client(self, palm_poses, joint_confs, thresh):
         """Filter out all the grasp poses for which the FFHEvaluator predicts a success probability of less than thresh
@@ -375,9 +358,8 @@ class GraspClient():
             req.joint_confs = joint_confs
             res = evaluate_and_filter_grasp_poses(req)
         except rospy.ServiceException, e:
-            rospy.loginfo(
-                'Service evaluate_and_filter_grasp_poses call failed: %s' % e)
-        rospy.loginfo('Service evaluate_and_filter_grasp_poses.')
+            rospy.logerr('Service evaluate_and_filter_grasp_poses call failed: %s' % e)
+        rospy.logdebug('Service evaluate_and_filter_grasp_poses.')
         return res.palm_poses, res.joint_confs
 
     def execute_joint_trajectory_client(self, smoothen_trajectory=True, speed='fast'):
@@ -400,29 +382,26 @@ class GraspClient():
                 return True
             else:
                 return False
-                rospy.loginfo(
-                    'The joint trajectory in planned_panda_joint_trajectory was empty.')
+                rospy.logerr('The joint trajectory in planned_panda_joint_trajectory was empty.')
         except rospy.ServiceException, e:
-            rospy.loginfo(
-                'Service execute_joint_trajectory call failed: %s' % e)
-        rospy.loginfo('Service execute_joint_trajectory is executed.')
+            rospy.logerr('Service execute_joint_trajectory call failed: %s' % e)
+        rospy.logdebug('Service execute_joint_trajectory is executed.')
 
     def filter_palm_goal_poses_client(self):
         wait_for_service('filter_palm_goal_poses')
         try:
-            filter_palm_goal_poses = rospy.ServiceProxy(
-                'filter_palm_goal_poses', FilterPalmPoses)
+            filter_palm_goal_poses = rospy.ServiceProxy('filter_palm_goal_poses', FilterPalmPoses)
             req = FilterPalmPosesRequest()
             req.palm_goal_poses_world = self.heuristic_preshapes.palm_goal_poses_world
 
             res = filter_palm_goal_poses(req)
         except rospy.ServiceException, e:
-            rospy.loginfo('Service filter_palm_goal_poses call failed: %s' % e)
-        rospy.loginfo('Service filter_palm_goal_poses is executed.')
+            rospy.logerr('Service filter_palm_goal_poses call failed: %s' % e)
+        rospy.logdebug('Service filter_palm_goal_poses is executed.')
         return res.prune_idxs
 
     def generate_hithand_preshape_client(self):
-        """ Generates 
+        """Generate preshape that is sampled from the each point cloud.
         """
         wait_for_service('generate_hithand_preshape')
         try:
@@ -438,28 +417,22 @@ class GraspClient():
                 )
             req.sample = True
             self.heuristic_preshapes = generate_hithand_preshape(req)
-            self.num_preshapes = len(
-                self.heuristic_preshapes.palm_goal_poses_world)
+            self.num_preshapes = len(self.heuristic_preshapes.palm_goal_poses_world)
             # Generate list with indexes for different grasp types
             raise NotImplementedError
             self.side1_idxs = range(0, self.num_preshapes / 3)
             if self.heuristic_preshapes.is_top_grasp[self.num_preshapes / 3] == True:
-                self.top_idxs = range(
-                    self.num_preshapes / 3, 2 * self.num_preshapes / 3)
-                self.side2_idxs = range(
-                    2 * self.num_preshapes / 3, self.num_preshapes)
+                self.top_idxs = range(self.num_preshapes / 3, 2 * self.num_preshapes / 3)
+                self.side2_idxs = range(2 * self.num_preshapes / 3, self.num_preshapes)
             else:
-                self.side2_idxs = range(
-                    self.num_preshapes / 3, 2 * self.num_preshapes / 3)
-                self.top_idxs = range(
-                    2 * self.num_preshapes / 3, self.num_preshapes)
+                self.side2_idxs = range(self.num_preshapes / 3, 2 * self.num_preshapes / 3)
+                self.top_idxs = range(2 * self.num_preshapes / 3, self.num_preshapes)
 
             self.grasps_available = True
 
         except rospy.ServiceException, e:
-            rospy.loginfo(
-                'Service generate_hithand_preshape call failed: %s' % e)
-        rospy.loginfo('Service generate_hithand_preshape is executed.')
+            rospy.logerr('Service generate_hithand_preshape call failed: %s' % e)
+        rospy.logdebug('Service generate_hithand_preshape is executed.')
 
     def generate_voxel_from_pcd_client(self, show_voxel=False):
         """ Generates centered sparse voxel grid from segmented object pcd.
@@ -486,13 +459,11 @@ class GraspClient():
 
             # Show the voxel grid
             if show_voxel:
-                voxel_grid = np.reshape(
-                    res.voxel_grid, [len(res.voxel_grid) / 3, 3])
+                voxel_grid = np.reshape(res.voxel_grid, [len(res.voxel_grid) / 3, 3])
                 plot_voxel(voxel_grid, voxel_res=self.voxel_grid_dim_full)
         except rospy.ServiceException, e:
-            rospy.loginfo(
-                'Service generate_voxel_from_pcd call failed: %s' % e)
-        rospy.loginfo('Service generate_voxel_from_pcd is executed.')
+            rospy.logerr('Service generate_voxel_from_pcd call failed: %s' % e)
+        rospy.logdebug('Service generate_voxel_from_pcd is executed.')
 
     def get_hand_palm_pose_and_joint_state(self):
         """ Returns pose stamped and joint state
@@ -502,7 +473,7 @@ class GraspClient():
         trans = self.tf_buffer.lookup_transform('world',
                                                 'palm_link_hithand',
                                                 rospy.Time(0),
-                                                timeout=rospy.Duration(10))
+                                                timeout=rospy.Duration(100))
 
         palm_pose = PoseStamped()
         palm_pose.header.frame_id = 'world'
@@ -513,8 +484,7 @@ class GraspClient():
         palm_pose.pose.orientation.y = trans.transform.rotation.y
         palm_pose.pose.orientation.z = trans.transform.rotation.z
         palm_pose.pose.orientation.w = trans.transform.rotation.w
-        joint_state = rospy.wait_for_message(
-            "/hithand/joint_states", JointState, timeout=5)
+        joint_state = rospy.wait_for_message("/hithand/joint_states", JointState, timeout=5)
         return palm_pose, joint_state
 
     def get_grasp_object_pose_client(self):
@@ -522,14 +492,13 @@ class GraspClient():
         """
         wait_for_service('gazebo/get_model_state')
         try:
-            get_model_state = rospy.ServiceProxy(
-                'gazebo/get_model_state', GetModelState)
+            get_model_state = rospy.ServiceProxy('gazebo/get_model_state', GetModelState)
             req = GetModelStateRequest()
             req.model_name = self.object_metadata["name"]
             res = get_model_state(req)
         except rospy.ServiceException, e:
-            rospy.loginfo('Service grasp_control_hithand call failed: %s' % e)
-        rospy.loginfo('Service grasp_control_hithand is executed.')
+            rospy.logerr('Service grasp_control_hithand call failed: %s' % e)
+        rospy.logdebug('Service grasp_control_hithand is executed.')
         return res.pose
 
     def get_preshape_for_all_points_client(self):
@@ -541,54 +510,47 @@ class GraspClient():
                                                              GraspPreshape)
             req = GraspPreshapeRequest()
             if self.object_segment_response is None:
-                raise Exception(
-                    "self.object_segment_response.object attribute is None.")
+                raise Exception("self.object_segment_response.object attribute is None.")
             req.object = self.object_segment_response.object
 
             res = get_preshape_for_all_points(req)
 
             self.heuristic_preshapes = res
             self.num_preshapes = len(res.palm_goal_poses_world)
-            self.top_idxs = [i for i, x in enumerate(
-                res.face_ids) if x == 'top']
-            self.side1_idxs = [i for i, x in enumerate(
-                res.face_ids) if x == 'side1']
-            self.side2_idxs = [i for i, x in enumerate(
-                res.face_ids) if x == 'side2']
+            self.top_idxs = [i for i, x in enumerate(res.face_ids) if x == 'top']
+            self.side1_idxs = [i for i, x in enumerate(res.face_ids) if x == 'side1']
+            self.side2_idxs = [i for i, x in enumerate(res.face_ids) if x == 'side2']
             self.grasps_available = True
 
         except rospy.ServiceException, e:
-            rospy.loginfo(
-                'Service get_preshape_for_all_points call failed: %s' % e)
-        rospy.loginfo('Service get_preshape_for_all_points is executed.')
+            rospy.logerr('Service get_preshape_for_all_points call failed: %s' % e)
+        rospy.logdebug('Service get_preshape_for_all_points is executed.')
 
     def grasp_control_hithand_client(self):
         """ Call server to close hithand fingers and stop when joint velocities are close to zero.
         """
         wait_for_service('grasp_control_hithand')
         try:
-            grasp_control_hithand = rospy.ServiceProxy(
-                'grasp_control_hithand', GraspControl)
+            grasp_control_hithand = rospy.ServiceProxy('grasp_control_hithand', GraspControl)
             req = GraspControlRequest()
             res = grasp_control_hithand(req)
         except rospy.ServiceException, e:
-            rospy.loginfo('Service grasp_control_hithand call failed: %s' % e)
-        rospy.loginfo('Service grasp_control_hithand is executed.')
+            rospy.logerr('Service grasp_control_hithand call failed: %s' % e)
+        rospy.logdebug('Service grasp_control_hithand is executed.')
 
     def infer_grasp_poses_client(self, n_poses, bps_object):
         """Infers grasps by sampling randomly in the latent space and decodes them to full pose via VAE. Later it will include some sort of refinement.
         """
         wait_for_service('infer_grasp_poses')
         try:
-            infer_grasp_poses = rospy.ServiceProxy(
-                'infer_grasp_poses', InferGraspPoses)
+            infer_grasp_poses = rospy.ServiceProxy('infer_grasp_poses', InferGraspPoses)
             req = InferGraspPosesRequest()
             req.n_poses = n_poses
             req.bps_object = np.squeeze(bps_object)
             res = infer_grasp_poses(req)
         except rospy.ServiceException, e:
-            rospy.loginfo('Service infer_grasp_poses call fialed: %s' % e)
-        rospy.loginfo('Service infer_grasp_poses is executed')
+            rospy.logerr('Service infer_grasp_poses call fialed: %s' % e)
+        rospy.logdebug('Service infer_grasp_poses is executed')
         return res.palm_poses, res.joint_confs
 
     def plan_arm_trajectory_client(
@@ -606,12 +568,14 @@ class GraspClient():
                 req.palm_goal_pose_world = self.palm_poses["desired_pre"]
             res = moveit_cartesian_pose_planner(req)
         except rospy.ServiceException, e:
-            rospy.loginfo('Service plan_arm_trajectory call failed: %s' % e)
-        rospy.loginfo('Service plan_arm_trajectory is executed.')
+            rospy.logerr('Service plan_arm_trajectory call failed: %s' % e)
+        rospy.logdebug('Service plan_arm_trajectory is executed.')
         self.panda_planned_joint_trajectory = res.trajectory
         return res.success
 
     def plan_cartesian_path_trajectory_client(self, place_goal_pose=None):
+        """Given place_goal_pose for evaluation. If not given, it's used for data generation.
+        """
         wait_for_service('plan_cartesian_path_trajectory')
         try:
             plan_cartesian_path_trajectory = rospy.ServiceProxy('plan_cartesian_path_trajectory',
@@ -619,17 +583,19 @@ class GraspClient():
             req = PlanCartesianPathTrajectoryRequest()
             # Change the reference frame of desired_pre and approach pose to be
             if place_goal_pose is not None:
+                palm_approach_pose_world = self.approach_pose_from_palm_pose(place_goal_pose)
+                req.palm_approach_pose_world = self.add_position_noise(palm_approach_pose_world)
                 req.palm_goal_pose_world = place_goal_pose
             else:
+                # self.plam_poses value are saved in data generation pipeline
                 req.palm_goal_pose_world = self.palm_poses["desired_pre"]
                 req.palm_approach_pose_world = self.palm_poses["approach"]
             res = plan_cartesian_path_trajectory(req)
         except rospy.ServiceException, e:
-            rospy.loginfo('Service plan_arm_trajectory call failed: %s' % e)
-        rospy.loginfo('Service plan_arm_trajectory is executed %s.' %
-                      str(res.success))
+            rospy.logerr('Service plan_arm_trajectory call failed: %s' % e)
+        rospy.logdebug('Service plan_arm_trajectory is executed %s.' % str(res.success))
         self.panda_planned_joint_trajectory = res.trajectory
-        return res.success
+        return res.success, res.fraction
 
     def plan_reset_trajectory_client(self):
         wait_for_service('plan_reset_trajectory')
@@ -639,9 +605,24 @@ class GraspClient():
             res = plan_reset_trajectory(PlanResetTrajectoryRequest())
             self.panda_planned_joint_trajectory = res.trajectory
         except rospy.ServiceException, e:
-            rospy.loginfo('Service plan_reset_trajectory call failed: %s' % e)
-        rospy.loginfo('Service plan_reset_trajectory is executed.')
+            rospy.logerr('Service plan_reset_trajectory call failed: %s' % e)
+        rospy.logdebug('Service plan_reset_trajectory is executed.')
         return res.success
+
+    def get_cartesian_position_error_client(self, required_pose):
+        """ Calculate the distance in xyz between target pose and current pose.
+        """
+        wait_for_service('get_cartesian_position_error')
+        try:
+            get_cartesian_position_error = rospy.ServiceProxy('get_cartesian_position_error',
+                                                               GetCartesianPositionError)
+            req = GetCartesianPositionErrorRequest()
+            req.required_pose = required_pose
+            res = get_cartesian_position_error(req)
+        except rospy.ServiceException, e:
+            rospy.logerr('Service get_cartesian_position_error call failed: %s' % e)
+        rospy.logdebug('Service get_cartesian_position_error is executed.')
+        return res.distance
 
     def record_collision_data_client(self):
         """ self.heuristic_preshapes stores all grasp poses. Self.prune_idxs contains idxs of poses in collision. Store 
@@ -660,8 +641,7 @@ class GraspClient():
             # Then transform the poses from world frame to object mesh frame
             palm_goal_poses_mesh_frame = []
             for pose in palm_poses_collision:
-                pose_mesh_frame = self.transform_pose(
-                    pose, 'world', 'object_mesh_frame')
+                pose_mesh_frame = self.transform_pose(pose, 'world', 'object_mesh_frame')
                 palm_goal_poses_mesh_frame.append(pose_mesh_frame)
 
             # Get service proxy
@@ -679,8 +659,8 @@ class GraspClient():
             res = record_collision_data(req)
 
         except rospy.ServiceException, e:
-            rospy.loginfo('Service record_collision_data call failed: %s' % e)
-        rospy.loginfo('Service record_collision_data is executed.')
+            rospy.logerr('Service record_collision_data call failed: %s' % e)
+        rospy.logdebug('Service record_collision_data is executed.')
 
     def record_grasp_trial_data_client(self):
         """ self.heuristic_preshapes stores all grasp poses. Self.prune_idxs contains idxs of poses in collision. Store 
@@ -703,6 +683,9 @@ class GraspClient():
             req.time_stamp = datetime.datetime.now().isoformat()
             req.is_top_grasp = self.chosen_is_top_grasp
             req.grasp_success_label = self.grasp_label
+            req.collision_to_approach_pose = self.collision_to_approach_pose
+            req.collision_to_grasp_pose = self.collision_to_grasp_pose
+
             req.object_mesh_frame_world = self.object_metadata["mesh_frame_pose"]
             req.desired_preshape_palm_mesh_frame = desired_pose_mesh_frame
             req.true_preshape_palm_mesh_frame = true_pose_mesh_frame
@@ -715,17 +698,16 @@ class GraspClient():
             res = record_grasp_trial_data(req)
 
         except rospy.ServiceException, e:
-            rospy.loginfo(
-                'Service record_grasp_trial_data call failed: %s' % e)
-        rospy.loginfo('Service record_grasp_trial_data is executed.')
+            rospy.logerr('Service record_grasp_trial_data call failed: %s' % e)
+        rospy.logdebug('Service record_grasp_trial_data is executed.')
 
+    # This seems never used!!!
     def record_grasp_data_client(self):
         wait_for_service('record_grasp_data')
         try:
             # Currently all poses are in the world frame. Transfer the desired pose into object frame
 
-            record_grasp_data = rospy.ServiceProxy(
-                'record_grasp_data', RecordGraspDataSim)
+            record_grasp_data = rospy.ServiceProxy('record_grasp_data', RecordGraspDataSim)
             req = RecordGraspDataSimRequest()
             req.object_name = self.object_metadata["name"]
             req.time_stamp = datetime.datetime.now().isoformat()
@@ -749,15 +731,14 @@ class GraspClient():
 
             res = record_grasp_data(req)
         except rospy.ServiceException, e:
-            rospy.loginfo('Service record_grasp_data call failed: %s' % e)
-        rospy.loginfo('Service record_grasp_data is executed.')
+            rospy.logerr('Service record_grasp_data call failed: %s' % e)
+        rospy.logdebug('Service record_grasp_data is executed.')
 
     def record_sim_grasp_data_utah_client(self, grasp_id, object_name, grasp_config_obj, is_top,
                                           label):
         wait_for_service('record_grasp_data_utah')
         try:
-            record_sim_grasp_data_utah = rospy.ServiceProxy(
-                "record_grasp_data_utah", SimGraspData)
+            record_sim_grasp_data_utah = rospy.ServiceProxy("record_grasp_data_utah", SimGraspData)
             req = SimGraspDataRequest()
             req.grasp_id = grasp_id
             req.object_name = str(self.object_metadata["name_rec_path"])
@@ -768,12 +749,11 @@ class GraspClient():
 
             res = record_sim_grasp_data_utah(req)
         except rospy.ServiceException, e:
-            rospy.loginfo('Service sim_grasp_data_utah call failed: %s' % e)
-        rospy.loginfo('Service sim_grasp_data_utah is executed.')
+            rospy.logerr('Service sim_grasp_data_utah call failed: %s' % e)
+        rospy.logdebug('Service sim_grasp_data_utah is executed.')
 
     def reset_hithand_from_topic(self):
-        pub = rospy.Publisher("/start_hithand_reset",
-                              Bool, latch=True, queue_size=1)
+        pub = rospy.Publisher("/start_hithand_reset", Bool, latch=True, queue_size=1)
         self.trigger_cond = not self.trigger_cond
         pub.publish(Bool(data=self.trigger_cond))
 
@@ -797,14 +777,13 @@ class GraspClient():
             reset_hithand = rospy.ServiceProxy('reset_hithand_joints', SetBool)
             res = reset_hithand(SetBoolRequest(data=True))
         except rospy.ServiceException, e:
-            rospy.loginfo('Service reset_hithand_joints call failed: %s' % e)
-        rospy.loginfo('Service reset_hithand_joints is executed.')
+            rospy.logerr('Service reset_hithand_joints call failed: %s' % e)
+        rospy.logdebug('Service reset_hithand_joints is executed.')
 
     def save_visual_data_client(self, save_pcd=True):
         wait_for_service('save_visual_data')
         try:
-            save_visual_data = rospy.ServiceProxy(
-                'save_visual_data', SaveVisualData)
+            save_visual_data = rospy.ServiceProxy('save_visual_data', SaveVisualData)
             req = SaveVisualDataRequest()
             req.color_img_save_path = self.color_img_save_path
             req.depth_img_save_path = self.depth_img_save_path
@@ -812,14 +791,13 @@ class GraspClient():
                 req.scene_pcd_save_path = self.scene_pcd_save_path
             res = save_visual_data(req)
         except rospy.ServiceException, e:
-            rospy.loginfo('Service save_visual_data call failed: %s' % e)
-        rospy.loginfo('Service save_visual_data is executed %s' % res.success)
+            rospy.logerr('Service save_visual_data call failed: %s' % e)
+        rospy.logdebug('Service save_visual_data is executed %s' % res.success)
 
     def segment_object_client(self, align_object_world=True, down_sample_pcd=True):
         wait_for_service('segment_object')
         try:
-            segment_object = rospy.ServiceProxy(
-                'segment_object', SegmentGraspObject)
+            segment_object = rospy.ServiceProxy('segment_object', SegmentGraspObject)
             req = SegmentGraspObjectRequest()
             req.down_sample_pcd = down_sample_pcd
             req.scene_pcd_path = self.scene_pcd_save_path
@@ -828,6 +806,7 @@ class GraspClient():
             self.object_segment_response = segment_object(req)
             self.object_metadata["seg_pose"] = PoseStamped(
                 header=Header(frame_id='world'), pose=self.object_segment_response.object.pose)
+            # whd: Width Height Depth
             self.object_metadata["seg_dim_whd"] = [
                 self.object_segment_response.object.width,
                 self.object_segment_response.object.height,
@@ -840,8 +819,8 @@ class GraspClient():
                 self.object_metadata["aligned_pose"] = PoseStamped(
                     header=Header(frame_id='world'), pose=self.object_segment_response.object.pose)
 
-                print("whd before alignment: ")
-                print(self.object_metadata["seg_dim_whd"])
+                rospy.logdebug("whd before alignment: ")
+                rospy.logdebug(self.object_metadata["seg_dim_whd"])
 
                 self.update_object_pose_aligned_client()
                 self.object_metadata["aligned_dim_whd_utah"] = [
@@ -849,8 +828,8 @@ class GraspClient():
                     self.object_segment_response.object.height,
                     self.object_segment_response.object.depth
                 ]
-                print("whd from alignment: ")
-                print(self.object_metadata["aligned_dim_whd_utah"])
+                rospy.logdebug("whd from alignment: ")
+                rospy.logdebug(self.object_metadata["aligned_dim_whd_utah"])
                 rospy.sleep(0.2)
                 if not self.is_rec_sess:
                     rospy.sleep(2)
@@ -861,48 +840,44 @@ class GraspClient():
                                                         rospy.Time(0),
                                                         timeout=rospy.Duration(5))
                 quat = trans.transform.rotation
-                aligned_T_pose = tft.quaternion_matrix(
-                    [quat.x, quat.y, quat.z, quat.w])
+                aligned_T_pose = tft.quaternion_matrix([quat.x, quat.y, quat.z, quat.w])
                 bb_extent_aligned = np.abs(aligned_T_pose.dot(bb_extent))
                 self.object_metadata["aligned_dim_whd"] = bb_extent_aligned[:3]
                 self.object_segment_response.object.width = bb_extent_aligned[0]
                 self.object_segment_response.object.height = bb_extent_aligned[1]
                 self.object_segment_response.object.depth = bb_extent_aligned[2]
-                print("whd Vincent: ")
-                print([
+                rospy.logdebug("whd Vincent: ")
+                rospy.logdebug([
                     self.object_segment_response.object.width,
                     self.object_segment_response.object.height,
                     self.object_segment_response.object.depth
                 ])
 
         except rospy.ServiceException, e:
-            rospy.loginfo('Service segment_object call failed: %s' % e)
-        rospy.loginfo('Service segment_object is executed.')
+            rospy.logerr('Service segment_object call failed: %s' % e)
+        rospy.logdebug('Service segment_object is executed.')
 
     def update_moveit_scene_client(self):
         wait_for_service('update_moveit_scene')
         try:
-            update_moveit_scene = rospy.ServiceProxy(
-                'update_moveit_scene', ManageMoveitScene)
+            update_moveit_scene = rospy.ServiceProxy('update_moveit_scene', ManageMoveitScene)
             # print(self.spawned_object_mesh_path)
             req = ManageMoveitSceneRequest()
             req.object_mesh_path = self.object_metadata["collision_mesh_path"]
             req.object_pose_world = self.object_metadata["mesh_frame_pose"]
             self.update_scene_response = update_moveit_scene(req)
         except rospy.ServiceException, e:
-            rospy.loginfo('Service update_moveit_scene call failed: %s' % e)
-        rospy.loginfo(
+            rospy.logerr('Service update_moveit_scene call failed: %s' % e)
+        rospy.logdebug(
             'Service update_moveit_scene is executed %s.' % str(self.update_scene_response))
 
     def update_gazebo_object_client(self):
         """Gazebo management client, deletes previous object and spawns new object
         """
         wait_for_service('update_gazebo_object')
-        object_pose_array = get_pose_array_from_stamped(
-            self.object_metadata["mesh_frame_pose"])
+        object_pose_array = get_pose_array_from_stamped(self.object_metadata["mesh_frame_pose"])
         try:
-            update_gazebo_object = rospy.ServiceProxy(
-                'update_gazebo_object', UpdateObjectGazebo)
+            update_gazebo_object = rospy.ServiceProxy('update_gazebo_object', UpdateObjectGazebo)
             req = UpdateObjectGazeboRequest()
             req.object_name = self.object_metadata["name"]
             req.object_model_file = self.object_metadata["model_file"]
@@ -910,22 +885,20 @@ class GraspClient():
             req.model_type = 'sdf'
             res = update_gazebo_object(req)
         except rospy.ServiceException, e:
-            rospy.loginfo('Service update_gazebo_object call failed: %s' % e)
-        rospy.loginfo('Service update_gazebo_object is executed %s.' %
-                      str(res.success))
+            rospy.logerr('Service update_gazebo_object call failed: %s' % e)
+        rospy.logdebug('Service update_gazebo_object is executed %s.' % str(res.success))
         return res.success
 
     def update_grasp_palm_pose_client(self, palm_pose):
         wait_for_service("update_grasp_palm_pose")
         try:
-            update_grasp_palm_pose = rospy.ServiceProxy(
-                'update_grasp_palm_pose', UpdatePalmPose)
+            update_grasp_palm_pose = rospy.ServiceProxy('update_grasp_palm_pose', UpdatePalmPose)
             req = UpdatePalmPoseRequest()
             req.palm_pose = palm_pose
             res = update_grasp_palm_pose(req)
         except rospy.ServiceException, e:
-            rospy.loginfo('Service update_grasp_palm_pose call failed: %s' % e)
-        rospy.loginfo('Service update_grasp_palm_pose is executed.')
+            rospy.logerr('Service update_grasp_palm_pose call failed: %s' % e)
+        rospy.logdebug('Service update_grasp_palm_pose is executed.')
 
     def update_object_mesh_frame_data_gen_client(self, object_mesh_frame_pose):
         wait_for_service("update_object_mesh_frame_data_gen")
@@ -936,9 +909,8 @@ class GraspClient():
             req.object_pose_world = object_mesh_frame_pose
             res = update_object_mesh_frame_data_gen(req)
         except rospy.ServiceException, e:
-            rospy.loginfo(
-                'Service update_object_mesh_frame_data_gen call failed: %s' % e)
-        rospy.loginfo('Service update_object_mesh_frame_data_gen is executed.')
+            rospy.logerr('Service update_object_mesh_frame_data_gen call failed: %s' % e)
+        rospy.logdebug('Service update_object_mesh_frame_data_gen is executed.')
 
     def update_object_pose_aligned_client(self):
         wait_for_service("update_grasp_object_pose")
@@ -949,9 +921,8 @@ class GraspClient():
             req.object_pose_world = self.object_metadata["aligned_pose"]
             res = update_grasp_object_pose(req)
         except rospy.ServiceException, e:
-            rospy.loginfo('Service update_gazebo_object call failed: %s' % e)
-        rospy.loginfo(
-            'Service update_grasp_object_pose is executed %s.' % str(res.success))
+            rospy.logerr('Service update_gazebo_object call failed: %s' % e)
+        rospy.logdebug('Service update_grasp_object_pose is executed %s.' % str(res.success))
 
     def update_object_mesh_frame_pose_client(self):
         wait_for_service("update_object_mesh_frame_pose")
@@ -962,9 +933,8 @@ class GraspClient():
             req.object_pose_world = self.object_metadata["mesh_frame_pose"]
             res = update_object_mesh_frame_pose(req)
         except rospy.ServiceException, e:
-            rospy.loginfo(
-                'Service update_object_mesh_frame_pose call failed: %s' % e)
-        rospy.loginfo('Service update_object_mesh_frame_pose is executed.')
+            rospy.logerr('Service update_object_mesh_frame_pose call failed: %s' % e)
+        rospy.logdebug('Service update_object_mesh_frame_pose is executed.')
 
     def visualize_grasp_pose_list_client(self, grasp_poses):
         wait_for_service("visualize_grasp_pose_list")
@@ -975,8 +945,8 @@ class GraspClient():
             req.grasp_pose_list = grasp_poses
             res = visualize_grasp_pose_list(req)
         except rospy.ServiceException, e:
-            rospy.loginfo('Service visualize_grasp_poses_list failed: %s' % e)
-        rospy.loginfo('Service visualize_grasp_poses_list is executed.')
+            rospy.logerr('Service visualize_grasp_poses_list failed: %s' % e)
+        rospy.logdebug('Service visualize_grasp_poses_list is executed.')
 
     # =============================================================================================================
     # ++++++++ PART III: The third part consists of all the main logic/orchestration of Parts I and II ++++++++++++
@@ -986,7 +956,8 @@ class GraspClient():
         pose.pose.position.z += np.random.uniform(0, 0.3)
         return pose
 
-    def approach_pose_from_palm_pose(self, palm_pose):
+    @staticmethod
+    def approach_pose_from_palm_pose(palm_pose):
         """Compute an appraoch pose from a desired palm pose, by subtracting a vector parallel to x-direction
         of palm pose (x-direction points towards object, therefore we can get further away from the object with this.)
 
@@ -1008,6 +979,8 @@ class GraspClient():
         # Compute new position
         approach_pos = curr_pos - 0.1 * x_dir
 
+        # TODO check if add some z offset, will this improve the path planning?
+
         # build approach pose
         approach_pose = copy.deepcopy(palm_pose)
         approach_pose.pose.position.x = approach_pos[0]
@@ -1028,8 +1001,8 @@ class GraspClient():
         if visualize_poses:
             self.visualize_grasp_pose_list_client(palm_poses_f)
         n_after = len(joint_confs_f)
-        print("Remaining grasps after filtering: %.2f" % (n_after / n_before))
-        print("This means %d grasps were removed." % (n_before - n_after))
+        rospy.logdebug("Remaining grasps after filtering: %.2f" % (n_after / n_before))
+        rospy.logdebug("This means %d grasps were removed." % (n_before - n_after))
         self.log_num_grasps_removed(n_before, n_after, thresh)
         return palm_poses_f, joint_confs_f
 
@@ -1050,6 +1023,7 @@ class GraspClient():
         if object_pos_delta_z > (self.object_lift_height - self.success_tolerance_lift_height):
             self.grasp_label = 1
         else:
+            rospy.logdebug("object_pos_delta_z: %f" % object_pos_delta_z)
             self.grasp_label = 0
 
         rospy.loginfo("The grasp label is: " + str(self.grasp_label))
@@ -1083,11 +1057,10 @@ class GraspClient():
 
         elif pose_type == "init":
             # set the roll angle
-            pose_arr[3] = self.object_metadata["spawn_angle_roll"]
-            pose_arr[2] = self.object_metadata["spawn_height_z"]
+            pose_arr[3] = self.object_metadata["spawn_angle_roll"]  # 0
+            pose_arr[2] = self.object_metadata["spawn_height_z"]  # 0.05
 
-            self.object_metadata["mesh_frame_pose"] = get_pose_stamped_from_array(
-                pose_arr)
+            self.object_metadata["mesh_frame_pose"] = get_pose_stamped_from_array(pose_arr)
 
         #print "Spawning object here:", pose_arr
 
@@ -1114,8 +1087,7 @@ class GraspClient():
     def set_visual_data_save_paths(self, grasp_phase):
         if self.is_rec_sess:
             if grasp_phase not in ['pre', 'during', 'post']:
-                rospy.logerr(
-                    'Given grasp_phase is not valid. Must be pre, during or post.')
+                rospy.logerr('Given grasp_phase is not valid. Must be pre, during or post.')
 
             self.depth_img_save_path = os.path.join(self.curr_grasp_trial_path,
                                                     grasp_phase + '_grasp',
@@ -1124,10 +1096,8 @@ class GraspClient():
                                                     grasp_phase + '_grasp',
                                                     self.object_metadata["name"] + '_color.jpg')
         else:
-            self.depth_img_save_path = os.path.join(
-                self.base_path, 'depth.png')
-            self.color_img_save_path = os.path.join(
-                self.base_path, 'color.jpg')
+            self.depth_img_save_path = os.path.join(self.base_path, 'depth.png')
+            self.color_img_save_path = os.path.join(self.base_path, 'color.jpg')
 
     def save_visual_data_and_record_grasp(self):
         self.set_visual_data_save_paths(grasp_phase='post')
@@ -1151,11 +1121,11 @@ class GraspClient():
             object_pcd_record_path (str, optional): [description]. Defaults to ''.
         """
         if down_sample_pcd == True:
-            print(
+            rospy.logdebug(
                 "Point cloud will be down sampled AND transformed to WORLD frame. This is not correct for testing grasp sampler!"
             )
         else:
-            print(
+            rospy.logdebug(
                 "Point cloud will not be down sampled BUT transformed to OBJECT CENTROID frame, which is parallel to camera frame. This is necessary for testing grasp sampler."
             )
         self.object_pcd_record_path = object_pcd_record_path
@@ -1166,13 +1136,11 @@ class GraspClient():
     def filter_preshapes(self):
         self.prune_idxs = list(self.filter_palm_goal_poses_client())
 
-        print(self.prune_idxs)
+        # print(self.prune_idxs)
 
         self.top_idxs = [x for x in self.top_idxs if x not in self.prune_idxs]
-        self.side1_idxs = [
-            x for x in self.side1_idxs if x not in self.prune_idxs]
-        self.side2_idxs = [
-            x for x in self.side2_idxs if x not in self.prune_idxs]
+        self.side1_idxs = [x for x in self.side1_idxs if x not in self.prune_idxs]
+        self.side2_idxs = [x for x in self.side2_idxs if x not in self.prune_idxs]
 
         if len(self.top_idxs) + len(self.side1_idxs) + len(self.side2_idxs) == 0:
             self.grasps_available = False
@@ -1197,11 +1165,13 @@ class GraspClient():
             self.record_collision_data_client()
 
     def grasp_and_lift_object(self):
+        """ Used in data generation.
+        """
         # Control the hithand to it's preshape
         i = 0
         # As long as there are viable poses
         if not self.grasps_available:
-            rospy.loginfo("No grasps are available")
+            rospy.logerr("No grasps are available")
             return
 
         desired_plan_exists = False
@@ -1209,16 +1179,14 @@ class GraspClient():
             i += 1
 
             # Step 1 choose a specific grasp. In first iteration self.chosen_grasp_type is unspecific, e.g. function will randomly choose grasp type
-            self.choose_specific_grasp_preshape(
-                grasp_type=self.chosen_grasp_type)
+            self.choose_specific_grasp_preshape(grasp_type=self.chosen_grasp_type)
 
             if not self.grasps_available:
                 break
 
             # Step 2, if the previous grasp type is not same as current grasp type move to approach pose
             if self.previous_grasp_type != self.chosen_grasp_type or i == 1:
-                approach_plan_exists = self.plan_arm_trajectory_client(
-                    self.palm_poses["approach"])
+                approach_plan_exists = self.plan_arm_trajectory_client(self.palm_poses["approach"])
                 # If a plan could be found, execute
                 if approach_plan_exists:
                     self.execute_joint_trajectory_client(speed='mid')
@@ -1269,13 +1237,11 @@ class GraspClient():
             execution_success = False
             while not execution_success:
                 if time.time() - start > 60:
-                    rospy.loginfo('Could not find a lift pose')
+                    rospy.logerr('Could not find a lift pose')
                     break
-                plan_exists = self.plan_arm_trajectory_client(
-                    place_goal_pose=lift_pose)
+                plan_exists = self.plan_arm_trajectory_client(place_goal_pose=lift_pose)
                 if plan_exists:
-                    execution_success = self.execute_joint_trajectory_client(
-                        speed='slow')
+                    execution_success = self.execute_joint_trajectory_client(speed='slow')
                 lift_pose.pose.position.x += np.random.uniform(-0.05, 0.05)
                 lift_pose.pose.position.y += np.random.uniform(-0.05, 0.05)
                 lift_pose.pose.position.z += np.random.uniform(0, 0.1)
@@ -1293,17 +1259,30 @@ class GraspClient():
         return True
 
     def grasp_from_inferred_pose(self, pose_obj_frame, joint_conf):
-        """Try to reach the pose and joint conf and attempt grasp.
+        """ Used in FFHNet evaluataion. Try to reach the pose and joint conf and attempt grasp given grasps from FFHNet.
 
         Args:
             pose_obj_frame (PoseStamped): 6D pose of the hand wrist in the object centroid vae frame.
             joint_conf (JointState): The desired joint position.
         """
         # transform the pose_obj_frame to world_frame
-        palm_pose_world = self.transform_pose(
-            pose_obj_frame, 'object_centroid_vae', 'world')
+        palm_pose_world = self.transform_pose(pose_obj_frame, 'object_centroid_vae', 'world')
 
-        # save the desired pre of the palm and joints (given to function call) in an instance variable
+        object_pose = self.get_grasp_object_pose_client()
+
+        def check_if_object_moved(previous_pose, threshold=0.01):
+            current_pose = self.get_grasp_object_pose_client()
+            dist_x = abs(current_pose.position.x - previous_pose.position.x)
+            dist_y = abs(current_pose.position.y - previous_pose.position.y)
+            dist_z = abs(current_pose.position.z - previous_pose.position.z)
+            dist = np.sqrt(dist_x**2 + dist_y**2 + dist_z**2)
+            if dist > threshold:
+                return True
+            else:
+                return False
+
+        # save the desired pre of the palm and joints (given to function call) in an ins
+        # tance variable
         self.palm_poses['desired_pre'] = palm_pose_world
         self.hand_joint_states['desired_pre'] = joint_conf
 
@@ -1318,28 +1297,54 @@ class GraspClient():
             count = 0
             while not approach_plan_exists and count < 3:
                 approach_pose = self.add_position_noise(approach_pose)
-                approach_plan_exists = self.plan_arm_trajectory_client(
-                    approach_pose)
+                approach_plan_exists = self.plan_arm_trajectory_client(approach_pose)
                 count += 1
 
         if approach_plan_exists:
             self.clean_moveit_scene_client()
-
+        else:
+            rospy.logerr("no traj found to approach pose")
+            return False
         # Execute to approach pose
         self.execute_joint_trajectory_client(speed='mid')
 
+        # Detect object pose to check if collision happened
+        if check_if_object_moved(object_pose):
+            self.collision_to_approach_pose = 1
+            rospy.logerr("Object moved during way to approach pose")
+        else:
+            self.collision_to_approach_pose = 0
+
         # Try to find a plan to the final destination
         plan_exists = self.plan_arm_trajectory_client(palm_pose_world)
+
+        # TODO: Move L Motion not working
+        # self.plan_cartesian_path_trajectory_client(palm_pose_world)
 
         # Backup if no plan found
         if not plan_exists:
             plan_exists = self.plan_arm_trajectory_client(palm_pose_world)
             if not plan_exists:
                 self.grasp_label = -1
+                rospy.logerr("no traj found to final grasp pose")
                 return False
 
         # Execute joint trajectory
         self.execute_joint_trajectory_client(speed='mid')
+
+        pos_error = self.get_cartesian_position_error_client(palm_pose_world)
+         # TODO: there is constant error of 0.06
+        if pos_error > 0.07: 
+            rospy.logerr("Cannot reach goal pose with error: %f m" % pos_error)
+        else:
+            rospy.logdebug("pos_error to target pose %f" % pos_error)
+
+        # Detect object pose to check if collision happened
+        if check_if_object_moved(object_pose):
+            self.collision_to_grasp_pose = 1
+            rospy.logerr("Object moved during way to final pose")
+        else:
+            self.collision_to_grasp_pose = 0
 
         # Get the current actual joint position and palm pose
         self.palm_poses["true_pre"], self.hand_joint_states[
@@ -1361,13 +1366,11 @@ class GraspClient():
         execution_success = False
         while not execution_success:
             if time.time() - start > 60:
-                rospy.loginfo('Could not find a lift pose')
+                rospy.logerr('Could not find a lift pose')
                 break
-            plan_exists = self.plan_arm_trajectory_client(
-                place_goal_pose=lift_pose)
+            plan_exists = self.plan_arm_trajectory_client(place_goal_pose=lift_pose)
             if plan_exists:
-                execution_success = self.execute_joint_trajectory_client(
-                    speed='slow')
+                execution_success = self.execute_joint_trajectory_client(speed='slow')
             lift_pose.pose.position.x += np.random.uniform(-0.05, 0.05)
             lift_pose.pose.position.y += np.random.uniform(-0.05, 0.05)
             lift_pose.pose.position.z += np.random.uniform(0, 0.1)

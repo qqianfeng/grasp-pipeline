@@ -19,21 +19,25 @@ Start the panda_simulator\
 Start the panda_hithand_moveit_config\
 `roslaunch panda_hithand_moveit_config panda_hithand_moveit.launch`
 
-1. To run in simulation
+### To run in simulation
+
 Start the grasp_pipeline. This exposes the the grasping servers.\
 `roslaunch grasp_pipeline grasp_pipeline_servers_eval_ffhnet.launch`
 
 Open another terminal and activate conda base environment\
-`cd ~/hand_ws/src/grasp-pipeline/src/grasp_pipeline/main/sim`\
+`cd ~/path/to/grasp-pipeline/src/grasp_pipeline/main/sim`\
 `python2 eval_ffhgen_sim.py`
 
-2. To run in real world
+### To run in real world with calibrated camera
+
 `roslaunch grasp_pipeline grasp_pipeline_servers_real_vision_only.launch`
 
-Tune distance threshold parameter to exclude background\
-`~/hand_ws/src/grasp-pipeline/src/grasp_pipeline/server/sim/segment_object_server.py`
+Currently camera transform hardcoded in `segment_object_server.py`. Make changes here.
+    - Note: Camera coordinate system in and real not equal.
+    - Adjust the workspace boundaries in x_min, x_max, y_min, y_max
 
-`cd ~/hand_ws/src/grasp-pipeline/src/grasp_pipeline/main/real`\
+Execute the script:\
+`cd ~/path/to//grasp-pipeline/src/grasp_pipeline/main/real`\
 `python2 eval_ffhgen_real.py`
 
 ## Issue

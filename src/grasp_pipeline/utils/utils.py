@@ -242,9 +242,9 @@ def trans_rot_list_from_ros_transform(ros_transform):
 
 
 def wait_for_service(service_name):
-    rospy.loginfo('Waiting for service ' + service_name)
+    rospy.logdebug('Waiting for service ' + service_name)
     rospy.wait_for_service(service_name)
-    rospy.loginfo('Calling service ' + service_name)
+    rospy.logdebug('Calling service ' + service_name)
 
 
 def get_objects_few_grasps(n_min, base_path='/home/vm/data/ffhnet-data'):

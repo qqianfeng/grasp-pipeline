@@ -4,6 +4,7 @@ import datetime
 from multiprocessing import Process
 import numpy as np
 import os
+import open3d as o3d
 import rospy
 import tf
 import tf.transformations as tft
@@ -29,7 +30,7 @@ class GraspClient():
     """ This class is a wrapper around all the individual functionality involved in grasping experiments.
     """
     def __init__(self, is_rec_sess, grasp_data_recording_path=''):
-        rospy.init_node('grasp_client')
+        rospy.init_node('grasp_client', log_level=rospy.INFO)
         self.grasp_data_recording_path = grasp_data_recording_path
         if grasp_data_recording_path is not '':
             self.create_grasp_folder_structure(self.grasp_data_recording_path)
@@ -48,9 +49,8 @@ class GraspClient():
         self.pcd = None
 
         # These variables get changed dynamically during execution to store relevant data under correct folder
-        self.color_img_save_path = None
-        self.depth_img_save_path = None
-        self.base_path = '/home/vm'
+
+        self.base_path = os.path.expanduser("~")
         self.scene_pcd_save_path = os.path.join(self.base_path, 'scene.pcd')
         self.object_pcd_save_path = os.path.join(self.base_path, 'object.pcd')
         self.bps_object_path = os.path.join(self.base_path, 'pcd_enc.npy')
@@ -115,6 +115,26 @@ class GraspClient():
         self.spawn_object_x_min, self.spawn_object_x_max = 0.25, 0.65
         self.spawn_object_y_min, self.spawn_object_y_max = -0.2, 0.2
 
+    def show_grasps_o3d_viewer(self, palm_poses):
+        """Visualize the sampled grasp poses in open3d along with the object point cloud.
+
+        Args:
+            palm_poses (list of PoseStamped): Sampled poses.
+        """
+        frames = []
+        for i in range(0, len(palm_poses)):
+            palm_hom = utils.hom_matrix_from_pose_stamped(palm_poses[i])
+            frame = o3d.geometry.TriangleMesh.create_coordinate_frame(0.01).transform(palm_hom)
+            frames.append(frame)
+
+        #visualize
+        orig = o3d.geometry.TriangleMesh.create_coordinate_frame(0.01)
+        frames.append(orig)
+
+        obj = o3d.io.read_point_cloud(self.object_pcd_save_path)
+        frames.append(obj)
+        o3d.visualization.draw_geometries(frames)
+
     # ++++++++ PART II: Second part consist of all clients that interact with different nodes/services ++++++++++++
     def control_hithand_config_client(self, joint_conf=None):
         wait_for_service('control_hithand_config')
@@ -134,8 +154,8 @@ class GraspClient():
             req.hithand_target_joint_state = jc
             res = control_hithand_config(req)
         except rospy.ServiceException as e:
-            rospy.loginfo('Service control_hithand_config call failed: %s' % e)
-        rospy.loginfo('Service control_allegro_config is executed.')
+            rospy.logerr('Service control_hithand_config call failed: %s' % e)
+        rospy.logdebug('Service control_allegro_config is executed.')
 
     def check_pose_validity_utah_client(self, grasp_pose):
         wait_for_service('check_pose_validity_utah')
@@ -147,8 +167,8 @@ class GraspClient():
             req.pose = grasp_pose
             res = check_pose_validity_utah(req)
         except rospy.ServiceException as e:
-            rospy.loginfo('Service check_pose_validity_utah call failed: %s' % e)
-        rospy.loginfo('Service check_pose_validity_utah is executed.')
+            rospy.logerr('Service check_pose_validity_utah call failed: %s' % e)
+        rospy.logdebug('Service check_pose_validity_utah is executed.')
         return res.is_valid
 
     def encode_pcd_with_bps_client(self):
@@ -161,8 +181,8 @@ class GraspClient():
             req = SetBoolRequest(data=True)
             res = encode_pcd_with_bps(req)
         except rospy.ServiceException as e:
-            rospy.loginfo('Service encode_pcd_with_bps call failed: %s' % e)
-        rospy.loginfo('Service encode_pcd_with_bps is executed.')
+            rospy.logerr('Service encode_pcd_with_bps call failed: %s' % e)
+        rospy.logdebug('Service encode_pcd_with_bps is executed.')
 
     def execute_joint_trajectory_client(self, smoothen_trajectory=True, speed='fast'):
         """ Service call to smoothen and execute a joint trajectory.
@@ -184,10 +204,10 @@ class GraspClient():
                 return True
             else:
                 return False
-                rospy.loginfo('The joint trajectory in planned_panda_joint_trajectory was empty.')
+                rospy.logerr('The joint trajectory in planned_panda_joint_trajectory was empty.')
         except rospy.ServiceException, e:
-            rospy.loginfo('Service execute_joint_trajectory call failed: %s' % e)
-        rospy.loginfo('Service execute_joint_trajectory is executed.')
+            rospy.logerr('Service execute_joint_trajectory call failed: %s' % e)
+        rospy.logdebug('Service execute_joint_trajectory is executed.')
 
     def filter_palm_goal_poses_client(self):
         wait_for_service('filter_palm_goal_poses')
@@ -198,8 +218,8 @@ class GraspClient():
 
             res = filter_palm_goal_poses(req)
         except rospy.ServiceException, e:
-            rospy.loginfo('Service filter_palm_goal_poses call failed: %s' % e)
-        rospy.loginfo('Service filter_palm_goal_poses is executed.')
+            rospy.logerr('Service filter_palm_goal_poses call failed: %s' % e)
+        rospy.logdebug('Service filter_palm_goal_poses is executed.')
         return res.prune_idxs
 
     def generate_voxel_from_pcd_client(self, show_voxel=False):
@@ -230,8 +250,8 @@ class GraspClient():
                 voxel_grid = np.reshape(res.voxel_grid, [len(res.voxel_grid) / 3, 3])
                 plot_voxel(voxel_grid, voxel_res=self.voxel_grid_dim_full)
         except rospy.ServiceException, e:
-            rospy.loginfo('Service generate_voxel_from_pcd call failed: %s' % e)
-        rospy.loginfo('Service generate_voxel_from_pcd is executed.')
+            rospy.logerr('Service generate_voxel_from_pcd call failed: %s' % e)
+        rospy.logdebug('Service generate_voxel_from_pcd is executed.')
 
     def get_hand_palm_pose_and_joint_state(self):
         """ Returns pose stamped and joint state
@@ -264,8 +284,8 @@ class GraspClient():
             req = GraspControlRequest()
             res = grasp_control_hithand(req)
         except rospy.ServiceException, e:
-            rospy.loginfo('Service grasp_control_hithand call failed: %s' % e)
-        rospy.loginfo('Service grasp_control_hithand is executed.')
+            rospy.logerr('Service grasp_control_hithand call failed: %s' % e)
+        rospy.logdebug('Service grasp_control_hithand is executed.')
 
     def infer_grasp_poses_client(self, n_poses, bps_object):
         """Infers grasps by sampling randomly in the latent space and decodes them to full pose via VAE. Later it will include some sort of refinement.
@@ -278,8 +298,8 @@ class GraspClient():
             req.bps_object = np.squeeze(bps_object)
             res = infer_grasp_poses(req)
         except rospy.ServiceException, e:
-            rospy.loginfo('Service infer_grasp_poses call fialed: %s' % e)
-        rospy.loginfo('Service infer_grasp_poses is executed')
+            rospy.logerr('Service infer_grasp_poses call fialed: %s' % e)
+        rospy.logdebug('Service infer_grasp_poses is executed')
         return res.palm_poses, res.joint_confs
 
     def plan_arm_trajectory_client(
@@ -297,8 +317,8 @@ class GraspClient():
                 req.palm_goal_pose_world = self.palm_poses["desired_pre"]
             res = moveit_cartesian_pose_planner(req)
         except rospy.ServiceException, e:
-            rospy.loginfo('Service plan_arm_trajectory call failed: %s' % e)
-        rospy.loginfo('Service plan_arm_trajectory is executed.')
+            rospy.logerr('Service plan_arm_trajectory call failed: %s' % e)
+        rospy.logdebug('Service plan_arm_trajectory is executed.')
         self.panda_planned_joint_trajectory = res.trajectory
         return res.success
 
@@ -310,8 +330,8 @@ class GraspClient():
             res = plan_reset_trajectory(PlanResetTrajectoryRequest())
             self.panda_planned_joint_trajectory = res.trajectory
         except rospy.ServiceException, e:
-            rospy.loginfo('Service plan_reset_trajectory call failed: %s' % e)
-        rospy.loginfo('Service plan_reset_trajectory is executed.')
+            rospy.logerr('Service plan_reset_trajectory call failed: %s' % e)
+        rospy.logdebug('Service plan_reset_trajectory is executed.')
         return res.success
 
     def record_grasp_trial_data_client(self):
@@ -347,8 +367,8 @@ class GraspClient():
             res = record_grasp_trial_data(req)
 
         except rospy.ServiceException, e:
-            rospy.loginfo('Service record_grasp_trial_data call failed: %s' % e)
-        rospy.loginfo('Service record_grasp_trial_data is executed.')
+            rospy.logerr('Service record_grasp_trial_data call failed: %s' % e)
+        rospy.logdebug('Service record_grasp_trial_data is executed.')
 
     def record_grasp_data_client(self):
         wait_for_service('record_grasp_data')
@@ -379,8 +399,8 @@ class GraspClient():
 
             res = record_grasp_data(req)
         except rospy.ServiceException, e:
-            rospy.loginfo('Service record_grasp_data call failed: %s' % e)
-        rospy.loginfo('Service record_grasp_data is executed.')
+            rospy.logerr('Service record_grasp_data call failed: %s' % e)
+        rospy.logdebug('Service record_grasp_data is executed.')
 
     def reset_hithand_joints_client(self):
         """ Server call to reset the hithand joints.
@@ -390,8 +410,8 @@ class GraspClient():
             reset_hithand = rospy.ServiceProxy('reset_hithand_joints', SetBool)
             res = reset_hithand(SetBoolRequest(data=True))
         except rospy.ServiceException, e:
-            rospy.loginfo('Service reset_hithand_joints call failed: %s' % e)
-        rospy.loginfo('Service reset_hithand_joints is executed.')
+            rospy.logerr('Service reset_hithand_joints call failed: %s' % e)
+        rospy.logdebug('Service reset_hithand_joints is executed.')
 
     def save_visual_data_client(self, save_pcd=True):
         wait_for_service('save_visual_data')
@@ -404,8 +424,8 @@ class GraspClient():
                 req.scene_pcd_save_path = self.scene_pcd_save_path
             res = save_visual_data(req)
         except rospy.ServiceException, e:
-            rospy.loginfo('Service save_visual_data call failed: %s' % e)
-        rospy.loginfo('Service save_visual_data is executed %s' % res.success)
+            rospy.logerr('Service save_visual_data call failed: %s' % e)
+        rospy.logdebug('Service save_visual_data is executed %s' % res.success)
 
     def segment_object_client(self, align_object_world=True, down_sample_pcd=True):
         wait_for_service('segment_object')
@@ -466,8 +486,8 @@ class GraspClient():
                 ])
 
         except rospy.ServiceException, e:
-            rospy.loginfo('Service segment_object call failed: %s' % e)
-        rospy.loginfo('Service segment_object is executed.')
+            rospy.logerr('Service segment_object call failed: %s' % e)
+        rospy.logdebug('Service segment_object is executed.')
 
     def update_grasp_palm_pose_client(self, palm_pose):
         wait_for_service("update_grasp_palm_pose")
@@ -477,8 +497,8 @@ class GraspClient():
             req.palm_pose = palm_pose
             res = update_grasp_palm_pose(req)
         except rospy.ServiceException, e:
-            rospy.loginfo('Service update_grasp_palm_pose call failed: %s' % e)
-        rospy.loginfo('Service update_grasp_palm_pose is executed.')
+            rospy.logerr('Service update_grasp_palm_pose call failed: %s' % e)
+        rospy.logdebug('Service update_grasp_palm_pose is executed.')
 
     def update_object_pose_aligned_client(self):
         wait_for_service("update_grasp_object_pose")
@@ -489,8 +509,8 @@ class GraspClient():
             req.object_pose_world = self.object_metadata["aligned_pose"]
             res = update_grasp_object_pose(req)
         except rospy.ServiceException, e:
-            rospy.loginfo('Service update_gazebo_object call failed: %s' % e)
-        rospy.loginfo('Service update_grasp_object_pose is executed %s.' % str(res.success))
+            rospy.logerr('Service update_gazebo_object call failed: %s' % e)
+        rospy.logdebug('Service update_grasp_object_pose is executed %s.' % str(res.success))
 
     def update_object_mesh_frame_pose_client(self):
         wait_for_service("update_object_mesh_frame_pose")
@@ -501,8 +521,8 @@ class GraspClient():
             req.object_pose_world = self.object_metadata["mesh_frame_pose"]
             res = update_object_mesh_frame_pose(req)
         except rospy.ServiceException, e:
-            rospy.loginfo('Service update_object_mesh_frame_pose call failed: %s' % e)
-        rospy.loginfo('Service update_object_mesh_frame_pose is executed.')
+            rospy.logerr('Service update_object_mesh_frame_pose call failed: %s' % e)
+        rospy.logdebug('Service update_object_mesh_frame_pose is executed.')
 
     def visualize_grasp_pose_list_client(self, grasp_poses):
         wait_for_service("visualize_grasp_pose_list")
@@ -513,8 +533,8 @@ class GraspClient():
             req.grasp_pose_list = grasp_poses
             res = visualize_grasp_pose_list(req)
         except rospy.ServiceException, e:
-            rospy.loginfo('Service visualize_grasp_poses_list failed: %s' % e)
-        rospy.loginfo('Service visualize_grasp_poses_list is executed.')
+            rospy.logerr('Service visualize_grasp_poses_list failed: %s' % e)
+        rospy.logdebug('Service visualize_grasp_poses_list is executed.')
 
     # =============================================================================================================
     # ++++++++ PART III: The third part consists of all the main logic/orchestration of Parts I and II ++++++++++++

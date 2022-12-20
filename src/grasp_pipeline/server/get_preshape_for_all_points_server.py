@@ -82,7 +82,7 @@ class GetPreshapeForAllPoints():
         self.listener = tf.TransformListener()
 
         # Segmented object vars
-        self.object_pcd_path = rospy.get_param('object_pcd_path', '/home/vm/object.pcd')
+        self.object_pcd_path = rospy.get_param('object_pcd_path')
         self.object_pcd = None
         self.object_points = None
         self.object_normals = None
@@ -474,8 +474,6 @@ class GetPreshapeForAllPoints():
         is_tops = []
         joint_states = []
         face_ids = []
-
-        ob = o3d.io.read_point_cloud('/home/vm/object.pcd')
 
         # Sample 6D pose for each point
         for i, (point, normal) in enumerate(zip(self.object_points, self.object_normals)):
