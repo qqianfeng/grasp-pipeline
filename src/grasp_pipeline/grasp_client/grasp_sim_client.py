@@ -757,6 +757,18 @@ class GraspClient():
         self.trigger_cond = not self.trigger_cond
         pub.publish(Bool(data=self.trigger_cond))
 
+    def reset_tracking_client(self):
+        """ Reset tracked point cloud.
+        """
+        wait_for_service('reset_tracking')
+        try:
+            reset_tracking = rospy.ServiceProxy(
+                'reset_tracking', SetBool)
+            res = reset_tracking()
+        except rospy.ServiceException as e:
+            rospy.loginfo('Service reset_tracking call failed: %s' % e)
+        rospy.loginfo('Service reset_tracking is executed.')
+
     def reset_hithand_joints_client(self):
         """ Server call to reset the hithand joints.
         """
@@ -1034,6 +1046,9 @@ class GraspClient():
         reset_plan_exists = self.plan_reset_trajectory_client()
         if reset_plan_exists:
             self.execute_joint_trajectory_client()
+
+    def reset_tracking(self):
+        self.reset_tracking_client()
 
     def spawn_object(self, pose_type, pose_arr=None):
         # Generate a random valid object pose
