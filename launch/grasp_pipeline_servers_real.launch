@@ -2,82 +2,93 @@
 
 <launch>
     <!-- +++++++NOTE: The different paths in the args must be modified for your machine. ++++++++ -->
-    <arg name="launch_rosbridge" default="true"/>
     <arg name="simulation" default="false"/>
 
     <!-- +++++++++++++++++++ Set the params needed by the different nodes ++++++++++++++++++++++++++++++++ -->
-    <param name="object_pcd_path" value="/home/yb/object.pcd" type="string"/>
-    <param name="object_pcd_enc_path" value="/home/yb/pcd_enc.npy" type="string"/>
-    <param name="scene_pcd_path" value="/home/yb/scene.pcd" type="string"/>
-    <param name="object_datasets_folder" value="/home/yb/Projects/gazebo-objects" type="string"/>
-    <param name="color_img_save_path" value="/home/yb/scene.jpg" type="string"/>
-    <param name="depth_img_save_path" value="/home/yb/depth.pgn" type="string"/>
-    <param name="ffhnet_path" value="/home/yb/Projects/FFHNet" type="string"/>
-    <param name="siammask_path" value="/home/yb/Projects/siammask" type="string"/>
-    <param name="data_recording_path" value="/home/yb" type="string"/>
-    <param name="hithand_ws_path" value="/home/yb/Projects/hithand_ws" type="string"/>
+    <param name="simulation" value="$(arg simulation)" />
+    <param name="object_pcd_path" value="/home/vm/object.pcd" type="string"/>
+    <param name="scene_pcd_path" value="/home/vm/scene.pcd" type="string"/>
+    <param name="object_datasets_folder" value="/home/vm/gazebo-objects" type="string"/>
+    <param name="color_img_save_path" value="/home/vm/scene.jpg" type="string"/>
+    <param name="depth_img_save_path" value="/home/vm/depth.pgn" type="string"/>
     <param name="scene_pcd_topic" value="/camera/depth/points" if="$(arg simulation)" type="string"/>
     <param name="scene_pcd_topic" value="/camera/depth/color/points" unless="$(arg simulation)" type="string"/>
     <param name="color_img_topic" value="/camera/color/image_raw" type="string"/>
     <param name="depth_img_topic" value="/camera/depth/image_raw" if="$(arg simulation)" type="string"/>
     <param name="depth_img_topic" value="/camera/depth/image_rect_raw" unless="$(arg simulation)" type="string"/>
-    <param name="visualize" value="True"/>
-
     <!-- use_sim_time causes problems if true and Gazebo not running. -->
     <!-- <param name="/use_sim_time" value="true"/>   -->
 
     <!-- +++++++++++++++++++++++++++++++++++++++++++++++++++ -->
 
+    <!-- =================================================================================================================== -->
+    <!-- ========================================= Distinction of SIM vs.REAL ============================================= -->
+    <!-- Nodes specific to simulation -->
+    <group if="$(arg simulation)">
+        <!-- Gazebo scene manager -->
+        <node name="manage_gazebo_scene_node" pkg="grasp_pipeline" type="manage_gazebo_scene_server.py" output="screen"/>
+        <!-- Hand controller -->
+        <node name="grasp_control_hithand_node" pkg="grasp_pipeline" type="grasp_control_sim_hithand_server.py" output="screen"/>
+        <!-- Record grasp data in sim -->
+        <node name="record_grasp_and_collision_data_node" pkg="grasp_pipeline" type="record_grasp_and_collision_data_server.py" output="screen"/>
+    </group>
 
     <!-- Nodes specific to real world -->
-    <!-- Camera is no longer attached to robot model directly as in simulation. Therefore, publish transform from camera link to world -->
-    <node name="world_to_camera_depth_optical_frame" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 1 world camera_depth_optical_frame 100" />
+    <group unless="$(arg simulation)">
+        <!-- Camera is no longer attached to robot model directly as in simulation. Therefore, publish transform from camera link to world -->
+        <node name="world_to_camera_depth_optical_frame" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 1 world camera_depth_optical_frame 100" />
+        <!-- Insert camera pose: x y z q1 q2 q3 q4 -->
+        <!-- <node name="world_to_camera_depth_optical_frame" pkg="tf" type="static_transform_publisher"
+            args="0.4 -0.35 0.3 -0.10566872  0.10566872  0.69916673  0.69916673 world camera_depth_optical_frame 100" /> -->
 
-    <!-- <group ns="camera">
-        <include file="$(find realsense2_camera)/launch/includes/nodelet.launch.xml">
-            <arg name="tf_prefix" value="camera"/>
-            <arg name="enable_pointcloud" value="true"/>
-            <arg name="publish_tf" value="false"/>
-            <arg name="tf_publish_rate" value="5"/>
+        <group ns="camera">
+            <include file="$(find realsense2_camera)/launch/includes/nodelet.launch.xml">
+                <arg name="tf_prefix" value="camera"/>
+                <arg name="enable_pointcloud" value="true"/>
+                <arg name="publish_tf" value="false"/>
+                <arg name="tf_publish_rate" value="5"/>
 
-            <arg name="clip_distance" value="2"/>
+                <arg name="clip_distance" value="2"/>
 
-            <arg name="depth_width" value="1280"/>
-            <arg name="depth_height" value="720"/>
-            <arg name="depth_fps" value="5"/>
-            <arg name="color_fps" value="5"/>
-            <arg name="color_width" value="1280"/>
-            <arg name="color_height" value="720"/>
-            <arg name="enable_color" value="true"/>
-            <arg name="enable_infra" value="false"/>
-            <arg name="enable_infra1" value="false"/>
-            <arg name="enable_infra2" value="false"/>
-        </include>
-    </group> -->
+                <arg name="depth_width" value="1280"/>
+                <arg name="depth_height" value="720"/>
+                <arg name="depth_fps" value="5"/>
+                <arg name="color_fps" value="5"/>
+                <arg name="color_width" value="1280"/>
+                <arg name="color_height" value="720"/>
+                <arg name="enable_color" value="true"/>
+                <arg name="enable_infra" value="false"/>
+                <arg name="enable_infra1" value="false"/>
+                <arg name="enable_infra2" value="false"/>
+            </include>
+        </group>
+    </group>
 
     <!-- =================================================================================================================== -->
     <!-- ========================================= Independent of SIM vs. REAL ============================================= -->
 
     <!-- Launch node which advertises service to segment the table from an object -->
-    <!-- <node name="object_segmentation_node" pkg="grasp_pipeline" type="segment_object_server.py" output="screen"/> -->
+    <node name="object_segmentation_node" pkg="grasp_pipeline" type="segment_object_server.py" output="screen"/>
 
     <!-- Manage moveit scene -->
-    <!-- <node name="manage_moveit_scene_node" pkg="grasp_pipeline" type="manage_moveit_scene_server.py" output="screen">
+    <node name="manage_moveit_scene_node" pkg="grasp_pipeline" type="manage_moveit_scene_server.py" output="screen">
         <param name="sim" type="bool" value="$(arg simulation)"/>
-    </node> -->
+    </node>
 
-    <!-- TODO: Collision checking with point cloud -->
+    <!-- Generate a preshape for each point  -->
+    <node name="get_preshape_for_all_points_node" pkg="grasp_pipeline" type="get_preshape_for_all_points_server.py" output="screen"/>
+
     <!-- Filter palm poses based on collision with object or ground plane -->
-    <!-- <node name="filter_palm_goal_poses_node" pkg="grasp_pipeline" type="filter_palm_goal_poses_server.py" output="screen"/> -->
+    <node name="filter_palm_goal_poses_node" pkg="grasp_pipeline" type="filter_palm_goal_poses_server.py" output="screen"/>
 
     <!-- Moveit planner node for panda arm -->
-    <!-- <node name="plan_arm_trajectory_server_node" pkg="grasp_pipeline" type="plan_arm_trajectory_server.py" output="screen"/> -->
+    <node name="plan_arm_trajectory_server_node" pkg="grasp_pipeline" type="plan_arm_trajectory_server.py" output="screen"/>
 
     <!-- SMOOTH THE TRAJECTORY /-->
-    <!-- <node name="get_smooth_trajectory_node" pkg="trajectory_smoothing" type="service" output="screen"/> -->
+    <node name="get_smooth_trajectory_node" pkg="trajectory_smoothing" type="service" output="screen"/>
 
     <!-- Execute planned joint trajectory server-->
-    <!-- <node name="execute_joint_trajectory_server_node" pkg="grasp_pipeline" type="execute_joint_trajectory_server.py" output="screen"/> -->
+    <node name="execute_joint_trajectory_server_node" pkg="grasp_pipeline" type="execute_joint_trajectory_server.py" output="screen"/>
 
 
     <!-- Save visual data node -->
@@ -85,18 +96,4 @@
 
     <!-- Node to update palm and object poses-->
     <node name="update_poses_node" pkg="grasp_pipeline" type="update_object_and_palm_tf_server.py" output="screen"/>
-
-    <!-- Node to infer grasp poses -->
-    <node name="infer_grasp_poses" pkg="grasp_pipeline" type="infer_grasp_poses_server.py" output="screen"/>
-
-    <!-- Node to handle the bps encoding-->
-    <group if="$(arg launch_rosbridge)">
-        <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
-        <node pkg="tf2_web_republisher" type="tf2_web_republisher" name="tf2_web_republisher"/>
-        <node name="encode_pcd_with_bps" pkg="grasp_pipeline" type="encode_pcd_with_bps.sh" output="screen"/>
-    </group>
-
-    <!-- Record grasping data -->
-    <node name="record_grasp_and_collision_data_node" pkg="grasp_pipeline" type="record_grasp_and_collision_data_server.py" output="screen"/>
-
 </launch>
