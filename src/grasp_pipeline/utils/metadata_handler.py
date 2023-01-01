@@ -50,10 +50,11 @@ class MetadataHandler():
                 object_metadata = self.get_object_metadata(dset_name, obj_name)
 
                 choose_success = True
-                if dset_name == 'bigbird' and object_metadata["name"] in BIGBIRD_OBJECTS_DATA_GENERATED:
-                    choose_success = False
-                if dset_name == 'kit' and object_metadata["name"] in KIT_OBJECTS_DATA_GENERATED:
-                    choose_success = False
+                # temperary commented for testing generated data
+                # if dset_name == 'bigbird' and object_metadata["name"] in BIGBIRD_OBJECTS_DATA_GENERATED:
+                #     choose_success = False
+                # if dset_name == 'kit' and object_metadata["name"] in KIT_OBJECTS_DATA_GENERATED:
+                #     choose_success = False
                 if choose_success:
                     rospy.loginfo('Trying to grasp object: %s in dataset: %s' % (object_metadata["name"], object_metadata['dataset']))
 
