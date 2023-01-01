@@ -132,7 +132,7 @@ def log_grasp(src_grasp_gp, dest_grasp_gp, is_coll=False):
         dest_grasp_gp.create_dataset("desired_preshape_joint_state", data=des_joint_conf)
         dest_grasp_gp.create_dataset("true_preshape_palm_mesh_frame", data=true_palm_mesh_frame)
         dest_grasp_gp.create_dataset("desired_preshape_palm_mesh_frame", data=des_palm_mesh_frame)
-        print(src_grasp_gp.keys())
+        
         object_name = src_grasp_gp["object_name"][()]
         obstacle1_name = src_grasp_gp["obstacle1_name"][()]
         obstacle2_name = src_grasp_gp["obstacle2_name"][()]
@@ -166,7 +166,7 @@ def log_grasp(src_grasp_gp, dest_grasp_gp, is_coll=False):
 
 
 def create_grasp_group(group, idx):
-    return group.create_group('grasp_' + str(idx).zfill(4))
+    return group.create_group('grasp_' + str(idx).zfill(5))
 
 
 def log_idxs(path, obj, pos, neg, coll):
@@ -187,9 +187,9 @@ def log_idxs(path, obj, pos, neg, coll):
 
 if __name__ == "__main__":
 
-    base_path = '/home/vm/new_data'
+    base_path = '/home/vm/new_data_till27_12'
     #dst_path = os.path.join(os.path.split(base_path)[0], 'vae-grasp', 'grasp_data_vae.h5')
-    dst_path = '/home/vm/multi_grasp_data/grasp_data_all.h5'
+    dst_path = '/home/vm/new_data/grasp_data_all.h5'
     hdf_dst = h5py.File(dst_path, 'a')
 
     # go through all the dirs, each dir contains one grasp_data.h5

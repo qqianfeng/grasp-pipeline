@@ -130,7 +130,7 @@ def save_mesh_frame_centroid_tf(obj_full, full_save_path, obj_full_pcd, tf_list)
 if __name__ == '__main__':
     # Some "hyperparameters"
     n_pcds_per_obj = 50
-    input_grasp_data_file = os.path.join('/home',os.getlogin(),'multi_grasp_data/grasp_data_all.h5')
+    input_grasp_data_file = os.path.join('/home',os.getlogin(),'new_data/grasp_data_all.h5')
     gazebo_objects_path = '/home/vm/gazebo-objects/objects_gazebo/'
     # Get all available objects and choose one
     with h5py.File(input_grasp_data_file, 'r') as hdf:
@@ -138,11 +138,11 @@ if __name__ == '__main__':
     
     all_objects = get_all_objects(gazebo_objects_path)
     # Make the base directory
-    dest_folder = os.path.join('/home', os.getlogin(), 'multi_grasp_data/')
+    dest_folder = os.path.join('/home', os.getlogin(), 'new_data/')
     pcds_folder = os.path.join(dest_folder, 'point_clouds')
     pcd_tfs_path = os.path.join(dest_folder, 'pcd_transforms.h5')
     mkdir(pcds_folder)
-    data_recording_path = '/home/vm/multi_grasp_data/'
+    data_recording_path = '/home/vm/new_data/'
     # Instantiate grasp client
     grasp_client = GraspClient(is_rec_sess=True, grasp_data_recording_path=data_recording_path)
     metadata_handler = MetadataHandler(gazebo_objects_path)
@@ -158,14 +158,14 @@ if __name__ == '__main__':
         # get objects pose from h5 file
         with h5py.File(input_grasp_data_file, 'r') as hdf:
 
-            object_mesh_frame_world = hdf[obj_full]['negative']['grasp_0000']['object_mesh_frame_world'][()]
-            obstacle1_name = hdf[obj_full]['negative']['grasp_0000']['obstacle1_name'][()]
-            obstacle2_name = hdf[obj_full]['negative']['grasp_0000']['obstacle2_name'][()]
-            obstacle3_name = hdf[obj_full]['negative']['grasp_0000']['obstacle3_name'][()]
+            object_mesh_frame_world = hdf[obj_full]['negative']['grasp_00000']['object_mesh_frame_world'][()]
+            obstacle1_name = hdf[obj_full]['negative']['grasp_00000']['obstacle1_name'][()]
+            obstacle2_name = hdf[obj_full]['negative']['grasp_00000']['obstacle2_name'][()]
+            obstacle3_name = hdf[obj_full]['negative']['grasp_00000']['obstacle3_name'][()]
             # [7,] pose
-            obstacle1_mesh_frame_world = hdf[obj_full]['negative']['grasp_0000']['obstacle1_mesh_frame_world'][()]
-            obstacle2_mesh_frame_world = hdf[obj_full]['negative']['grasp_0000']['obstacle2_mesh_frame_world'][()]
-            obstacle3_mesh_frame_world = hdf[obj_full]['negative']['grasp_0000']['obstacle3_mesh_frame_world'][()]
+            obstacle1_mesh_frame_world = hdf[obj_full]['negative']['grasp_00000']['obstacle1_mesh_frame_world'][()]
+            obstacle2_mesh_frame_world = hdf[obj_full]['negative']['grasp_00000']['obstacle2_mesh_frame_world'][()]
+            obstacle3_mesh_frame_world = hdf[obj_full]['negative']['grasp_00000']['obstacle3_mesh_frame_world'][()]
         
         obstacle_objects = find_objects(all_objects, obstacle1_name, obstacle2_name, obstacle3_name)
         ###########################################
