@@ -1036,7 +1036,7 @@ class GraspClient():
     ## below are codes for multiple objects generation ##
     #####################################################
 
-    def spawn_obstacle_objects(self, objects):
+    def spawn_obstacle_objects(self, objects, moveit=True):
         wait_for_service('create_new_scene')
         create_new_scene = rospy.ServiceProxy('create_new_scene', CreateNewScene)
         req = CreateNewSceneRequest()
@@ -1061,12 +1061,14 @@ class GraspClient():
                 # Update the sim_pose with the actual pose of the object after it came to rest
                 grasp_object["mesh_frame_pose"] = PoseStamped(header=Header(frame_id='world'),
                                                                     pose=pose)
-                self.add_to_moveit_scene(str(uuid4()), grasp_object)
+                if moveit:
+                    self.add_to_moveit_scene(str(uuid4()), grasp_object)
 
         return res.success
     
-    def remove_obstacle_objects(self, objects):
-        self.remove_obstacle_objects_from_moveit_scene()
+    def remove_obstacle_objects(self, objects,moveit=True):
+        if moveit:
+            self.remove_obstacle_objects_from_moveit_scene()
         wait_for_service('clear_scene')
         clear_scene = rospy.ServiceProxy('clear_scene', ClearScene)
         req = ClearSceneRequest()
@@ -1076,7 +1078,7 @@ class GraspClient():
         except rospy.ServiceException, e:
             rospy.loginfo('Service clear_scene call failed %s' % e)
             exit()
-        rospy.loginfo('Service clear_scene is executed %s.' % str(res.success))
+        rospy.logdebug('Service clear_scene is executed %s.' % str(res.success))
         return res.success
 
     def reset_obstacle_objects(self, objects):
@@ -1111,7 +1113,10 @@ class GraspClient():
         rospy.sleep(0.5)
         # TODO: for first time, nothing to remove but there are stuff in the moveit scene.
         for name in self.name_of_obstacle_objects_in_moveit_scene:
+            time1 = time.time()
             scene.remove_world_object(name)
+            print('MOVEIT remove:',name,'time:',time.time()-time1)
+            self.name_of_obstacle_objects_in_moveit_scene.remove(name)
             rospy.sleep(0.5)
 
     def save_scene(self):

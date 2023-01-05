@@ -64,6 +64,7 @@ BIGBIRD_OBJECTS_PROBLEMS = [
     'gushers_tropical_flavours',
     'mom_to_mom_butternut_squash_pear',
 ]
+BIGBIRD_OBJECTS_DATA_FOR_POSTPROCESSING = []
 
 BIGBIRD_OBJECTS_DATA_GENERATED = [
     '3m_high_tack_spray_adhesive', 'advil_liqui_gels', 'aunt_jemima_original_syrup',
@@ -144,6 +145,10 @@ KIT_OBJECTS_DATA_GENERATED = [
     'Toothpaste', 'Waterglass',
     'WhippedCream',  'WhiteCup', 'Wineglass', 'YellowSaltCube2', 'YellowSaltCube',
     'YellowSaltCylinderSmall', 'YellowSaltCylinder']
+
+KIT_OBJECTS_DATA_FOR_POSTPROCESSING = ['InstantSauce', 'InstantSoup', 'InstantTomatoSoup', 'JamSugar',
+                                       'Knaeckebrot', 'LivioClassicOil', 'MashedPotatoes', 'MelforBottle']
+
 
 ######### ORIGINAL FULL ITEM LISTS BELOW
 
