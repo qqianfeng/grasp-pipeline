@@ -3,7 +3,7 @@
 <launch>
     <!-- +++++++NOTE: The different paths in the args must be modified for your machine. ++++++++ -->
     <arg name="sim"                     default="true"/>
-    <arg name="data_recording_path"     default="/home/vm/new_data_20_12/"/>
+    <arg name="data_recording_path"     default="/home/vm/new_data_30_12/"/>
     <arg name="object_datasets_folder"  default="/home/vm/gazebo-objects"/>
     <arg name="object_pcd_path"         default="/home/vm/object.pcd"/>
     <arg name="scene_pcd_path"          default="/home/vm/scene.pcd"/>
