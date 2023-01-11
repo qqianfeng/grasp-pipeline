@@ -55,7 +55,7 @@ class MetadataHandler():
                         choose_success = False
                     if dset_name == 'kit' and object_metadata["name"] in KIT_OBJECTS_DATA_GENERATED:
                         choose_success = False
-                elif case == 'postprocessing':
+                elif case == 'postprocessing' or case == '':
                     pass
                 else:
                     raise ValueError('wrong case of', case)

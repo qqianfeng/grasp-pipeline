@@ -1113,11 +1113,9 @@ class GraspClient():
         rospy.sleep(0.5)
         # TODO: for first time, nothing to remove but there are stuff in the moveit scene.
         for name in self.name_of_obstacle_objects_in_moveit_scene:
-            time1 = time.time()
             scene.remove_world_object(name)
-            print('MOVEIT remove:',name,'time:',time.time()-time1)
-            self.name_of_obstacle_objects_in_moveit_scene.remove(name)
             rospy.sleep(0.5)
+        self.name_of_obstacle_objects_in_moveit_scene.clear()
 
     def save_scene(self):
         pass

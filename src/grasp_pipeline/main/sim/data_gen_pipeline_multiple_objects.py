@@ -16,14 +16,14 @@ poses = [[0.5, 0.0, 0.2, 0, 0, 0], [0.5, 0.0, 0.2, 0, 0, 1.571], [0.5, 0.0, 0.2,
 all_grasp_objects = []
 
 
-def get_objects(gazebo_objects_path, grasp_object, amount=3):
+def get_obstacle_objects(gazebo_objects_path, grasp_object, amount=3):
     global all_grasp_objects
     if len(all_grasp_objects) == 0:
         # initilize once
         metadata_handler = MetadataHandler(gazebo_objects_path)
         num_total = metadata_handler.get_total_num_objects()
         for _ in range(num_total):
-            all_grasp_objects.append(metadata_handler.choose_next_grasp_object())
+            all_grasp_objects.append(metadata_handler.choose_next_grasp_object(case='generation'))
     
     objects = []
     num_total = len(all_grasp_objects)
@@ -70,13 +70,13 @@ if __name__ == '__main__':
     # This loop runs for all objects, 4 poses, and evaluates N grasps per pose
     for i in range(metadata_handler.get_total_num_objects()):
         # Specify the object to be grasped, its pose, dataset, type, name etc.
-        object_metadata = metadata_handler.choose_next_grasp_object()
+        object_metadata = metadata_handler.choose_next_grasp_object(case='generation')
         grasp_client.update_object_metadata(object_metadata)
         for pose_idx, pose in enumerate(poses):
             object_cycle_start = time.time()
             start = object_cycle_start
 
-            obstacle_objects = get_objects(gazebo_objects_path, grasp_client.object_metadata)
+            obstacle_objects = get_obstacle_objects(gazebo_objects_path, grasp_client.object_metadata)
             obstacle_objects = distribute_obstacle_objects_randomly(pose, obstacle_objects)
 
             # Create dirs
