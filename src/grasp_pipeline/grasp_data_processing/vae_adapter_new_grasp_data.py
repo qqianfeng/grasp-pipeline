@@ -187,13 +187,15 @@ def log_idxs(path, obj, pos, neg, coll):
 
 if __name__ == "__main__":
 
-    base_path = '/home/vm/new_data_till27_12'
+    base_path = '/home/vm/new_data_full'
     #dst_path = os.path.join(os.path.split(base_path)[0], 'vae-grasp', 'grasp_data_vae.h5')
-    dst_path = '/home/vm/new_data/grasp_data_all.h5'
+    dst_path = '/home/vm/new_data_full/grasp_data_all.h5'
     hdf_dst = h5py.File(dst_path, 'a')
 
     # go through all the dirs, each dir contains one grasp_data.h5
     for dir in sorted(os.listdir(base_path)):
+        if dir[-2:] == 'h5' or dir[-3:] == 'txt':
+            continue
         print('start foler: ', dir)
         src_path = os.path.join(base_path, dir, 'grasp_data.h5')
         hdf_src = h5py.File(src_path, 'r')
@@ -247,7 +249,7 @@ if __name__ == "__main__":
                     log_grasp(src_grasp_gp, dst_grasp_gp, is_coll=True)
 
                 # Finally log the pos, neg coll idx to a txt file
-                path = os.path.join(os.path.split(base_path)[0], 'new_data', 'obj_metadata.txt')
+                path = os.path.join(os.path.split(base_path)[0], 'new_data_full', 'obj_metadata.txt')
                 log_idxs(path, obj, pos_idx, neg_idx, coll_idx)
 
     # Create pandas dataframe and log
