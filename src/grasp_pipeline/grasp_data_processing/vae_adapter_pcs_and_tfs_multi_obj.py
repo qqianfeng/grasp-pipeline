@@ -137,8 +137,9 @@ def save_mesh_frame_centroid_tf(obj_full, full_save_path, obj_full_pcd, tf_list)
 
 if __name__ == '__main__':
     # Some "hyperparameters"
+    # For debug purpose, create a file like 'new_data' and replace the name.
     n_pcds_per_obj = 50
-    input_grasp_data_file = os.path.join('/home',os.getlogin(),'new_data/grasp_data_all.h5')
+    input_grasp_data_file = os.path.join('/home',os.getlogin(),'new_data_full/grasp_data_all.h5')
     gazebo_objects_path = '/home/vm/gazebo-objects/objects_gazebo/'
     # Get all available objects and choose one
     with h5py.File(input_grasp_data_file, 'r') as hdf:
@@ -146,11 +147,11 @@ if __name__ == '__main__':
     
     all_objects = get_all_objects(gazebo_objects_path)
     # Make the base directory
-    dest_folder = os.path.join('/home', os.getlogin(), 'new_data/')
+    dest_folder = os.path.join('/home', os.getlogin(), 'new_data_full/')
     pcds_folder = os.path.join(dest_folder, 'point_clouds')
     pcd_tfs_path = os.path.join(dest_folder, 'pcd_transforms.h5')
     mkdir(pcds_folder)
-    data_recording_path = os.path.join('/home', os.getlogin(), 'new_data/')
+    data_recording_path = os.path.join('/home', os.getlogin(), 'new_data_full/')
     # Instantiate grasp client
     grasp_client = GraspClient(is_rec_sess=True, grasp_data_recording_path=data_recording_path)
     metadata_handler = MetadataHandler(gazebo_objects_path)
@@ -216,6 +217,24 @@ if __name__ == '__main__':
             grasp_client.segment_object_client(down_sample_pcd=False)
             print('time to segment single object,', time()-time2)
             
+            ###############################################
+            ## TASK find the transformations to apply to the ground truth grasp to transfer it to 
+            # object_frame and verify that the transformation is correct in RVIZ
+            #test_grasp_pose_transform(dset_obj_name=obj_full, grasp_client=grasp_client)
+
+            # Lookup transform between current mesh frame and object_centroid_vae
+            # object_centroid_vae is the center of the estimation bbox center about the partial point cloud from the object
+            transform_cent_mf = grasp_client.tf_buffer.lookup_transform("object_centroid_vae",
+                                                                        "object_mesh_frame",
+                                                                        rospy.Time(0),
+                                                                        timeout=rospy.Duration(10))
+
+            # Bring the transform to list format
+            trans_cent_mf_list = utils.trans_rot_list_from_ros_transform(transform_cent_mf)
+
+            # Save the transform to file
+            save_mesh_frame_centroid_tf(obj_full, pcd_tfs_path, obj_full_pcd, trans_cent_mf_list)
+            
             new_pose = grasp_client.get_grasp_object_pose_client()
             new_pose_matrix = utils.hom_matrix_from_pose(new_pose)
             old_pose_matrix = utils.hom_matrix_from_pos_quat_list(object_mesh_frame_world)
@@ -257,20 +276,3 @@ if __name__ == '__main__':
             time3 = time()
             print('time to segment object client,', time3 - time2)
             # TODO: save the color and depth image of single and multi
-            
-            ###############################################
-            ## TASK find the transformations to apply to the ground truth grasp to transfer it to 
-            # object_frame and verify that the transformation is correct in RVIZ
-            #test_grasp_pose_transform(dset_obj_name=obj_full, grasp_client=grasp_client)
-
-            # Lookup transform between current mesh frame and object_centroid_vae
-            transform_cent_mf = grasp_client.tf_buffer.lookup_transform("object_centroid_vae",
-                                                                        "object_mesh_frame",
-                                                                        rospy.Time(0),
-                                                                        timeout=rospy.Duration(10))
-
-            # Bring the transform to list format
-            trans_cent_mf_list = utils.trans_rot_list_from_ros_transform(transform_cent_mf)
-
-            # Save the transform to file
-            save_mesh_frame_centroid_tf(obj_full, pcd_tfs_path, obj_full_pcd, trans_cent_mf_list)

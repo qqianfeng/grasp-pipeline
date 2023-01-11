@@ -841,6 +841,7 @@ class GraspClient():
                 req.obstacle1_mesh_frame_world = objects[0]['mesh_frame_pose']
                 req.obstacle2_mesh_frame_world = objects[1]['mesh_frame_pose']
                 req.obstacle3_mesh_frame_world = objects[2]['mesh_frame_pose']
+            # desired_pose_mesh_frame is the palm pose loaded for training.
             req.desired_preshape_palm_mesh_frame = desired_pose_mesh_frame
             req.true_preshape_palm_mesh_frame = true_pose_mesh_frame
             req.desired_joint_state = self.hand_joint_states["desired_pre"]
@@ -988,7 +989,7 @@ class GraspClient():
                 self.object_segment_response.object.width = bb_extent_aligned[0]
                 self.object_segment_response.object.height = bb_extent_aligned[1]
                 self.object_segment_response.object.depth = bb_extent_aligned[2]
-                rospy.logdebug("whd Vincent: ")
+                rospy.logdebug("whd: ")
                 rospy.logdebug([
                     self.object_segment_response.object.width,
                     self.object_segment_response.object.height,
