@@ -6,6 +6,7 @@ import copy
 import rospy
 import numpy as np
 import h5py
+from time import time
 
 from grasp_pipeline.grasp_client.grasp_sim_client import GraspClient
 from grasp_pipeline.utils.metadata_handler import MetadataHandler
@@ -25,25 +26,30 @@ def get_all_objects(gazebo_objects_path):
     metadata_handler = MetadataHandler(gazebo_objects_path)
     num_total = metadata_handler.get_total_num_objects()
     for _ in range(num_total):
-        all_grasp_objects.append(metadata_handler.choose_next_grasp_object())
+        all_grasp_objects.append(metadata_handler.choose_next_grasp_object(case='postprocessing'))
     return all_grasp_objects
     
 
 def find_objects(all_objects, name1, name2, name3):
     objects = []
+    print('obstacle object to find:')
+    print(name1, name2, name3)
     for obj in all_objects:
         if obj['name'] == name1:
+            print('found object:', name1)
             objects.append(obj)
         elif obj['name'] == name2:
+            print('found object:', name2)
             objects.append(obj)
         elif obj['name'] == name3:
-            objects.append(obj) 
-    assert len(objects) == 3
+            print('found object:', name3)
+            objects.append(obj)
     return objects
 
 
 def assign_obstacle_objects_pose(obstacle_object, pose_stamped):
     obstacle_object['mesh_frame_pose'] = pose_stamped
+
 
 def test_grasp_pose_transform(dset_obj_name, grasp_client):
     # Create data and metadata handler
@@ -124,13 +130,16 @@ def create_object_group_in_h5_file(full_obj_name, full_save_path):
 
 def save_mesh_frame_centroid_tf(obj_full, full_save_path, obj_full_pcd, tf_list):
     with h5py.File(full_save_path, 'r+') as hdf:
-        hdf[obj_full].create_dataset(obj_full_pcd + '_mesh_to_centroid', data=tf_list)
-
+        try:
+            hdf[obj_full].create_dataset(obj_full_pcd + '_mesh_to_centroid', data=tf_list)
+        except RuntimeError:
+            hdf[obj_full][obj_full_pcd + '_mesh_to_centroid'][...] = tf_list
 
 if __name__ == '__main__':
     # Some "hyperparameters"
+    # For debug purpose, create a file like 'new_data' and replace the name.
     n_pcds_per_obj = 50
-    input_grasp_data_file = os.path.join('/home',os.getlogin(),'new_data/grasp_data_all.h5')
+    input_grasp_data_file = os.path.join('/home',os.getlogin(),'new_data_full/grasp_data_all.h5')
     gazebo_objects_path = '/home/vm/gazebo-objects/objects_gazebo/'
     # Get all available objects and choose one
     with h5py.File(input_grasp_data_file, 'r') as hdf:
@@ -138,11 +147,11 @@ if __name__ == '__main__':
     
     all_objects = get_all_objects(gazebo_objects_path)
     # Make the base directory
-    dest_folder = os.path.join('/home', os.getlogin(), 'new_data/')
+    dest_folder = os.path.join('/home', os.getlogin(), 'new_data_full/')
     pcds_folder = os.path.join(dest_folder, 'point_clouds')
     pcd_tfs_path = os.path.join(dest_folder, 'pcd_transforms.h5')
     mkdir(pcds_folder)
-    data_recording_path = '/home/vm/new_data/'
+    data_recording_path = os.path.join('/home', os.getlogin(), 'new_data_full/')
     # Instantiate grasp client
     grasp_client = GraspClient(is_rec_sess=True, grasp_data_recording_path=data_recording_path)
     metadata_handler = MetadataHandler(gazebo_objects_path)
@@ -150,6 +159,12 @@ if __name__ == '__main__':
     # Iterate over all objects
     for obj_full in objects:
         obj = '_'.join(obj_full.split('_')[1:])
+        if obj in BIGBIRD_OBJECTS_DATA_FOR_POSTPROCESSING:
+            continue
+        if obj in KIT_OBJECTS_DATA_FOR_POSTPROCESSING:
+            continue
+                        
+        print('start with obj:', obj)
         dset = obj_full.split('_')[0]
         # Create directory for new object
         object_folder = os.path.join(pcds_folder, obj_full)
@@ -157,19 +172,22 @@ if __name__ == '__main__':
         ######################################
         # get objects pose from h5 file
         with h5py.File(input_grasp_data_file, 'r') as hdf:
-
-            object_mesh_frame_world = hdf[obj_full]['negative']['grasp_00000']['object_mesh_frame_world'][()]
-            obstacle1_name = hdf[obj_full]['negative']['grasp_00000']['obstacle1_name'][()]
-            obstacle2_name = hdf[obj_full]['negative']['grasp_00000']['obstacle2_name'][()]
-            obstacle3_name = hdf[obj_full]['negative']['grasp_00000']['obstacle3_name'][()]
-            # [7,] pose
-            obstacle1_mesh_frame_world = hdf[obj_full]['negative']['grasp_00000']['obstacle1_mesh_frame_world'][()]
-            obstacle2_mesh_frame_world = hdf[obj_full]['negative']['grasp_00000']['obstacle2_mesh_frame_world'][()]
-            obstacle3_mesh_frame_world = hdf[obj_full]['negative']['grasp_00000']['obstacle3_mesh_frame_world'][()]
-        
+            # certain object can have no grasps:
+            try:
+                object_mesh_frame_world = hdf[obj_full]['negative']['grasp_00000']['object_mesh_frame_world'][()]
+                obstacle1_name = hdf[obj_full]['negative']['grasp_00000']['obstacle1_name'][()]
+                obstacle2_name = hdf[obj_full]['negative']['grasp_00000']['obstacle2_name'][()]
+                obstacle3_name = hdf[obj_full]['negative']['grasp_00000']['obstacle3_name'][()]
+                
+                # [7,] pose
+                obstacle1_mesh_frame_world = hdf[obj_full]['negative']['grasp_00000']['obstacle1_mesh_frame_world'][()]
+                obstacle2_mesh_frame_world = hdf[obj_full]['negative']['grasp_00000']['obstacle2_mesh_frame_world'][()]
+                obstacle3_mesh_frame_world = hdf[obj_full]['negative']['grasp_00000']['obstacle3_mesh_frame_world'][()]
+            except KeyError:
+                continue
         obstacle_objects = find_objects(all_objects, obstacle1_name, obstacle2_name, obstacle3_name)
         ###########################################
-        #Create group for new object
+        # Create group for new object
         create_object_group_in_h5_file(obj_full, pcd_tfs_path)
 
         # Get metadata for new object and set in grasp_client
@@ -184,16 +202,39 @@ if __name__ == '__main__':
             obj_full_pcd = obj_full + '_pcd' + num_str
             single_pcd_save_path = os.path.join(object_folder, obj_full_pcd + '_single.pcd')
             multi_pcd_save_path = os.path.join(object_folder, obj_full_pcd + '_multi.pcd')
-            
-            grasp_client.remove_obstacle_objects(obstacle_objects)
-
+            time0 = time()
+            grasp_client.remove_obstacle_objects(obstacle_objects, moveit=False)
+            time1 = time()
+            print('time to remove bstacle objects,', time1-time0)
             # Spawn object in random position and orientation. NOTE: currently this will only spawn the objects upright with random z orientation
             grasp_client.spawn_object(pose_type='random')
+            time2 = time()
+            print('time to spawn object,', time2-time1)
             ###############################################
             # Segment object and save visual data
-            grasp_client.set_path_and_save_visual_data(grasp_phase='single',
+            grasp_client.set_path_and_save_visual_data(grasp_phase='single', 
                                                         object_pcd_record_path=single_pcd_save_path)
             grasp_client.segment_object_client(down_sample_pcd=False)
+            print('time to segment single object,', time()-time2)
+            
+            ###############################################
+            ## TASK find the transformations to apply to the ground truth grasp to transfer it to 
+            # object_frame and verify that the transformation is correct in RVIZ
+            #test_grasp_pose_transform(dset_obj_name=obj_full, grasp_client=grasp_client)
+
+            # Lookup transform between current mesh frame and object_centroid_vae
+            # object_centroid_vae is the center of the estimation bbox center about the partial point cloud from the object
+            transform_cent_mf = grasp_client.tf_buffer.lookup_transform("object_centroid_vae",
+                                                                        "object_mesh_frame",
+                                                                        rospy.Time(0),
+                                                                        timeout=rospy.Duration(10))
+
+            # Bring the transform to list format
+            trans_cent_mf_list = utils.trans_rot_list_from_ros_transform(transform_cent_mf)
+
+            # Save the transform to file
+            save_mesh_frame_centroid_tf(obj_full, pcd_tfs_path, obj_full_pcd, trans_cent_mf_list)
+            
             new_pose = grasp_client.get_grasp_object_pose_client()
             new_pose_matrix = utils.hom_matrix_from_pose(new_pose)
             old_pose_matrix = utils.hom_matrix_from_pos_quat_list(object_mesh_frame_world)
@@ -225,27 +266,13 @@ if __name__ == '__main__':
                     raise ValueError("obj name not found", obj['name'])
             
             # np.allclose(new_pose_matrix, np.matmul(new_T_old,old_pose_matrix))
-    
-            grasp_client.spawn_obstacle_objects(obstacle_objects)
-            
+            time1 = time()
+            grasp_client.spawn_obstacle_objects(obstacle_objects, moveit=False)
+            time2 = time()
+            print('time to spawn obstacle objects,', time2 - time1)
             grasp_client.set_path_and_save_visual_data(grasp_phase="pre", 
                                                        object_pcd_record_path=multi_pcd_save_path)
             grasp_client.segment_object_client(down_sample_pcd=False)
+            time3 = time()
+            print('time to segment object client,', time3 - time2)
             # TODO: save the color and depth image of single and multi
-            
-            ###############################################
-            ## TASK find the transformations to apply to the ground truth grasp to transfer it to 
-            # object_frame and verify that the transformation is correct in RVIZ
-            #test_grasp_pose_transform(dset_obj_name=obj_full, grasp_client=grasp_client)
-
-            # Lookup transform between current mesh frame and object_centroid_vae
-            transform_cent_mf = grasp_client.tf_buffer.lookup_transform("object_centroid_vae",
-                                                                        "object_mesh_frame",
-                                                                        rospy.Time(0),
-                                                                        timeout=rospy.Duration(10))
-
-            # Bring the transform to list format
-            trans_cent_mf_list = utils.trans_rot_list_from_ros_transform(transform_cent_mf)
-
-            # Save the transform to file
-            save_mesh_frame_centroid_tf(obj_full, pcd_tfs_path, obj_full_pcd, trans_cent_mf_list)

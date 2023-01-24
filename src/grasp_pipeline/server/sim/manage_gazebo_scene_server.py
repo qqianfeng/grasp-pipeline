@@ -20,7 +20,7 @@ class GazeboSceneManager():
         rospy.init_node('manage_gazebo_scene_server')
         rospy.loginfo('Node: manage_gazebo_scene_server')
         self.prev_object_model_name = None
-        self.objcets_in_scene = set()
+        self.objects_in_scene = set()
         self.scene_snapshot = None
 
     def delete_object(self, object_model_name):
@@ -62,7 +62,7 @@ class GazeboSceneManager():
         return True
 
     def handle_update_gazebo_object(self, req):
-        print("RECEIVED REQUEST")
+        print("update_gazebo_object: RECEIVED REQUEST")
         print(req)
         self.delete_prev_object(req.object_name)
         rospy.sleep(1)
@@ -111,14 +111,14 @@ class GazeboSceneManager():
         rospy.loginfo('Ready to create new gazebo scene')
 
     def handle_create_new_scene(self, req):
-        print("RECEIVED REQUEST")
+        print("create_new_scene: RECEIVED REQUEST")
         print(req)
         self.clear_scene()
         self.clear_scene_snapshot()
         response = CreateNewSceneResponse()
 
         self.spawn_multiple_objects(req.objects_in_new_scene)
-        if len(self.objcets_in_scene) < len(req.objects_in_new_scene):
+        if len(self.objects_in_scene) < len(req.objects_in_new_scene):
             # TODO how to avoid the failure of spawning new object
             response.success = False
             return response
@@ -139,7 +139,7 @@ class GazeboSceneManager():
         rospy.loginfo('Ready to create new gazebo scene')
 
     def handle_clear_scene(self, req):
-        print("RECEIVED REQUEST")
+        print("clear_scene: RECEIVED REQUEST")
         print(req)
         self.clear_scene()
         self.clear_scene_snapshot()
@@ -153,7 +153,7 @@ class GazeboSceneManager():
         rospy.loginfo('Ready to reset gazebo scene')
 
     def handel_reset_scene(self, req):
-        print("RECEIVED REQUEST")
+        print("reset_scene: RECEIVED REQUEST")
         print(req)
         response = ResetSceneResponse()
 
@@ -172,12 +172,12 @@ class GazeboSceneManager():
         for object in object_list:
             if self.spawn_object_do_not_modify_prev_object(object.object_name, object.object_model_file,
                             object.object_pose_array, object.model_type):
-                self.objcets_in_scene.add(object)
+                self.objects_in_scene.add(object)
 
     def clear_scene(self):
-        for object in self.objcets_in_scene.copy():
+        for object in self.objects_in_scene.copy():
             self.delete_object(object.object_name)
-            self.objcets_in_scene.discard(object)
+            self.objects_in_scene.discard(object)
 
     def take_scene_snapshot(self):
         scene = _get_stationary_scene()

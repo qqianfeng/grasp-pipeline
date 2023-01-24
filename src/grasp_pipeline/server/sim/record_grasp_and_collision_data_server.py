@@ -285,6 +285,7 @@ class RecordGraspData():
             #Add all the grasp-specific data and store in datasets under new group
             # object_name
             grasp_group.create_dataset('object_name', data=req.object_name)
+
             # time stamp
             grasp_group.create_dataset('time_stamp', data=req.time_stamp)
             # is_top_grasp
@@ -299,6 +300,7 @@ class RecordGraspData():
             # object_world_sim_pose
             grasp_group.create_dataset('object_mesh_frame_world',
                                        data=self.convert_pose_to_list(req.object_mesh_frame_world))
+
             # desired_preshape_palm_world_pose
             grasp_group.create_dataset('desired_preshape_palm_mesh_frame',
                                        data=self.convert_pose_to_list(
