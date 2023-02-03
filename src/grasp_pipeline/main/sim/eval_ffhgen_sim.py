@@ -1,18 +1,15 @@
- """ This file is used to evaluate the model and sample grasps. 
+""" This file is used to evaluate the model and sample grasps. 
 """
 import numpy as np
 import shutil
 import torch
 import rospy
 import os
-import random
 
 from grasp_pipeline.grasp_client.grasp_sim_client import GraspClient
 from grasp_pipeline.utils.metadata_handler import MetadataHandler
 from grasp_pipeline.utils.object_names_in_datasets import OBJECTS_FOR_EVAL as obj_list
 # from grasp_pipeline.utils.object_names_in_datasets import OBJECTS_DATA_GEN_PAPER_VIDEO as obj_list
-
-
 
 # Define parameters:
 N_POSES = 400
@@ -27,50 +24,6 @@ shutil.rmtree(path2grasp_data, ignore_errors=True)
 data_recording_path = rospy.get_param('data_recording_path')
 grasp_client = GraspClient(grasp_data_recording_path=data_recording_path, is_rec_sess=True, is_eval_sess=True)
 metadata_handler = MetadataHandler(gazebo_objects_path=gazebo_objects_path)
-
-all_grasp_objects = []
-
-def get_objects(grasp_object, amount=3):
-    global all_grasp_objects
-    if len(all_grasp_objects) == 0:
-        # initilize once
-        metadata_handler = MetadataHandler(gazebo_objects_path)
-        
-    for obj_full in obj_list:
-        dset, obj_name = metadata_handler.split_full_name(obj_full)
-
-        # get metadata on object
-        metadata = metadata_handler.get_object_metadata(dset, obj_name)
-        all_grasp_objects.append(metadata)
-    
-    objects = []
-    num_total = len(all_grasp_objects)
-    if num_total < 20:
-        raise ValueError('There should be more than 20 objects in the dataset, however only '
-                         + str(num_total) + ' is found.')
-    amount = min(amount, num_total)
-    for _ in range(amount):
-        obj = random.choice(all_grasp_objects)
-        while obj['name'] == grasp_object['name']:
-            obj = random.choice(all_grasp_objects)
-        rospy.loginfo("obstacle object: %s"% obj['name'])
-        objects.append(obj)
-    return objects
-
-
-def distribute_obstacle_objects_randomly(grasp_object_pose, obstacle_objects, min_center_to_center_distance=0.1):
-    existing_object_positions = [np.array(grasp_object_pose)[:3]]
-    for idx, obj in enumerate(obstacle_objects):
-        obstacle_objects[idx] = grasp_client.set_to_random_pose(obj)
-        position = np.array([obstacle_objects[idx]['mesh_frame_pose'].pose.position.x, obstacle_objects[idx]['mesh_frame_pose'].pose.position.y, obstacle_objects[idx]['mesh_frame_pose'].pose.position.z])
-        while not all([np.linalg.norm(position[:2] - existing_position[:2]) > min_center_to_center_distance for existing_position in existing_object_positions]):
-            obstacle_objects[idx] = grasp_client.set_to_random_pose(obj)
-            position = np.array([obstacle_objects[idx]['mesh_frame_pose'].pose.position.x, 
-                                 obstacle_objects[idx]['mesh_frame_pose'].pose.position.y, 
-                                 obstacle_objects[idx]['mesh_frame_pose'].pose.position.z])
-        existing_object_positions.append(position)
-    return obstacle_objects
-
 
 for obj_full in obj_list:
     # Skip object
@@ -89,24 +42,15 @@ for obj_full in obj_list:
     # create new folder
     grasp_client.create_dirs_new_grasp_trial(is_new_pose_or_object=True)
 
-    grasp_objecet_pose = [0.75, 0, 0, 0, 0, -2.57]
-    obstacle_objects = get_objects(gazebo_objects_path, grasp_client.object_metadata)
-    obstacle_objects = distribute_obstacle_objects_randomly(grasp_objecet_pose, obstacle_objects)
     rospy.loginfo("Now start experiement of object: %s" % obj_name)
 
     for trial in range(NUM_TRIALS_PER_OBJ):
         # Reset
         grasp_client.reset_hithand_and_panda()
-        grasp_client.remove_obstacle_objects(obstacle_objects)
-
 
         # Spawn model
-        grasp_client.spawn_object(pose_type='init', pose_arr=grasp_objecet_pose)
-        # grasp_client.spawn_object(pose_type="random")
-
-
-        grasp_client.spawn_obstacle_objects(obstacle_objects)
-
+        # grasp_client.spawn_object(pose_type='init', pose_arr=[0.75, 0, 0, 0, 0, -2.57])
+        grasp_client.spawn_object(pose_type="random")
 
         # Get point cloud (mean-free, orientation of camera frame)
         grasp_client.save_visual_data_and_segment_object(down_sample_pcd=False)
@@ -132,9 +76,6 @@ for obj_full in obj_list:
                 grasp_client.reset_hithand_and_panda()
 
                 grasp_client.spawn_object(pose_type='same')
-                
-                grasp_client.reset_obstacle_objects(obstacle_objects)
-
             # idx = np.random.randint(0, len(joint_confs))
             idx = i
             # if palm_poses_obj_frame[idx].pose.position.y < -0.03:
