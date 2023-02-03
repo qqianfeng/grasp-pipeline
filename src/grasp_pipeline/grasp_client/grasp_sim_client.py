@@ -1338,45 +1338,6 @@ class GraspClient():
     ## below are codes for multiple objects generation ##
     #####################################################
 
-    def spawn_multiple_objects(self, objects, pose_type, pose_arr=None):
-        # Generate a random valid object pose
-        if pose_type == "random":
-            self.generate_random_object_pose_for_experiment()
-
-        elif pose_type == "init":
-            # set the roll angle
-            pose_arr[3] = self.object_metadata["spawn_angle_roll"]
-            pose_arr[2] = self.object_metadata["spawn_height_z"]
-
-            self.object_metadata["mesh_frame_pose"] = get_pose_stamped_from_array(pose_arr)
-
-        #print "Spawning object here:", pose_arr
-
-        # Update gazebo object, delete old object and spawn new one
-        self.update_multiple_gazebo_objects_client(objects)
-
-        # Now wait for 2 seconds for object to rest and update actual object position
-        if pose_type == "init" or pose_type == "random":
-            if self.is_rec_sess:
-                rospy.sleep(3)
-            for obj in objects:
-                object_pose = self.get_grasp_object_pose_client(obj["name"])
-                obj["mesh_frame_pose"] = PoseStamped(header=Header(frame_id='world'),
-                                                                  pose=object_pose)
-                
-            # Update the sim_pose with the actual pose of the object after it came to rest
-            self.object_metadata["mesh_frame_pose"] = PoseStamped(header=Header(frame_id='world'),
-                                                                  pose=object_pose)
-
-        # Update moveit scene object
-        # TODO: The actually object pose changed (different from the pose saved in grasp_objects)
-        if not self.is_eval_sess:
-            self.update_multiple_moveit_objects_client(objects)
-
-        # Update the true mesh pose
-        # TODO: This function should update all object meshes.
-        self.update_object_mesh_frame_pose_client()
-
     def set_to_random_pose(self, object_metadata):
         """Generates a random x,y position and z orientation within object_spawn boundaries for grasping experiments.
         """
