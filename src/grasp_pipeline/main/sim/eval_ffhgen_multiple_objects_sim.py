@@ -1,4 +1,4 @@
- """ This file is used to evaluate the model and sample grasps. 
+""" This file is used to evaluate the model and sample grasps. 
 """
 import numpy as np
 import shutil
@@ -30,7 +30,7 @@ metadata_handler = MetadataHandler(gazebo_objects_path=gazebo_objects_path)
 
 all_grasp_objects = []
 
-def get_objects(grasp_object, amount=3):
+def get_obstacle_objects(grasp_object, amount=3):
     global all_grasp_objects
     if len(all_grasp_objects) == 0:
         # initilize once
@@ -44,15 +44,17 @@ def get_objects(grasp_object, amount=3):
         all_grasp_objects.append(metadata)
     
     objects = []
+    object_names = set()
     num_total = len(all_grasp_objects)
-    if num_total < 20:
+    if num_total < 10:
         raise ValueError('There should be more than 20 objects in the dataset, however only '
                          + str(num_total) + ' is found.')
     amount = min(amount, num_total)
     for _ in range(amount):
         obj = random.choice(all_grasp_objects)
-        while obj['name'] == grasp_object['name']:
+        while obj['name'] == grasp_object['name'] or obj['name'] in object_names:
             obj = random.choice(all_grasp_objects)
+        object_names.add(obj['name'])
         rospy.loginfo("obstacle object: %s"% obj['name'])
         objects.append(obj)
     return objects
@@ -90,7 +92,7 @@ for obj_full in obj_list:
     grasp_client.create_dirs_new_grasp_trial(is_new_pose_or_object=True)
 
     grasp_objecet_pose = [0.75, 0, 0, 0, 0, -2.57]
-    obstacle_objects = get_objects(gazebo_objects_path, grasp_client.object_metadata)
+    obstacle_objects = get_obstacle_objects(grasp_client.object_metadata)
     obstacle_objects = distribute_obstacle_objects_randomly(grasp_objecet_pose, obstacle_objects)
     rospy.loginfo("Now start experiement of object: %s" % obj_name)
 
