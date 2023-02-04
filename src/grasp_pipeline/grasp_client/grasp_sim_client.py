@@ -13,6 +13,8 @@ import copy
 import datetime
 from multiprocessing import Process
 import numpy as np
+import cv2
+import open3d as o3d
 import os
 import rospy
 import tf
@@ -1353,6 +1355,91 @@ class GraspClient():
         object_pose_stamped = get_pose_stamped_from_array(object_pose)
         object_metadata["mesh_frame_pose"] = object_pose_stamped
         return object_metadata
+
+    
+    def save_visual_data(self, down_sample_pcd=True, object_pcd_record_path=''):
+        """Does what it says.
+
+        Args:
+            down_sample_pcd (bool, optional): If this is True the pcd will be down sampled. It is
+            necessary to down_sample during data gen, because for each point of the pcd one pose will be computed.
+            During inference it should not be down sampled. Defaults to True.
+            object_pcd_record_path (str, optional): [description]. Defaults to ''.
+        """
+        if down_sample_pcd == True:
+            rospy.logdebug(
+                "Point cloud will be down sampled AND transformed to WORLD frame. This is not correct for testing grasp sampler!"
+            )
+        else:
+            rospy.logdebug(
+                "Point cloud will not be down sampled BUT transformed to OBJECT CENTROID frame, which is parallel to camera frame. This is necessary for testing grasp sampler."
+            )
+        self.object_pcd_record_path = object_pcd_record_path
+        self.set_visual_data_save_paths(grasp_phase='pre')
+        self.save_visual_data_client()
+        
+    def segment_object_as_point_cloud(self):
+        self.depth_img_save_path
+        self.color_img_save_path
+        self.scene_pcd_save_path
+
+        # Get camera data
+        color_image = read_image
+        depth_image = read_image
+
+        # Create mask
+        mask = np.zeros((color_image.shape[0], color_image.shape[1]), np.uint8)
+
+        # GrabCut arrays
+        bgdModel = np.zeros((1, 65), np.float64)
+        fgbModel = np.zeros((1, 65), np.float64)
+
+        # Select ROI
+        reselect = True
+        while reselect:
+
+            # Get camera data
+            color_image, _ = self.get_realsense_data()
+
+            cv2.namedWindow("Seg", cv2.WND_PROP_FULLSCREEN)
+            try:
+                init_rect = cv2.selectROI('Seg', color_image, False, False)
+            except:
+                init_rect = [0]
+            if not any(init_rect):
+                print("No area selected. Press 'c' to abort or anything else to reselect")
+                if cv2.waitKey(0) == ord('c'):
+                    exit()
+            else:
+                reselect = False
+
+        # Close window
+        cv2.destroyWindow("Seg")
+
+        # Run GrabCut
+        cv2.grabCut(color_image, mask, init_rect, bgdModel, fgbModel, 10, cv2.GC_INIT_WITH_RECT)
+        mask2 = np.where((mask == 2) | (mask == 0), 0, 1).astype('uint8')
+        masked_image = color_image * mask2[:, :, np.newaxis]
+        
+        # Set area outside of the segmentation mask to zero
+        depth_image *= mask2
+        
+        # Remove data with large depth offset from segmented object's median
+        median = np.median(depth_image[depth_image > self.eps])
+        depth_image = np.where(abs(depth_image - median) < 100, depth_image, 0)
+
+        # Load depth image as o3d.Image
+        depth_image_o3d = o3d.geometry.Image(depth_image)
+
+        # Generate point cloud from depth image
+        depth_intrinsics = self.depth_intrinsics
+        pinhole_camera_intrinsic = o3d.camera.PinholeCameraIntrinsic(
+            depth_intrinsics.width, depth_intrinsics.height, depth_intrinsics.fx,
+            depth_intrinsics.fy, depth_intrinsics.ppx, depth_intrinsics.ppy)
+        pcd = o3d.geometry.PointCloud.create_from_depth_image(depth_image_o3d,
+                                                             pinhole_camera_intrinsic)
+
+        o3d.io.write_point_cloud(self.object_pcd_save_path, pcd)
 
     #####################################################
     ## above are codes for multiple objects generation ##
