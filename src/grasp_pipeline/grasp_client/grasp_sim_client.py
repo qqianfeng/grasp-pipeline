@@ -14,6 +14,7 @@ import datetime
 from multiprocessing import Process
 import numpy as np
 import cv2
+import math
 import open3d as o3d
 import os
 import rospy
@@ -1383,8 +1384,8 @@ class GraspClient():
         self.color_img_save_path
 
         # Get camera data
-        color_image = read_image
-        depth_image = read_image
+        color_image = cv2.imread(self.color_img_save_path)
+        depth_image = cv2.imread(self.depth_img_save_path)
 
         # Create mask
         mask = np.zeros((color_image.shape[0], color_image.shape[1]), np.uint8)
@@ -1431,10 +1432,18 @@ class GraspClient():
         depth_image_o3d = o3d.geometry.Image(depth_image)
 
         # Generate point cloud from depth image
-        depth_intrinsics = self.depth_intrinsics
+        image_width = 1280
+        image_height = 720
+        horizontal_fov = math.radians(64)
+        fx = 0.5 * image_width / math.tan(0.5 * horizontal_fov)
+        fy =fx
+        cx = image_width * 0.5
+        cy = image_height * 0.5
+
         pinhole_camera_intrinsic = o3d.camera.PinholeCameraIntrinsic(
-            depth_intrinsics.width, depth_intrinsics.height, depth_intrinsics.fx,
-            depth_intrinsics.fy, depth_intrinsics.ppx, depth_intrinsics.ppy)
+            image_width, image_height, fx, fy, cx, cy
+        )
+
         pcd = o3d.geometry.PointCloud.create_from_depth_image(depth_image_o3d,
                                                              pinhole_camera_intrinsic)
 
