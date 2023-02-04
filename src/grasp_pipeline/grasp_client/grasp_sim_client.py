@@ -1337,7 +1337,7 @@ class GraspClient():
         self.update_object_mesh_frame_pose_client()
 
     #####################################################
-    ## below are codes for multiple objects generation ##
+    ## ⬇⬇⬇⬇⬇ are codes for multiple objects generation ##
     #####################################################
 
     def set_to_random_pose(self, object_metadata):
@@ -1381,7 +1381,6 @@ class GraspClient():
     def segment_object_as_point_cloud(self):
         self.depth_img_save_path
         self.color_img_save_path
-        self.scene_pcd_save_path
 
         # Get camera data
         color_image = read_image
@@ -1439,10 +1438,12 @@ class GraspClient():
         pcd = o3d.geometry.PointCloud.create_from_depth_image(depth_image_o3d,
                                                              pinhole_camera_intrinsic)
 
-        o3d.io.write_point_cloud(self.object_pcd_save_path, pcd)
+        # pcd_save_path corresponds directly to where encode_pcd_with_bps would read the point cloud
+        pcd_save_path = rospy.get_param('object_pcd_path')
+        o3d.io.write_point_cloud(pcd_save_path, pcd)
 
     #####################################################
-    ## above are codes for multiple objects generation ##
+    ## ⬆⬆⬆⬆⬆ are codes for multiple objects generation ##
     #####################################################
 
     def set_visual_data_save_paths(self, grasp_phase):
