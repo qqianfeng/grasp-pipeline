@@ -937,12 +937,13 @@ class GraspClient():
             rospy.logerr('Service save_visual_data call failed: %s' % e)
         rospy.logdebug('Service save_visual_data is executed %s' % res.success)
 
-    def segment_object_client(self, align_object_world=True, down_sample_pcd=True):
+    def segment_object_client(self, align_object_world=True, down_sample_pcd=True, pcd_in_world_frame=False):
         wait_for_service('segment_object')
         try:
             segment_object = rospy.ServiceProxy('segment_object', SegmentGraspObject)
             req = SegmentGraspObjectRequest()
             req.down_sample_pcd = down_sample_pcd
+            req.pcd_in_world_frame = pcd_in_world_frame
             req.scene_pcd_path = self.scene_pcd_save_path
             req.object_pcd_path = self.object_pcd_save_path
             req.object_pcd_record_path = self.object_pcd_record_path

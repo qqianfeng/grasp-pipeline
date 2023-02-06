@@ -1,5 +1,5 @@
 """ Small script to read in all the grasp-data-files in a directory and merges them into one file.
-This file consists of: 
+This file consists of:
     - level 1:  a.) object names
 
     - level 2:  a.) metadata
@@ -11,11 +11,11 @@ Storing all grasps object- and outcome-wise.
 
 |-- grasp_data.h5
     |-- metadata # use g5['key'][()] to get value
-        |-- 'datetime_recording_start', 'total_num_close_finger_collide_obstacle_objects', 'total_num_collision_to_approach_pose', 
-        |-- 'total_num_collision_to_grasp_pose', 'total_num_collisions', 'total_num_failures', 'total_num_grasp_pose_collide_obstacle_objects', 
-        |-- 'total_num_grasp_pose_collide_target_object', 'total_num_grasps', 'total_num_lift_motion_moved_obstacle_objects', 
+        |-- 'datetime_recording_start', 'total_num_close_finger_collide_obstacle_objects', 'total_num_collision_to_approach_pose',
+        |-- 'total_num_collision_to_grasp_pose', 'total_num_collisions', 'total_num_failures', 'total_num_grasp_pose_collide_obstacle_objects',
+        |-- 'total_num_grasp_pose_collide_target_object', 'total_num_grasps', 'total_num_lift_motion_moved_obstacle_objects',
         |-- 'total_num_recordings', 'total_num_successes', 'total_num_tops'
-        
+
     |-- recording_sessions
         |-- 'recording_session_0001'
             |-- 'metadata'
@@ -32,22 +32,22 @@ Storing all grasps object- and outcome-wise.
                         |-- 'no_ik'
                             |-- 'no_ik_0001'
                                 |-- 'desired_joint_state', 'desired_palm_pose_mesh_frame', 'object_mesh_frame_world'
-                                
+
                         |-- 'no_collision'
                             |-- 'grasp_0001'
-                                |-- 'close_finger_collide_obstacle_objects', 'closed_joint_state', 'collision_to_approach_pose', 
-                                |-- 'collision_to_grasp_pose', 'desired_preshape_joint_state', 'desired_preshape_palm_mesh_frame', 
-                                |-- 'grasp_pose_collide_obstacle_objects', 'grasp_pose_collide_target_object', 'grasp_success_label', 'is_top_grasp', 
-                                |-- 'lift_motion_moved_obstacle_objects', 'lifted_joint_state', 'object_mesh_frame_world', 'object_name', 
+                                |-- 'close_finger_collide_obstacle_objects', 'closed_joint_state', 'collision_to_approach_pose',
+                                |-- 'collision_to_grasp_pose', 'desired_preshape_joint_state', 'desired_preshape_palm_mesh_frame',
+                                |-- 'grasp_pose_collide_obstacle_objects', 'grasp_pose_collide_target_object', 'grasp_success_label', 'is_top_grasp',
+                                |-- 'lift_motion_moved_obstacle_objects', 'lifted_joint_state', 'object_mesh_frame_world', 'object_name',
                                 |-- 'time_stamp', 'true_preshape_joint_state', 'true_preshape_palm_mesh_frame'
                             |-- 'grasp_0002', 'grasp_0003', 'grasp_0004'
 
                 |-- 'bigbird_softsoap_gold'
-                
-        |-- 'recording_session_0002' 
-        |-- 'recording_session_0003' 
+
+        |-- 'recording_session_0002'
+        |-- 'recording_session_0003'
         |-- ...
-        
+
 """
 import h5py
 import os
@@ -132,17 +132,17 @@ def log_grasp(src_grasp_gp, dest_grasp_gp, is_coll=False):
         dest_grasp_gp.create_dataset("desired_preshape_joint_state", data=des_joint_conf)
         dest_grasp_gp.create_dataset("true_preshape_palm_mesh_frame", data=true_palm_mesh_frame)
         dest_grasp_gp.create_dataset("desired_preshape_palm_mesh_frame", data=des_palm_mesh_frame)
-        
+
         object_name = src_grasp_gp["object_name"][()]
         obstacle1_name = src_grasp_gp["obstacle1_name"][()]
         obstacle2_name = src_grasp_gp["obstacle2_name"][()]
         obstacle3_name = src_grasp_gp["obstacle3_name"][()]
-        
+
         object_mesh_frame_world = src_grasp_gp["object_mesh_frame_world"][()]
         obstacle1_mesh_frame_world = src_grasp_gp["obstacle1_mesh_frame_world"][()]
         obstacle2_mesh_frame_world = src_grasp_gp["obstacle2_mesh_frame_world"][()]
         obstacle3_mesh_frame_world = src_grasp_gp["obstacle3_mesh_frame_world"][()]
-        
+
         dest_grasp_gp.create_dataset("object_name", data=object_name)
         dest_grasp_gp.create_dataset("obstacle1_name", data=obstacle1_name)
         dest_grasp_gp.create_dataset("obstacle2_name", data=obstacle2_name)
@@ -151,9 +151,10 @@ def log_grasp(src_grasp_gp, dest_grasp_gp, is_coll=False):
         dest_grasp_gp.create_dataset("obstacle1_mesh_frame_world", data=obstacle1_mesh_frame_world)
         dest_grasp_gp.create_dataset("obstacle2_mesh_frame_world", data=obstacle2_mesh_frame_world)
         dest_grasp_gp.create_dataset("obstacle3_mesh_frame_world", data=obstacle3_mesh_frame_world)
-    
+
     else:
         des_joint_conf = src_grasp_gp["desired_joint_state"][()]
+        object_mesh_frame_world = src_grasp_gp["object_mesh_frame_world"][()]
         if "desired_palm_pose_mesh_frame" in src_grasp_gp.keys():
             des_palm_mesh_frame = src_grasp_gp["desired_palm_pose_mesh_frame"][()]
         elif "desired_preshape_palm_world_pose" in src_grasp_gp.keys():
@@ -163,6 +164,7 @@ def log_grasp(src_grasp_gp, dest_grasp_gp, is_coll=False):
 
         dest_grasp_gp.create_dataset("desired_preshape_joint_state", data=des_joint_conf)
         dest_grasp_gp.create_dataset("desired_preshape_palm_mesh_frame", data=des_palm_mesh_frame)
+        dest_grasp_gp.create_dataset("object_mesh_frame_world", data=object_mesh_frame_world)
 
 
 def create_grasp_group(group, idx):

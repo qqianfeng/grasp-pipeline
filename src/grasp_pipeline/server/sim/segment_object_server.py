@@ -234,6 +234,7 @@ class ObjectSegmenter():
         # pcd.colors = o3d.utility.Vector3dVector(colors)
 
         print("draw the scene")
+        print("center:",pcd.get_center())
         self.custom_draw_scene(pcd)
 
         # segment plane
@@ -242,12 +243,15 @@ class ObjectSegmenter():
         object_pcd = pcd.select_down_sample(inliers, invert=True)
 
         print("draw the object pcd")
+        print("center:",object_pcd.get_center())
         self.custom_draw_object(object_pcd)
 
         # compute normals of object
         object_pcd.estimate_normals(
             search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.5, max_nn=100))
 
+        print("draw object pcd with normal estimations")
+        print("center:",object_pcd.get_center())
         self.custom_draw_scene(object_pcd)
 
         # downsample point cloud or make mean free if downsampling is not requested
@@ -310,8 +314,10 @@ class ObjectSegmenter():
 
         if not req.down_sample_pcd:  # if req.down_sample is false, we assume this should be stored in VAE format, therefore transform the cloud back to camera frame
             self.object_centroid = object_pcd.get_center()
-            object_pcd.transform(self.camera_T_world)
-            object_pcd.translate((-1) * object_pcd.get_center())
+            if not req.pcd_in_world_frame:
+                object_pcd.transform(self.camera_T_world)
+                object_pcd.translate((-1) * object_pcd.get_center())
+            print("pcd in world frame")
             self.custom_draw_scene(object_pcd)
 
         o3d.io.write_point_cloud(self.object_pcd_path, object_pcd)

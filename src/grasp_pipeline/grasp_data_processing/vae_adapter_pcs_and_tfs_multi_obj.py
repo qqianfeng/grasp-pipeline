@@ -214,7 +214,7 @@ if __name__ == '__main__':
             # Segment object and save visual data
             grasp_client.set_path_and_save_visual_data(grasp_phase='single', 
                                                         object_pcd_record_path=single_pcd_save_path)
-            grasp_client.segment_object_client(down_sample_pcd=False)
+            grasp_client.segment_object_client(down_sample_pcd=False, pcd_in_world_frame=True)
             print('time to segment single object,', time()-time2)
             
             ###############################################
@@ -272,7 +272,7 @@ if __name__ == '__main__':
             print('time to spawn obstacle objects,', time2 - time1)
             grasp_client.set_path_and_save_visual_data(grasp_phase="pre", 
                                                        object_pcd_record_path=multi_pcd_save_path)
-            grasp_client.segment_object_client(down_sample_pcd=False)
+            grasp_client.segment_object_client(down_sample_pcd=False, pcd_in_world_frame=True)
             time3 = time()
             print('time to segment object client,', time3 - time2)
             # TODO: save the color and depth image of single and multi
