@@ -185,7 +185,7 @@ class TableObjectSegmenter():
         # Could also be sent over a topic
         if os.path.exists(self.object_pcd_save_path):
             os.remove(self.object_pcd_save_path)
-        o3d.io.write_pcd("/home/ffh/object.pcd", object_pcd)
+        o3d.io.write_pcd("/home/vm/object.pcd", object_pcd)
         print("Object.pcd saved successfully with normals oriented towards camera")
 
         # Publish and latch newly computed dimensions and bounding box points

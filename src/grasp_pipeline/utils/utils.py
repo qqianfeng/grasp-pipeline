@@ -255,11 +255,11 @@ def wait_for_service(service_name):
     rospy.logdebug('Calling service ' + service_name)
 
 
-def get_objects_few_grasps(n_min, base_path='/home/ffh/data/ffhnet-data'):
+def get_objects_few_grasps(n_min, base_path='/home/vm/data/ffhnet-data'):
     """Get a list of objects with less positive grasps than threshold
-    
+
     Args:
-        n_min (int): Minimum number of successful grasps an object should have 
+        n_min (int): Minimum number of successful grasps an object should have
         base_path (str): Base path to where the metadata.csv file lies
     """
     file_path = os.path.join(base_path, 'metadata.csv')
@@ -294,7 +294,7 @@ def reduce_joint_conf(jc_full):
 
 
 if __name__ == '__main__':
-    # folder_path = '/home/ffh/Documents/grasp_data_generated_on_this_machine/2021-04-09_02/grasp_data/recording_sessions/recording_session_0001'
+    # folder_path = '/home/vm/Documents/grasp_data_generated_on_this_machine/2021-04-09_02/grasp_data/recording_sessions/recording_session_0001'
     # l = list_of_objects_from_folder(folder_path)
     # print(l)
     l = get_objects_few_grasps(150)

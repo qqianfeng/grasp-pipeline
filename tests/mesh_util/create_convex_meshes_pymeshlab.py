@@ -4,7 +4,7 @@ import os
 
 dataset = 'bigbird'
 
-objects_raw_folder = '/home/ffh/object_datasets/objects_raw'
+objects_raw_folder = '/home/vm/object_datasets/objects_raw'
 
 if __name__ == "__main__":
     objects_raw_folder = os.path.join(objects_raw_folder, dataset)

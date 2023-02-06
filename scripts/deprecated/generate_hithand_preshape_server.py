@@ -136,7 +136,7 @@ class GenerateHithandPreshape():
     def update_object_information(self):
         """ Update instance variables related to the object of interest
 
-        This is intended to 1.) receive a single message from the segmented_object topics and store them in instance attributes and 
+        This is intended to 1.) receive a single message from the segmented_object topics and store them in instance attributes and
         2.) read the segmented object point cloud from disk
         """
         # Bounding box corner points and center
@@ -258,7 +258,7 @@ class GenerateHithandPreshape():
         vis.add_geometry(bb)
         vis.add_geometry(self.segmented_object_pcd)
         vis.add_geometry(pcd_vis)
-        vis.get_render_option().load_from_json("/home/ffh/ffh_ws/src/grasp-pipeline/save.json")
+        vis.get_render_option().load_from_json("/home/vm/hand_ws/src/grasp-pipeline/save.json")
         vis.run()
         #vis.get_render_option().save_to_json("save.json")
         print('Done')
@@ -290,7 +290,7 @@ class GenerateHithandPreshape():
 
     def sample_uniformly_around_preshape_palm_pose(self, frame_id):
         ''' Get a random palm pose by sampling around the preshape palm pose
-        for sampling grasp detection. 
+        for sampling grasp detection.
 
         The palm pose limit instance variables define the sampling range (middle between upper and lower limits is the previously computed palm pose)
         '''
@@ -311,9 +311,9 @@ class GenerateHithandPreshape():
         return sample_palm_pose
 
     def find_full_palm_orientation(self, object_point_normal, bounding_box_orientation_vector):
-        """ Finds the full palm orientation py projecting the bounding box orientation vector 
+        """ Finds the full palm orientation py projecting the bounding box orientation vector
         (which gives the rough direction for the thumb, or more accurately the y-axis of the palm_link_hithand)
-        by projecting into into the tangent space of the object point normal. 
+        by projecting into into the tangent space of the object point normal.
 
         For the palm frame, x: palm normal, y: thumb, z: middle finger
         """

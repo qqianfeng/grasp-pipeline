@@ -17,7 +17,7 @@
 # print(f"""\n<inertia ixx="{j[0][0]:.16f}" ixy="{j[0][1]:.16f}" ixz="{j[0][2]:.16f}" iyy="{j[1][1]:.16f}" iyz="{j[1][2]:.16f}" izz="{j[2][2]:.16f}" />""")
 
 import trimesh
-mesh_path = '/home/ffh/ffh_ws/src/hithand-ros/hithand_description/meshes/collision/finger/hit-hand-2-finger-phadist.dae'
+mesh_path = '/home/vm/hand_ws/src/hithand-ros/hithand_description/meshes/collision/finger/hit-hand-2-finger-phadist.dae'
 mesh = trimesh.load(mesh_path)
 
 # Set the density to 100kg/m3 (1/10th of water density )

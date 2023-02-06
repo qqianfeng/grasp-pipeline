@@ -262,14 +262,14 @@ class GetPreshapeForAllPoints():
         vis.add_geometry(bb)
         vis.add_geometry(self.object_pcd)
         vis.add_geometry(pcd_vis)
-        vis.get_render_option().load_from_json("/home/ffh/ffh_ws/src/grasp-pipeline/save.json")
+        vis.get_render_option().load_from_json("/home/vm/hand_ws/src/grasp-pipeline/save.json")
         vis.run()
         #vis.get_render_option().save_to_json("save.json")
 
     def update_object_information(self):
         """ Update instance variables related to the object of interest
 
-        This is intended to 1.) receive a single message from the object topics and store them in instance attributes and 
+        This is intended to 1.) receive a single message from the object topics and store them in instance attributes and
         2.) read the segmented object point cloud from disk
         """
         # Bounding box corner points and center
