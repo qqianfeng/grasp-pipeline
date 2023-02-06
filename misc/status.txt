@@ -164,7 +164,7 @@
 	       - Simple hand collision model = +0.1 RTF
 	       - Simple object collision model = +-0.0 RTF
 19.1.21
-- activate conda eval "$(/home/ffh/miniconda3/bin/conda shell.bash hook)"
+- activate conda eval "$(/home/vm/miniconda3/bin/conda shell.bash hook)"
 - [Task 1] Add inertia tensors based on Meshlab calculations. [CHECK]
 - [Task 2] Find a viable grasp controller setting             [CHECK]
 - [Task 3] Automate mesh processing                           [CHECK]

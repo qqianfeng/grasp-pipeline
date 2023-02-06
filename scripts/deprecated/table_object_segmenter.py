@@ -217,8 +217,8 @@ if __name__ == "__main__":
 
     if DEBUG:
         tos = TableObjectSegmenter(client,
-                                   scene_pcd_path='/home/ffh/test_pcd.pcd',
-                                   object_pcd_path='/home/ffh/object.pcd')
+                                   scene_pcd_path='/home/vm/test_pcd.pcd',
+                                   object_pcd_path='/home/vm/object.pcd')
 
         tos.handle_table_object_segmentation(None, dict({"success": True}))
     else:
