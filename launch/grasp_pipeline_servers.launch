@@ -9,9 +9,9 @@
     <arg name="scene_pcd_path"          default="/home/vm/scene.pcd"/>
     <arg name="color_img_save_path"     default="/home/vm/scene.ppm"/>
     <arg name="depth_img_save_path"     default="/home/vm/depth.pgm"/>
-    <arg name="scene_pcd_topic"         default="/camera/depth/points"/>  <!-- /depth_registered/points -->   
-    <arg name="color_img_topic"         default="/camera/color/image_raw"/>    
-    <arg name="depth_img_topic"         default="/camera/depth/image_raw"/>    
+    <arg name="scene_pcd_topic"         default="/camera/depth/points"/>  <!-- /depth_registered/points -->
+    <arg name="color_img_topic"         default="/camera/color/image_raw"/>
+    <arg name="depth_img_topic"         default="/camera/depth/image_raw"/>
     <!-- +++++++++++++++++++ Set the params needed by the different nodes ++++++++++++++++++++++++++++++++ -->
     <param name="object_pcd_path"         value="$(arg object_pcd_path)"        type="string" />
     <param name="scene_pcd_path"          value="$(arg scene_pcd_path)"         type="string" />
@@ -21,7 +21,7 @@
     <param name="depth_img_save_path"     value="$(arg depth_img_save_path)"    type="string" />
     <param name="scene_pcd_topic"         value="$(arg scene_pcd_topic)"        type="string" />
     <param name="color_img_topic"         value="$(arg color_img_topic)"        type="string" />
-    <param name="depth_img_topic"         value="$(arg depth_img_topic)"        type="string" />   
+    <param name="depth_img_topic"         value="$(arg depth_img_topic)"        type="string" />
     <param name="/use_sim_time"           value="true"/>
     <param name="visualize"               value="false"/>
 
@@ -63,7 +63,7 @@
 
     <!--Launch node which advertises service to segment the table from an object -->
     <node name="object_segmentation_node" pkg="grasp_pipeline" type="segment_object_server.py" output="screen"/>
-   
+
     <!-- Node to update palm and object poses-->
     <node name="update_poses_node" pkg="grasp_pipeline" type="update_object_and_palm_tf_server.py" output="screen"/>
 </launch>
