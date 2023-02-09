@@ -30,7 +30,7 @@ class VisualDataSaver():
 
         self.scene_pcd_topic = rospy.get_param('scene_pcd_topic', default='/camera/depth/points')
         # as stated in grasp-pipeline/launch/grasp_pipeline_servers_real.launch, the pcd_topic for
-        # realsense is either /camera/depth/points from simulation or the other one in real world    
+        # realsense is either /camera/depth/points from simulation or the other one in real world
         if self.scene_pcd_topic == '/camera/depth/points' or self.scene_pcd_topic == '/camera/depth/color/points':
             pcd_frame = 'camera_depth_optical_frame'
         elif self.scene_pcd_topic == '/depth_registered_points':
@@ -45,6 +45,7 @@ class VisualDataSaver():
         r = self.transform_camera_world.transform.translation
         self.world_T_camera = tft.quaternion_matrix([q.x, q.y, q.z, q.w])
         self.world_T_camera[:, 3] = [r.x, r.y, r.z, 1]
+        print("world_T_camera:")
         print(self.world_T_camera)
 
         self.color_img_topic = rospy.get_param('color_img_topic',
