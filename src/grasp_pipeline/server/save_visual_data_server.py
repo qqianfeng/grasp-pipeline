@@ -30,7 +30,7 @@ class VisualDataSaver():
 
         self.scene_pcd_topic = rospy.get_param('scene_pcd_topic', default='/camera/depth/points')
         # as stated in grasp-pipeline/launch/grasp_pipeline_servers_real.launch, the pcd_topic for
-        # realsense is either /camera/depth/points from simulation or the other one in real world    
+        # realsense is either /camera/depth/points from simulation or the other one in real world
         if self.scene_pcd_topic == '/camera/depth/points' or self.scene_pcd_topic == '/camera/depth/color/points':
             pcd_frame = 'camera_depth_optical_frame'
         elif self.scene_pcd_topic == '/depth_registered_points':
@@ -64,6 +64,11 @@ class VisualDataSaver():
                                       cv2.NORM_MINMAX,
                                       dtype=cv2.CV_16UC1)
         cv2.imwrite(depth_img_save_path, depth_img_u16)
+
+    def save_depth_arr(self, depth_img, depth_img_save_path):
+        depth_img_save_path = depth_img_save_path.replace("png", "npy")
+        depth_img *= 0.001
+        np.save(depth_img_save_path, depth_img)
 
     def save_color_img(self, color_img, color_img_save_path):
         cv2.imwrite(color_img_save_path, color_img)
@@ -135,7 +140,8 @@ class VisualDataSaver():
         color_img = self.bridge.imgmsg_to_cv2(color_img, "bgr8")
 
         # Actually save the stuff
-        self.save_depth_img(depth_img, req.depth_img_save_path)
+        # self.save_depth_img(depth_img, req.depth_img_save_path)
+        self.save_depth_arr(depth_img, req.depth_img_save_path)
         self.save_color_img(color_img, req.color_img_save_path)
 
         response = SaveVisualDataResponse()
