@@ -111,7 +111,7 @@ for obj_full in obj_list:
 
 
         # Get point cloud (mean-free, orientation of camera frame)
-        grasp_client.save_visual_data(down_sample_pcd=False)
+        grasp_client.save_visual_data(down_sample_pcd=False, '/home/ffh/temp/')
         grasp_client.segment_object_as_point_cloud()
 
         # Compute BPS of point cloud, stores encoding to disk

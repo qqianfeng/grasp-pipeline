@@ -1338,7 +1338,7 @@ class GraspClient():
         self.update_object_mesh_frame_pose_client()
 
     #####################################################
-    ## ⬇⬇⬇⬇⬇ are codes for multiple objects generation ##
+    ## below are codes for multiple objects generation ##
     #####################################################
 
     def set_to_random_pose(self, object_metadata):
@@ -1380,12 +1380,9 @@ class GraspClient():
         self.save_visual_data_client()
         
     def segment_object_as_point_cloud(self):
-        self.depth_img_save_path
-        self.color_img_save_path
-
         # Get camera data
         color_image = cv2.imread(self.color_img_save_path)
-        depth_image = cv2.imread(self.depth_img_save_path)
+        depth_image = cv2.imread(self.depth_img_save_path, cv2.IMREAD_UNCHANGED)
 
         # Create mask
         mask = np.zeros((color_image.shape[0], color_image.shape[1]), np.uint8)
@@ -1397,9 +1394,6 @@ class GraspClient():
         # Select ROI
         reselect = True
         while reselect:
-
-            # Get camera data
-            color_image, _ = self.get_realsense_data()
 
             cv2.namedWindow("Seg", cv2.WND_PROP_FULLSCREEN)
             try:
@@ -1425,7 +1419,7 @@ class GraspClient():
         depth_image *= mask2
         
         # Remove data with large depth offset from segmented object's median
-        median = np.median(depth_image[depth_image > self.eps])
+        median = np.median(depth_image[depth_image > 0.000001])
         depth_image = np.where(abs(depth_image - median) < 100, depth_image, 0)
 
         # Load depth image as o3d.Image
@@ -1436,7 +1430,7 @@ class GraspClient():
         image_height = 720
         horizontal_fov = math.radians(64)
         fx = 0.5 * image_width / math.tan(0.5 * horizontal_fov)
-        fy =fx
+        fy = fx
         cx = image_width * 0.5
         cy = image_height * 0.5
 
@@ -1452,7 +1446,7 @@ class GraspClient():
         o3d.io.write_point_cloud(pcd_save_path, pcd)
 
     #####################################################
-    ## ⬆⬆⬆⬆⬆ are codes for multiple objects generation ##
+    ## above are codes for multiple objects generation ##
     #####################################################
 
     def set_visual_data_save_paths(self, grasp_phase):
