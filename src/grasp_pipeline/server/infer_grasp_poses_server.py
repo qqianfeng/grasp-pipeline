@@ -86,14 +86,14 @@ class GraspInference():
 
     def to_grasp_dict(self, palm_poses, joint_confs):
         """Take the palm_poses and joint_confs in ros-format and convert them to a dict with two 3D arrays in order to
-        use as input for FFHEvaluator 
+        use as input for FFHEvaluator
 
         Args:
             palm_poses (List of PoseStamped): List of Palm poses in object frame
             joint_confs (List of JointState): List of joint states belonging to grasp
 
         Returns:
-            grasp_dict (dict): k1 is 
+            grasp_dict (dict): k1 is
         """
         # prepare
         batch_n = len(palm_poses)
@@ -121,6 +121,9 @@ class GraspInference():
     def handle_evaluate_and_filter_grasp_poses(self, req):
         bps_object = np.load(rospy.get_param('object_pcd_enc_path'))
         grasp_dict = self.to_grasp_dict(req.palm_poses, req.joint_confs)
+
+        grasp_dict = self.FFHNet.filter_grasps_in_collision(bps_object, grasp_dict, thresh=req.thresh)
+
         results = self.FFHNet.filter_grasps(bps_object, grasp_dict, thresh=req.thresh)
 
         n_grasps_filt = results['rot_matrix'].shape[0]
