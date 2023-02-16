@@ -13,6 +13,9 @@ import copy
 import datetime
 from multiprocessing import Process
 import numpy as np
+import cv2
+import math
+import open3d as o3d
 import os
 import rospy
 import tf
@@ -1339,45 +1342,6 @@ class GraspClient():
     ## below are codes for multiple objects generation ##
     #####################################################
 
-    def spawn_multiple_objects(self, objects, pose_type, pose_arr=None):
-        # Generate a random valid object pose
-        if pose_type == "random":
-            self.generate_random_object_pose_for_experiment()
-
-        elif pose_type == "init":
-            # set the roll angle
-            pose_arr[3] = self.object_metadata["spawn_angle_roll"]
-            pose_arr[2] = self.object_metadata["spawn_height_z"]
-
-            self.object_metadata["mesh_frame_pose"] = get_pose_stamped_from_array(pose_arr)
-
-        #print "Spawning object here:", pose_arr
-
-        # Update gazebo object, delete old object and spawn new one
-        self.update_multiple_gazebo_objects_client(objects)
-
-        # Now wait for 2 seconds for object to rest and update actual object position
-        if pose_type == "init" or pose_type == "random":
-            if self.is_rec_sess:
-                rospy.sleep(3)
-            for obj in objects:
-                object_pose = self.get_grasp_object_pose_client(obj["name"])
-                obj["mesh_frame_pose"] = PoseStamped(header=Header(frame_id='world'),
-                                                                  pose=object_pose)
-
-            # Update the sim_pose with the actual pose of the object after it came to rest
-            self.object_metadata["mesh_frame_pose"] = PoseStamped(header=Header(frame_id='world'),
-                                                                  pose=object_pose)
-
-        # Update moveit scene object
-        # TODO: The actually object pose changed (different from the pose saved in grasp_objects)
-        if not self.is_eval_sess:
-            self.update_multiple_moveit_objects_client(objects)
-
-        # Update the true mesh pose
-        # TODO: This function should update all object meshes.
-        self.update_object_mesh_frame_pose_client()
-
     def set_to_random_pose(self, object_metadata):
         """Generates a random x,y position and z orientation within object_spawn boundaries for grasping experiments.
         """
@@ -1393,6 +1357,118 @@ class GraspClient():
         object_pose_stamped = get_pose_stamped_from_array(object_pose)
         object_metadata["mesh_frame_pose"] = object_pose_stamped
         return object_metadata
+
+
+    def save_visual_data(self, down_sample_pcd=True, object_pcd_record_path=''):
+        """Does what it says.
+
+        Args:
+            down_sample_pcd (bool, optional): If this is True the pcd will be down sampled. It is
+            necessary to down_sample during data gen, because for each point of the pcd one pose will be computed.
+            During inference it should not be down sampled. Defaults to True.
+            object_pcd_record_path (str, optional): [description]. Defaults to ''.
+        """
+        if down_sample_pcd == True:
+            rospy.logdebug(
+                "Point cloud will be down sampled AND transformed to WORLD frame. This is not correct for testing grasp sampler!"
+            )
+        else:
+            rospy.logdebug(
+                "Point cloud will not be down sampled BUT transformed to OBJECT CENTROID frame, which is parallel to camera frame. This is necessary for testing grasp sampler."
+            )
+        self.object_pcd_record_path = object_pcd_record_path
+        self.set_visual_data_save_paths(grasp_phase='pre')
+        self.save_visual_data_client()
+
+    def segment_object_as_point_cloud(self):
+        pcd_topic = rospy.get_param('scene_pcd_topic')
+        if pcd_topic == '/camera/depth/points' or pcd_topic == '/camera/depth/color/points':
+            pcd_frame = 'camera_depth_optical_frame'
+        elif pcd_topic == '/depth_registered_points':
+            pcd_frame = 'camera_color_optical_frame'
+
+        tf_buffer = tf2_ros.Buffer()
+        tf_listener = tf2_ros.TransformListener(tf_buffer)
+        rospy.sleep(0.5)  # essential, otherwise next line crashes
+        transform_camera_world = tf_buffer.lookup_transform(
+            'world', pcd_frame, rospy.Time())
+        transform_world_camera = tf_buffer.lookup_transform(
+            pcd_frame, 'world', rospy.Time())
+        q = transform_world_camera.transform.rotation
+        r = transform_world_camera.transform.translation
+        camera_T_world = tft.quaternion_matrix([q.x, q.y, q.z, q.w])
+        camera_T_world[:, 3] = [r.x, r.y, r.z, 1]
+
+        # Get camera data
+        color_image = cv2.imread(self.color_img_save_path)
+        depth_path = self.depth_img_save_path
+        depth_path = depth_path[:-4] + '.npy'
+        depth_image = np.load(depth_path)
+
+        # Create mask
+        mask = np.zeros((color_image.shape[0], color_image.shape[1]), np.uint8)
+
+        # GrabCut arrays
+        bgdModel = np.zeros((1, 65), np.float64)
+        fgbModel = np.zeros((1, 65), np.float64)
+
+        # Select ROI
+        reselect = True
+        while reselect:
+
+            cv2.namedWindow("Seg", cv2.WND_PROP_FULLSCREEN)
+            try:
+                init_rect = cv2.selectROI('Seg', color_image, False, False)
+            except:
+                init_rect = [0]
+            if not any(init_rect):
+                print("No area selected. Press 'c' to abort or anything else to reselect")
+                if cv2.waitKey(0) == ord('c'):
+                    exit()
+            else:
+                reselect = False
+
+        # Close window
+        cv2.destroyWindow("Seg")
+
+        # Run GrabCut
+        cv2.grabCut(color_image, mask, init_rect, bgdModel, fgbModel, 10, cv2.GC_INIT_WITH_RECT)
+        mask2 = np.where((mask == 2) | (mask == 0), 0, 1).astype('uint8')
+        masked_image = color_image * mask2[:, :, np.newaxis]
+
+        # Set area outside of the segmentation mask to zero
+        depth_image *= mask2
+
+        # Remove data with large depth offset from segmented object's median
+        print(np.max(depth_image[depth_image > 0.000001]), np.min(depth_image[depth_image > 0.000001]))
+        median = np.median(depth_image[depth_image > 0.000001])
+        depth_image = np.where(abs(depth_image - median) < 0.2, depth_image, 0)
+
+        # Load depth image as o3d.Image
+        depth_image_o3d = o3d.geometry.Image(depth_image)
+
+        # Generate point cloud from depth image
+        image_width = 1280
+        image_height = 720
+        horizontal_fov = math.radians(64)
+        fx = 0.5 * image_width / math.tan(0.5 * horizontal_fov)
+        fy = fx
+        cx = image_width * 0.5
+        cy = image_height * 0.5
+
+        pinhole_camera_intrinsic = o3d.camera.PinholeCameraIntrinsic(
+            image_width, image_height, fx, fy, cx, cy
+        )
+
+        object_pcd = o3d.geometry.PointCloud.create_from_depth_image(depth_image_o3d, pinhole_camera_intrinsic)
+
+        object_centroid = object_pcd.get_center()
+        object_pcd.transform(camera_T_world)
+        object_pcd.translate((-1) * object_pcd.get_center())
+
+        # pcd_save_path corresponds directly to where encode_pcd_with_bps would read the point cloud
+        pcd_save_path = rospy.get_param('object_pcd_path')
+        o3d.io.write_point_cloud(pcd_save_path, object_pcd)
 
     #####################################################
     ## above are codes for multiple objects generation ##

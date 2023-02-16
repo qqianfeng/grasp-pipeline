@@ -66,6 +66,11 @@ class VisualDataSaver():
                                       dtype=cv2.CV_16UC1)
         cv2.imwrite(depth_img_save_path, depth_img_u16)
 
+    def save_depth_arr(self, depth_img, depth_img_save_path):
+        depth_img_save_path = depth_img_save_path.replace("png", "npy")
+        depth_img *= 0.001
+        np.save(depth_img_save_path, depth_img)
+
     def save_color_img(self, color_img, color_img_save_path):
         cv2.imwrite(color_img_save_path, color_img)
 
@@ -136,7 +141,8 @@ class VisualDataSaver():
         color_img = self.bridge.imgmsg_to_cv2(color_img, "bgr8")
 
         # Actually save the stuff
-        self.save_depth_img(depth_img, req.depth_img_save_path)
+        # self.save_depth_img(depth_img, req.depth_img_save_path)
+        self.save_depth_arr(depth_img, req.depth_img_save_path)
         self.save_color_img(color_img, req.color_img_save_path)
 
         response = SaveVisualDataResponse()
