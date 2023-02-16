@@ -1121,8 +1121,8 @@ class GraspClient():
             time1 = time.time()
             scene.remove_world_object(name)
             print('MOVEIT remove:',name,'time:',time.time()-time1)
-            self.name_of_obstacle_objects_in_moveit_scene.remove(name)
             rospy.sleep(0.5)
+        self.name_of_obstacle_objects_in_moveit_scene.clear()
 
     def save_scene(self):
         pass
@@ -1381,24 +1381,6 @@ class GraspClient():
         self.save_visual_data_client()
 
     def segment_object_as_point_cloud(self):
-        pcd_topic = rospy.get_param('scene_pcd_topic')
-        if pcd_topic == '/camera/depth/points' or pcd_topic == '/camera/depth/color/points':
-            pcd_frame = 'camera_depth_optical_frame'
-        elif pcd_topic == '/depth_registered_points':
-            pcd_frame = 'camera_color_optical_frame'
-
-        tf_buffer = tf2_ros.Buffer()
-        tf_listener = tf2_ros.TransformListener(tf_buffer)
-        rospy.sleep(0.5)  # essential, otherwise next line crashes
-        transform_camera_world = tf_buffer.lookup_transform(
-            'world', pcd_frame, rospy.Time())
-        transform_world_camera = tf_buffer.lookup_transform(
-            pcd_frame, 'world', rospy.Time())
-        q = transform_world_camera.transform.rotation
-        r = transform_world_camera.transform.translation
-        camera_T_world = tft.quaternion_matrix([q.x, q.y, q.z, q.w])
-        camera_T_world[:, 3] = [r.x, r.y, r.z, 1]
-
         # Get camera data
         color_image = cv2.imread(self.color_img_save_path)
         depth_path = self.depth_img_save_path
@@ -1440,7 +1422,6 @@ class GraspClient():
         depth_image *= mask2
 
         # Remove data with large depth offset from segmented object's median
-        print(np.max(depth_image[depth_image > 0.000001]), np.min(depth_image[depth_image > 0.000001]))
         median = np.median(depth_image[depth_image > 0.000001])
         depth_image = np.where(abs(depth_image - median) < 0.2, depth_image, 0)
 
@@ -1462,12 +1443,7 @@ class GraspClient():
 
         object_pcd = o3d.geometry.PointCloud.create_from_depth_image(depth_image_o3d, pinhole_camera_intrinsic)
 
-        object_centroid = object_pcd.get_center()
-        object_pcd.transform(camera_T_world)
-        object_pcd.translate((-1) * object_pcd.get_center())
-
-        # pcd_save_path corresponds directly to where encode_pcd_with_bps would read the point cloud
-        pcd_save_path = rospy.get_param('object_pcd_path')
+        pcd_save_path = self.object_pcd_save_path
         o3d.io.write_point_cloud(pcd_save_path, object_pcd)
 
     #####################################################

@@ -109,10 +109,14 @@ for obj_full in obj_list:
 
         grasp_client.spawn_obstacle_objects(obstacle_objects)
 
-
         # Get point cloud (mean-free, orientation of camera frame)
         grasp_client.save_visual_data(down_sample_pcd=False)
-        grasp_client.segment_object_as_point_cloud()
+        grasp_client.segment_object_as_point_cloud() # outputs segmented object to self.object_pcd_save_path
+        
+        temp_var = grasp_client.scene_pcd_save_path
+        grasp_client.scene_pcd_save_path = grasp_client.object_pcd_save_path
+        grasp_client.segment_object_client(down_sample_pcd=False)
+        grasp_client.scene_pcd_save_path = temp_var
 
         # Compute BPS of point cloud, stores encoding to disk
         grasp_client.encode_pcd_with_bps()
