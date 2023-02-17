@@ -1380,6 +1380,26 @@ class GraspClient():
         self.save_visual_data_client()
         
     def segment_object_as_point_cloud(self):
+        tf_buffer = tf2_ros.Buffer()
+        tf_listener = tf2_ros.TransformListener(tf_buffer)
+        scene_pcd_topic = rospy.get_param('scene_pcd_topic', default='/camera/depth/points')
+        # as stated in grasp-pipeline/launch/grasp_pipeline_servers_real.launch, the pcd_topic for
+        # realsense is either /camera/depth/points from simulation or the other one in real world
+        if scene_pcd_topic == '/camera/depth/points' or scene_pcd_topic == '/camera/depth/color/points':
+            pcd_frame = 'camera_depth_optical_frame'
+        elif scene_pcd_topic == '/depth_registered_points':
+            pcd_frame = 'camera_color_optical_frame'
+        else:
+            rospy.logerr(
+                'Wrong parameter set for scene_pcd_topic in grasp_pipeline_servers.launch')
+
+        transform_camera_world = tf_buffer.lookup_transform(
+            'world', pcd_frame, rospy.Time())
+        q = transform_camera_world.transform.rotation
+        r = transform_camera_world.transform.translation
+        world_T_camera = tft.quaternion_matrix([q.x, q.y, q.z, q.w])
+        world_T_camera[:, 3] = [r.x, r.y, r.z, 1]
+        
         # Get camera data
         color_image = cv2.imread(self.color_img_save_path)
         depth_path = self.depth_img_save_path
@@ -1441,6 +1461,7 @@ class GraspClient():
         )
 
         object_pcd = o3d.geometry.PointCloud.create_from_depth_image(depth_image_o3d, pinhole_camera_intrinsic)
+        object_pcd.transform(world_T_camera)
 
         pcd_save_path = self.object_pcd_save_path
         o3d.io.write_point_cloud(pcd_save_path, object_pcd)
