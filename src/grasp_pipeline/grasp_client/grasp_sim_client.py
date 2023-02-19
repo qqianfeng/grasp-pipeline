@@ -1466,6 +1466,12 @@ class GraspClient():
         pcd_save_path = self.object_pcd_save_path
         o3d.io.write_point_cloud(pcd_save_path, object_pcd)
 
+    def post_process_object_point_cloud(self):
+        temp_var = self.scene_pcd_save_path
+        self.scene_pcd_save_path = self.object_pcd_save_path
+        self.segment_object_client(down_sample_pcd=False)
+        self.scene_pcd_save_path = temp_var
+
     #####################################################
     ## above are codes for multiple objects generation ##
     #####################################################
