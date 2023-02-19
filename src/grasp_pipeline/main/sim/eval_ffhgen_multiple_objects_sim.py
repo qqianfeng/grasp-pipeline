@@ -28,7 +28,7 @@ shutil.rmtree(path2grasp_data, ignore_errors=True)
 data_recording_path = rospy.get_param('data_recording_path')
 grasp_client = GraspClient(grasp_data_recording_path=data_recording_path, is_rec_sess=True, is_eval_sess=True)
 metadata_handler = MetadataHandler(gazebo_objects_path=gazebo_objects_path)
-
+object_metadata_buffer = None
 all_grasp_objects = []
 
 def get_obstacle_objects(grasp_object, amount=3):
@@ -74,6 +74,17 @@ def distribute_obstacle_objects_randomly(grasp_object_pose, obstacle_objects, mi
         existing_object_positions.append(position)
     return obstacle_objects
 
+def replace_object_metadata(grasp_client, object_metadata):
+    global object_metadata_buffer
+    if object_metadata_buffer in not None:
+        raise RuntimeError('Replace_object_metadata called twice before recover_object_metadata.')
+    object_metadata_buffer = grasp_client.object_metadata
+    grasp_client.object_metadata = object_metadata
+
+def recover_object_metadata(grasp_client):
+    global object_metadata_buffer
+    grasp_client.object_metadata = object_metadata_buffer
+    object_metadata_buffer = None 
 
 for obj_full in obj_list:
     # Skip object
@@ -112,7 +123,9 @@ for obj_full in obj_list:
 
         # Get point cloud (mean-free, orientation of camera frame)
         grasp_client.save_visual_data(down_sample_pcd=False)
-        grasp_client.segment_object_as_point_cloud() # outputs segmented object to self.object_pcd_save_path
+        ROI = grasp_client.segment_object_as_point_cloud() # outputs segmented object to self.object_pcd_save_path
+        name_of_object_in_ROI = grasp_client._get_name_of_objcet_in_ROI(ROI, obstacle_objects)
+        
         grasp_client.post_process_object_point_cloud() # goes through the origional segmentation process to get object frame published
 
         # Compute BPS of point cloud, stores encoding to disk
@@ -135,7 +148,7 @@ for obj_full in obj_list:
                 grasp_client.reset_hithand_and_panda()
 
                 grasp_client.spawn_object(pose_type='same')
-                
+
                 grasp_client.reset_obstacle_objects(obstacle_objects)
 
             # idx = np.random.randint(0, len(joint_confs))
