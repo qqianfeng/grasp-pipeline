@@ -36,12 +36,12 @@ def get_obstacle_objects(grasp_object, amount=3):
         # initilize once
         metadata_handler = MetadataHandler(gazebo_objects_path)
         
-    for obj_full in obj_list:
-        dset, obj_name = metadata_handler.split_full_name(obj_full)
+        for obj_full in obj_list:
+            dset, obj_name = metadata_handler.split_full_name(obj_full)
 
-        # get metadata on object
-        metadata = metadata_handler.get_object_metadata(dset, obj_name)
-        all_grasp_objects.append(metadata)
+            # get metadata on object
+            metadata = metadata_handler.get_object_metadata(dset, obj_name)
+            all_grasp_objects.append(metadata)
     
     objects = []
     object_names = set()
