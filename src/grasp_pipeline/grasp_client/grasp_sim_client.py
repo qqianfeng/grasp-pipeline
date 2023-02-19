@@ -1868,7 +1868,7 @@ def _select_ROI(image):
     while True:
         cv2.namedWindow("Seg", cv2.WND_PROP_FULLSCREEN)
         try:
-            roi = cv2.selectROI('Seg', color_image, False, False)
+            roi = cv2.selectROI('Seg', image, False, False)
         except:
             roi = [0]
 

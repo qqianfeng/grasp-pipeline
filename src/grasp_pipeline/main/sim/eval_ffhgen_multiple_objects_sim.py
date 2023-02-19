@@ -101,11 +101,9 @@ for obj_full in obj_list:
         grasp_client.reset_hithand_and_panda()
         grasp_client.remove_obstacle_objects(obstacle_objects)
 
-
         # Spawn model
         grasp_client.spawn_object(pose_type='init', pose_arr=grasp_objecet_pose)
         # grasp_client.spawn_object(pose_type="random")
-
 
         grasp_client.spawn_obstacle_objects(obstacle_objects)
 
