@@ -19,6 +19,7 @@ N_POSES = 400
 FILTER_THRESH = -1  # set to -1 if no filtering desired, default 0.9
 FILTER_NUM_GRASPS = 20
 NUM_TRIALS_PER_OBJ = 20
+NUM_OBSTACLE_OBJECTS = 3
 path2grasp_data = os.path.join(os.path.expanduser("~"), 'grasp_data')
 object_datasets_folder = rospy.get_param('object_datasets_folder')
 gazebo_objects_path = os.path.join(object_datasets_folder, 'objects_gazebo')
@@ -90,21 +91,23 @@ for obj_full in obj_list:
 
     # create new folder
     grasp_client.create_dirs_new_grasp_trial(is_new_pose_or_object=True)
-
-    grasp_objecet_pose = [0.75, 0, 0, 0, 0, -2.57]
-    obstacle_objects = get_obstacle_objects(grasp_client.object_metadata)
-    obstacle_objects = distribute_obstacle_objects_randomly(grasp_objecet_pose, obstacle_objects)
+    grasp_objecet_pose = [0.45, 0, 0, 0, 0, -2.57]
     rospy.loginfo("Now start experiement of object: %s" % obj_name)
 
     for trial in range(NUM_TRIALS_PER_OBJ):
         # Reset
         grasp_client.reset_hithand_and_panda()
-        grasp_client.remove_obstacle_objects(obstacle_objects)
 
         # Spawn model
-        grasp_client.spawn_object(pose_type='init', pose_arr=grasp_objecet_pose)
-        # grasp_client.spawn_object(pose_type="random")
-
+        # grasp_client.spawn_object(pose_type='init', pose_arr=grasp_objecet_pose)
+        grasp_client.spawn_object(pose_type="random")
+        
+        obstacle_objects = get_obstacle_objects(grasp_client.object_metadata, NUM_OBSTACLE_OBJECTS)
+        grasp_object_pose = grasp_client.object_metadata['mesh_frame_pose']
+        grasp_object_pose = np.array([grasp_object_pose.pose.position.x, 
+                                      grasp_object_pose.pose.position.y, 
+                                      grasp_object_pose.pose.position.z])
+        obstacle_objects = distribute_obstacle_objects_randomly(grasp_object_pose, obstacle_objects)
         grasp_client.spawn_obstacle_objects(obstacle_objects)
 
         # Get point cloud (mean-free, orientation of camera frame)
@@ -116,8 +119,7 @@ for obj_full in obj_list:
         grasp_client.encode_pcd_with_bps()
 
         # Sample N latent variables and get the poses
-        palm_poses_obj_frame, joint_confs = grasp_client.infer_grasp_poses(n_poses=N_POSES,
-                                                                           visualize_poses=True)
+        palm_poses_obj_frame, joint_confs = grasp_client.infer_grasp_poses(n_poses=N_POSES, visualize_poses=True)
 
         # Evaluate the generated poses according to the FFHEvaluator
         palm_poses_obj_frame, joint_confs = grasp_client.evaluate_and_remove_grasps(
@@ -144,9 +146,10 @@ for obj_full in obj_list:
             # else:
             #     is_skipped = False
 
-            grasp_executed = grasp_client.grasp_from_inferred_pose(palm_poses_obj_frame[idx],
-                                                                   joint_confs[idx])
+            grasp_executed = grasp_client.grasp_from_inferred_pose(palm_poses_obj_frame[idx], joint_confs[idx])
             is_skipped = not grasp_executed
             if grasp_executed:
                 grasp_client.record_grasp_trial_data_client()
                 break
+
+        grasp_client.remove_obstacle_objects(obstacle_objects)
