@@ -1865,18 +1865,18 @@ class GraspClient():
 #####################################################
 
 def _select_ROI(image):
-    reselect = True
-    while reselect:
-
+    while True:
         cv2.namedWindow("Seg", cv2.WND_PROP_FULLSCREEN)
         try:
-            init_rect = cv2.selectROI('Seg', color_image, False, False)
+            roi = cv2.selectROI('Seg', color_image, False, False)
         except:
-            init_rect = [0]
-        if not any(init_rect):
+            roi = [0]
+
+        if not any(roi):
             print("No area selected. Press 'c' to abort or anything else to reselect")
             if cv2.waitKey(0) == ord('c'):
                 exit()
         else:
-            reselect = False
-    return init_rect
+            # user selected something
+            break
+    return roi
