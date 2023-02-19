@@ -1,7 +1,7 @@
 import pymeshlab as ml
 import os
 
-in_folder = "/home/ffh/meshes_inertia/"
+in_folder = "/home/vm/meshes_inertia/"
 out_folder = in_folder + "output/"
 if not os.path.exists(out_folder):
     os.mkdir(out_folder)

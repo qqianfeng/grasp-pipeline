@@ -15,7 +15,7 @@ class RecordGraspData():
     def __init__(self):
         rospy.init_node('record_grasp_data_server')
         self.num_grasps_per_object = rospy.get_param('~num_grasps_per_object', 10)
-        self.data_recording_path = rospy.get_param('~data_recording_path', '/home/ffh/utah/')
+        self.data_recording_path = rospy.get_param('~data_recording_path', '/home/vm/utah/')
         self.grasp_file_name = self.data_recording_path + 'grasp_data_utah.h5'
 
     def handle_record_grasp_data_utah(self, req):

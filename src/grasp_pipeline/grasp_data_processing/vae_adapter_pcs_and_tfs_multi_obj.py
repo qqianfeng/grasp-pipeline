@@ -28,7 +28,7 @@ def get_all_objects(gazebo_objects_path):
     for _ in range(num_total):
         all_grasp_objects.append(metadata_handler.choose_next_grasp_object(case='postprocessing'))
     return all_grasp_objects
-    
+
 
 def find_objects(all_objects, name1, name2, name3):
     objects = []
@@ -135,6 +135,15 @@ def save_mesh_frame_centroid_tf(obj_full, full_save_path, obj_full_pcd, tf_list)
         except RuntimeError:
             hdf[obj_full][obj_full_pcd + '_mesh_to_centroid'][...] = tf_list
 
+
+def save_mesh_frame_world_tf(obj_full, full_save_path, obj_full_pcd, tf_list):
+    with h5py.File(full_save_path, 'r+') as hdf:
+        try:
+            hdf[obj_full].create_dataset(obj_full_pcd + '_mesh_to_world', data=tf_list)
+        except RuntimeError:
+            hdf[obj_full][obj_full_pcd + '_mesh_to_world'][...] = tf_list
+
+
 if __name__ == '__main__':
     # Some "hyperparameters"
     # For debug purpose, create a file like 'new_data' and replace the name.
@@ -144,7 +153,7 @@ if __name__ == '__main__':
     # Get all available objects and choose one
     with h5py.File(input_grasp_data_file, 'r') as hdf:
         objects = hdf.keys()
-    
+
     all_objects = get_all_objects(gazebo_objects_path)
     # Make the base directory
     dest_folder = os.path.join('/home', os.getlogin(), 'new_data_full/')
@@ -163,7 +172,7 @@ if __name__ == '__main__':
             continue
         if obj in KIT_OBJECTS_DATA_FOR_POSTPROCESSING:
             continue
-                        
+
         print('start with obj:', obj)
         dset = obj_full.split('_')[0]
         # Create directory for new object
@@ -178,7 +187,7 @@ if __name__ == '__main__':
                 obstacle1_name = hdf[obj_full]['negative']['grasp_00000']['obstacle1_name'][()]
                 obstacle2_name = hdf[obj_full]['negative']['grasp_00000']['obstacle2_name'][()]
                 obstacle3_name = hdf[obj_full]['negative']['grasp_00000']['obstacle3_name'][()]
-                
+
                 # [7,] pose
                 obstacle1_mesh_frame_world = hdf[obj_full]['negative']['grasp_00000']['obstacle1_mesh_frame_world'][()]
                 obstacle2_mesh_frame_world = hdf[obj_full]['negative']['grasp_00000']['obstacle2_mesh_frame_world'][()]
@@ -193,7 +202,7 @@ if __name__ == '__main__':
         # Get metadata for new object and set in grasp_client
         object_metadata = metadata_handler.get_object_metadata(dset, obj)
         grasp_client.update_object_metadata(object_metadata)
-        
+
         for i in xrange(n_pcds_per_obj):
             grasp_client.create_dirs_new_grasp_trial(is_new_pose_or_object=True) # TODO: here True is not always true?
 
@@ -212,13 +221,13 @@ if __name__ == '__main__':
             print('time to spawn object,', time2-time1)
             ###############################################
             # Segment object and save visual data
-            grasp_client.set_path_and_save_visual_data(grasp_phase='single', 
+            grasp_client.set_path_and_save_visual_data(grasp_phase='single',
                                                         object_pcd_record_path=single_pcd_save_path)
-            grasp_client.segment_object_client(down_sample_pcd=False)
+            grasp_client.segment_object_client(down_sample_pcd=False, pcd_in_world_frame=True)
             print('time to segment single object,', time()-time2)
-            
+
             ###############################################
-            ## TASK find the transformations to apply to the ground truth grasp to transfer it to 
+            ## TASK find the transformations to apply to the ground truth grasp to transfer it to
             # object_frame and verify that the transformation is correct in RVIZ
             #test_grasp_pose_transform(dset_obj_name=obj_full, grasp_client=grasp_client)
 
@@ -234,14 +243,23 @@ if __name__ == '__main__':
 
             # Save the transform to file
             save_mesh_frame_centroid_tf(obj_full, pcd_tfs_path, obj_full_pcd, trans_cent_mf_list)
-            
+
+            # Also save mesh frame world tf
+            transform_cent_mf = grasp_client.tf_buffer.lookup_transform("world",
+                                                                        "object_mesh_frame",
+                                                                        rospy.Time(0),
+                                                                        timeout=rospy.Duration(10))
+            trans_cent_mf_list = utils.trans_rot_list_from_ros_transform(transform_cent_mf)
+            save_mesh_frame_world_tf(obj_full, pcd_tfs_path, obj_full_pcd, trans_cent_mf_list)
+
+
             new_pose = grasp_client.get_grasp_object_pose_client()
             new_pose_matrix = utils.hom_matrix_from_pose(new_pose)
             old_pose_matrix = utils.hom_matrix_from_pos_quat_list(object_mesh_frame_world)
             # new_pose = new_T_old * old_pose
             # new_pose * old_pose^-1 = new_T_old
             new_T_old = np.matmul(new_pose_matrix, np.linalg.inv(old_pose_matrix))
-            
+
             old_obstacle1_pose = utils.hom_matrix_from_pos_quat_list(obstacle1_mesh_frame_world)
             old_obstacle2_pose = utils.hom_matrix_from_pos_quat_list(obstacle2_mesh_frame_world)
             old_obstacle3_pose = utils.hom_matrix_from_pos_quat_list(obstacle3_mesh_frame_world)
@@ -249,11 +267,11 @@ if __name__ == '__main__':
             new_obstacle1_pose = np.matmul(new_T_old, old_obstacle1_pose)
             new_obstacle2_pose = np.matmul(new_T_old, old_obstacle2_pose)
             new_obstacle3_pose = np.matmul(new_T_old, old_obstacle3_pose)
-            new_obstacle1_pose_stamped = utils.pose_stamped_from_hom_matrix(new_obstacle1_pose, 
+            new_obstacle1_pose_stamped = utils.pose_stamped_from_hom_matrix(new_obstacle1_pose,
                                                                             frame_id='mesh_frame_pose')
-            new_obstacle2_pose_stamped = utils.pose_stamped_from_hom_matrix(new_obstacle2_pose, 
+            new_obstacle2_pose_stamped = utils.pose_stamped_from_hom_matrix(new_obstacle2_pose,
                                                                             frame_id='mesh_frame_pose')
-            new_obstacle3_pose_stamped = utils.pose_stamped_from_hom_matrix(new_obstacle3_pose, 
+            new_obstacle3_pose_stamped = utils.pose_stamped_from_hom_matrix(new_obstacle3_pose,
                                                                             frame_id='mesh_frame_pose')
             for obj in obstacle_objects:
                 if obj['name'] == obstacle1_name:
@@ -262,17 +280,17 @@ if __name__ == '__main__':
                     assign_obstacle_objects_pose(obj, new_obstacle2_pose_stamped)
                 elif obj['name'] == obstacle3_name:
                     assign_obstacle_objects_pose(obj, new_obstacle3_pose_stamped)
-                else: 
+                else:
                     raise ValueError("obj name not found", obj['name'])
-            
+
             # np.allclose(new_pose_matrix, np.matmul(new_T_old,old_pose_matrix))
             time1 = time()
             grasp_client.spawn_obstacle_objects(obstacle_objects, moveit=False)
             time2 = time()
             print('time to spawn obstacle objects,', time2 - time1)
-            grasp_client.set_path_and_save_visual_data(grasp_phase="pre", 
+            grasp_client.set_path_and_save_visual_data(grasp_phase="pre",
                                                        object_pcd_record_path=multi_pcd_save_path)
-            grasp_client.segment_object_client(down_sample_pcd=False)
+            grasp_client.segment_object_client(down_sample_pcd=False, pcd_in_world_frame=True)
             time3 = time()
             print('time to segment object client,', time3 - time2)
             # TODO: save the color and depth image of single and multi

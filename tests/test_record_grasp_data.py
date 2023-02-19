@@ -11,9 +11,9 @@ from grasp_pipeline.utils.utils import plot_voxel, convert_to_full_voxel_grid
 
 PRINT_TREE = True
 
-utah_grasp_data = "/home/ffh/Downloads/merged_grasp_data_10_sets.h5"
-#vincent_grasp_data = "/home/ffh/grasp_data.h5"
-vincent_grasp_data = "/home/ffh/data/grasp_data.h5"
+utah_grasp_data = "/home/vm/Downloads/merged_grasp_data_10_sets.h5"
+#vincent_grasp_data = "/home/vm/grasp_data.h5"
+vincent_grasp_data = "/home/vm/data/grasp_data.h5"
 
 joints = [
     'index0', 'index1', 'index2', 'index3', 'little0', 'little1', 'little2', 'little3', 'middle0',
@@ -115,7 +115,7 @@ if PRINT_TREE:
 #     print(name, obj)
 #     return None
 
-# with h5py.File("/home/ffh/Downloads/merged_grasp_data_10_sets.h5", "r") as hdf:
+# with h5py.File("/home/vm/Downloads/merged_grasp_data_10_sets.h5", "r") as hdf:
 #     #base_items = list(hdf.items())
 #     keys = list(hdf.keys())
 #     #hdf.visititems(foo)

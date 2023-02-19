@@ -4,8 +4,8 @@ import os
 from grasp_pipeline.utils.grasp_data_handler import GraspDataHandlerVae
 from grasp_pipeline.utils.utils import hom_matrix_from_pos_quat_list
 # read mesh and convert to pc
-data_folder = '/home/ffh/Documents/grasp_data/2021-03-08/grasp_data/recording_sessions/recording_session_0001'
-grasp_data_path = '/home/ffh/Documents/grasp_data/2021-03-08/grasp_data_vae.h5'
+data_folder = '/home/vm/Documents/grasp_data/2021-03-08/grasp_data/recording_sessions/recording_session_0001'
+grasp_data_path = '/home/vm/Documents/grasp_data/2021-03-08/grasp_data_vae.h5'
 
 for obj in os.listdir(data_folder):
     if obj == 'bigbird_aunt_jemima_original_syrup':
@@ -21,7 +21,7 @@ for obj in os.listdir(data_folder):
         file_name = ''
     else:
         raise Exception('Unknown dataset name.')
-    path = os.path.join('/home/ffh/gazebo-objects/objects_gazebo', dset, obj_name, file_name)
+    path = os.path.join('/home/vm/gazebo-objects/objects_gazebo', dset, obj_name, file_name)
     mesh = o3d.io.read_triangle_mesh(path)
 
     pc = mesh.sample_points_uniformly(number_of_points=2000)

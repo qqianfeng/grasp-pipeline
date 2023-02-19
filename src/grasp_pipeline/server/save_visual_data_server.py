@@ -45,6 +45,7 @@ class VisualDataSaver():
         r = self.transform_camera_world.transform.translation
         self.world_T_camera = tft.quaternion_matrix([q.x, q.y, q.z, q.w])
         self.world_T_camera[:, 3] = [r.x, r.y, r.z, 1]
+        print("world_T_camera:")
         print(self.world_T_camera)
 
         self.color_img_topic = rospy.get_param('color_img_topic',

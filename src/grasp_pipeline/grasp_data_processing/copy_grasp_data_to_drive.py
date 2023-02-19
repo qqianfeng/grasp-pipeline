@@ -2,7 +2,7 @@ import os
 from shutil import copyfile
 
 if __name__ == '__main__':
-    base_path = '/home/ffh/Documents'
+    base_path = '/home/vm/Documents'
     dst_base_path = '/media/vm/9CAF-2E7B'
 
     for folder in os.listdir(base_path):
