@@ -76,7 +76,7 @@ def distribute_obstacle_objects_randomly(grasp_object_pose, obstacle_objects, mi
 
 def replace_object_metadata(grasp_client, object_metadata):
     global object_metadata_buffer
-    if object_metadata_buffer in not None:
+    if object_metadata_buffer is not None:
         raise RuntimeError('Replace_object_metadata called twice before recover_object_metadata.')
     object_metadata_buffer = grasp_client.object_metadata
     grasp_client.object_metadata = object_metadata
@@ -125,7 +125,7 @@ for obj_full in obj_list:
         grasp_client.save_visual_data(down_sample_pcd=False)
         ROI = grasp_client.segment_object_as_point_cloud() # outputs segmented object to self.object_pcd_save_path
         name_of_object_in_ROI = grasp_client._get_name_of_objcet_in_ROI(ROI, obstacle_objects)
-        
+        print(name_of_object_in_ROI)
         grasp_client.post_process_object_point_cloud() # goes through the origional segmentation process to get object frame published
 
         # Compute BPS of point cloud, stores encoding to disk

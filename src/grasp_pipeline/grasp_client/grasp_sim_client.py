@@ -1381,7 +1381,7 @@ class GraspClient():
         self.save_visual_data_client()
 
     def segment_object_as_point_cloud(self):
-        world_T_camera = _get_camera_to_world_transformatin()
+        world_T_camera = _get_camera_to_world_transformation()
         
         # Get camera data
         color_image = cv2.imread(self.color_img_save_path)
@@ -1443,7 +1443,7 @@ class GraspClient():
         
         for name in candidate_names:
             pose = self.get_grasp_object_pose_client(obj_name=name)
-            object_positions[name] = np.array([pose.position.x, pose.positions.y, pose.positions.z])
+            object_positions[name] = np.array([pose.position.x, pose.position.y, pose.position.z])
             x, y = _project_point_in_world_onto_image_plane(
                 pose.position.x, 
                 pose.position.y, 
@@ -1902,13 +1902,13 @@ def _select_ROI(image):
 def _project_point_in_world_onto_image_plane(x, y, z, camera_intrinsics):
     intrinsic_matrix = camera_intrinsics.intrinsic_matrix
     camera_T_world = _get_world_to_camera_transformation()
-    point_coordinate = np.matmul(intrinsic_matrix, np.matmul(camera_T_world, np.array([x, y, z, 1]).reshape(-1, 1)))
+    point_coordinate = np.matmul(intrinsic_matrix, np.matmul(camera_T_world, np.array([x, y, z, 1]).reshape(-1, 1))[:3])
     x = int(point_coordinate[0])
     y = int(point_coordinate[1])
     return x, y
 
 def _is_point_inside_ROI(ROI, x, y):
-    return (ROI.x < x < ROI.x + ROI.width) and (ROI.y < y < ROI.y + ROI.height)
+    return (ROI[0] < x < ROI[0] + ROI[2]) and (ROI[1] < y < ROI[1] + ROI[3])
 
 def _get_camera_intrinsics():
     image_width = 1280
@@ -1946,7 +1946,7 @@ def _get_camera_to_world_transformation():
     world_T_camera[:, 3] = [r.x, r.y, r.z, 1]
     return world_T_camera
 
-def _get_world_to_camera_transformatin():
+def _get_world_to_camera_transformation():
     tf_buffer = tf2_ros.Buffer()
     tf_listener = tf2_ros.TransformListener(tf_buffer)
     scene_pcd_topic = rospy.get_param('scene_pcd_topic', default='/camera/depth/points')
