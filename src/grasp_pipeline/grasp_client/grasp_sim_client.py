@@ -1382,7 +1382,7 @@ class GraspClient():
 
     def segment_object_as_point_cloud(self):
         world_T_camera = _get_camera_to_world_transformation()
-        
+
         # Get camera data
         color_image = cv2.imread(self.color_img_save_path)
         depth_path = self.depth_img_save_path
@@ -1436,23 +1436,23 @@ class GraspClient():
         candidate_names = set()
         objects_inside_ROI = []
         object_positions = dict()
-        
+
         candidate_names.add(self.object_metadata['name'])
         for obj in obstacle_objects:
             candidate_names.add(obj['name'])
-        
+
         for name in candidate_names:
             pose = self.get_grasp_object_pose_client(obj_name=name)
             object_positions[name] = np.array([pose.position.x, pose.position.y, pose.position.z])
             x, y = _project_point_in_world_onto_image_plane(
-                pose.position.x, 
-                pose.position.y, 
-                pose.position.z, 
+                pose.position.x,
+                pose.position.y,
+                pose.position.z,
                 _get_camera_intrinsics()
             )
             if _is_point_inside_ROI(ROI, x, y):
                 objects_inside_ROI.append(name)
-        
+
         if len(objects_inside_ROI) == 0:
             raise RuntimeError('Nothing inside ROI!')
 
@@ -1902,7 +1902,8 @@ def _select_ROI(image):
 def _project_point_in_world_onto_image_plane(x, y, z, camera_intrinsics):
     intrinsic_matrix = camera_intrinsics.intrinsic_matrix
     camera_T_world = _get_world_to_camera_transformation()
-    point_coordinate = np.matmul(intrinsic_matrix, np.matmul(camera_T_world, np.array([x, y, z, 1]).reshape(-1, 1))[:3])
+    P = np.matmul(intrinsic_matrix, camera_T_world[:3,:])
+    point_coordinate = np.matmul(P, np.array([x, y, z, 1]).reshape(-1, 1))
     x = int(point_coordinate[0])
     y = int(point_coordinate[1])
     return x, y
