@@ -102,7 +102,7 @@ for obj_full in obj_list:
 
     # create new folder
     grasp_client.create_dirs_new_grasp_trial(is_new_pose_or_object=True)
-    grasp_objecet_pose = [0.45, 0, 0, 0, 0, -2.57]
+    # grasp_objecet_pose = [0.45, 0, 0, 0, 0, -2.57]
     rospy.loginfo("Now start experiement of object: %s" % obj_name)
 
     for trial in range(NUM_TRIALS_PER_OBJ):
@@ -120,6 +120,8 @@ for obj_full in obj_list:
                                       grasp_object_pose.pose.position.z])
         obstacle_objects = distribute_obstacle_objects_randomly(grasp_object_pose, obstacle_objects)
         grasp_client.spawn_obstacle_objects(obstacle_objects)
+
+        ROIs = grasp_client.select_ROIs(obstacle_objects)
 
         # Get point cloud (mean-free, orientation of camera frame)
         grasp_client.save_visual_data(down_sample_pcd=False)

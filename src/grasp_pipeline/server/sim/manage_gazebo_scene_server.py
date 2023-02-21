@@ -38,7 +38,7 @@ class GazeboSceneManager():
         self.delete_object(self.prev_object_model_name)
 
     def spawn_object(self, object_name, object_model_file, object_pose_array, model_type):
-        rospy.wait_for_service('/gazebo/spawn_' + model_type + '_model')
+        rospy.wait_for_service('/gazebo/spawn_' + model_type + '_model') 
         try:
             with open(object_model_file, 'r') as f:
                 model_file = f.read()
@@ -64,6 +64,7 @@ class GazeboSceneManager():
     def handle_update_gazebo_object(self, req):
         print("update_gazebo_object: RECEIVED REQUEST")
         print(req)
+        self.cache_grasp_object_spawn_info = req
         self.delete_prev_object(req.object_name)
         rospy.sleep(1)
         self.spawn_object(req.object_name, req.object_model_file, req.object_pose_array,
@@ -231,17 +232,27 @@ class GazeboSceneManager():
             self.scene_snapshot.model_states_invisible_objects.discard(model_state)
             self.scene_snapshot.model_states.add(model_state)
 
-            spawn_info = None 
-            for info in self.scene_snapshot.spawning_info:
-                if info.object_name == model_name:
-                    spawn_info = info
+            if model_name == self.cache_grasp_object_spawn_info.object_name:
+                # spawned with update_gazebo_object
+                self.spawn_object_do_not_modify_prev_object(
+                    self.cache_grasp_object_spawn_info.object_name, 
+                    self.cache_grasp_object_spawn_info.object_model_file, 
+                    self.cache_grasp_object_spawn_info.object_pose_array, 
+                    self.cache_grasp_object_spawn_info.model_type
+                )
+            else:
+                # spawned with create_new_scene
+                spawn_info = None 
+                for info in self.scene_snapshot.spawning_info:
+                    if info.object_name == model_name:
+                        spawn_info = info
 
-            self.spawn_object_do_not_modify_prev_object(
-                spawn_info.object_name, 
-                spawn_info.object_model_file, 
-                spawn_info.object_pose_array, 
-                spawn_info.model_type
-            )
+                self.spawn_object_do_not_modify_prev_object(
+                    spawn_info.object_name, 
+                    spawn_info.object_model_file, 
+                    spawn_info.object_pose_array, 
+                    spawn_info.model_type
+                )
             self.set_model_state(model_state)
 
 def _get_stationary_scene():

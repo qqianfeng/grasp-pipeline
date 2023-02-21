@@ -1399,9 +1399,6 @@ class GraspClient():
         # Select ROI
         init_rect = _select_ROI(color_image)
 
-        # Close window
-        cv2.destroyWindow("Seg")
-
         # Run GrabCut
         cv2.grabCut(color_image, mask, init_rect, bgdModel, fgbModel, 10, cv2.GC_INIT_WITH_RECT)
         mask2 = np.where((mask == 2) | (mask == 0), 0, 1).astype('uint8')
@@ -1432,18 +1429,37 @@ class GraspClient():
         self.segment_object_client(down_sample_pcd=False)
         self.scene_pcd_save_path = temp_var
 
+    def select_ROIs(self, obstacle_objects):
+        ROIs = []
+        for _ in range(len(obstacle_objects) + 1):
+            self.save_visual_data(down_sample_pcd=False)
+            color_image = cv2.imread(self.color_img_save_path)
+            ROI = _select_ROI(color_image)
+            ROIs.append(ROI)
+            name = self._get_name_of_objcet_in_ROI(ROI, obstacle_objects)
+            self.change_model_visibility(name, False)
+        
+        self.make_all_visiable(obstacle_objects)
+        return ROIs
+
+    def make_all_visiable(self, obstacle_objects):
+        self.change_model_visibility(self.object_metadata['name'], True)
+        for obj in obstacle_objects:
+            self.change_model_visibility(obj['name'], True)
+        
+
     def change_model_visibility(self, model_name, visible):
         wait_for_service("update_object_mesh_frame_pose")
         try:
-            create_server_change_model_visibility = rospy.ServiceProxy('change_model_visibility',
+            service_change_model_visibility = rospy.ServiceProxy('change_model_visibility',
                                                                ChangeModelVisibility)
             req = ChangeModelVisibilityRequest()
             req.model_name = model_name
             req.visible = visible
-            res = create_server_change_model_visibility(req)
+            res = service_change_model_visibility(req)
         except rospy.ServiceException, e:
-            rospy.logerr('Service create_server_change_model_visibility call failed: %s' % e)
-        rospy.logdebug('Service create_server_change_model_visibility is executed.')
+            rospy.logerr('Service change_model_visibility call failed: %s' % e)
+        rospy.logdebug('Service change_model_visibility is executed.')
 
     def _get_name_of_objcet_in_ROI(self, ROI, obstacle_objects):
         candidate_names = set()
@@ -1456,7 +1472,10 @@ class GraspClient():
 
         for name in candidate_names:
             pose = self.get_grasp_object_pose_client(obj_name=name)
-            object_positions[name] = np.array([pose.position.x, pose.position.y, pose.position.z])
+            pose_numpy = np.array([pose.position.x, pose.position.y, pose.position.z])
+            if np.allclose(pose_numpy, np.zeros_like(pose_numpy)):
+                continue
+            object_positions[name] = pose_numpy
             x, y = _project_point_in_world_onto_image_plane(
                 pose.position.x,
                 pose.position.y,
@@ -1481,7 +1500,7 @@ class GraspClient():
             if min_distance is None or distance < min_distance:
                 closest_object = name
                 min_distance = distance
-        return name
+        return closest_object
 
     #####################################################
     ## above are codes for multiple objects generation ##
@@ -1909,6 +1928,8 @@ def _select_ROI(image):
         else:
             # user selected something
             break
+
+    cv2.destroyWindow("Seg")
     return roi
 
 
