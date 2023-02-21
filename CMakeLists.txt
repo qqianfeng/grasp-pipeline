@@ -62,6 +62,7 @@ add_service_files(
     CreateNewScene.srv
     ClearScene.srv
     ResetScene.srv
+    ChangeModelVisibility.srv
 )
 
 generate_messages(

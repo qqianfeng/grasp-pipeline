@@ -1432,6 +1432,19 @@ class GraspClient():
         self.segment_object_client(down_sample_pcd=False)
         self.scene_pcd_save_path = temp_var
 
+    def change_model_visibility(self, model_name, visible):
+        wait_for_service("update_object_mesh_frame_pose")
+        try:
+            create_server_change_model_visibility = rospy.ServiceProxy('change_model_visibility',
+                                                               ChangeModelVisibility)
+            req = ChangeModelVisibilityRequest()
+            req.model_name = model_name
+            req.visible = visible
+            res = create_server_change_model_visibility(req)
+        except rospy.ServiceException, e:
+            rospy.logerr('Service create_server_change_model_visibility call failed: %s' % e)
+        rospy.logdebug('Service create_server_change_model_visibility is executed.')
+
     def _get_name_of_objcet_in_ROI(self, ROI, obstacle_objects):
         candidate_names = set()
         objects_inside_ROI = []
