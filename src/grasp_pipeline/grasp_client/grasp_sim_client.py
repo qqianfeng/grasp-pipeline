@@ -1462,7 +1462,7 @@ class GraspClient():
         camera_position = np.array([0.48, -0.846602, 0.360986])
         min_distance = None
         closest_object = None
-        for name in object_positions.keys:
+        for name in object_positions.keys():
             object_position = object_positions[name]
             distance = np.linalg.norm(object_position - camera_position)
             if min_distance is None or distance < min_distance:
@@ -1904,8 +1904,9 @@ def _project_point_in_world_onto_image_plane(x, y, z, camera_intrinsics):
     camera_T_world = _get_world_to_camera_transformation()
     P = np.matmul(intrinsic_matrix, camera_T_world[:3,:])
     point_coordinate = np.matmul(P, np.array([x, y, z, 1]).reshape(-1, 1))
-    x = int(point_coordinate[0])
-    y = int(point_coordinate[1])
+    x = int(point_coordinate[0] / point_coordinate[2])
+    y = int(point_coordinate[1] / point_coordinate[2])
+
     return x, y
 
 def _is_point_inside_ROI(ROI, x, y):
