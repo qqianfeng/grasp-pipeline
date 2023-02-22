@@ -9,7 +9,8 @@ import sys
 sys.path.append(rospy.get_param('ffhnet_path'))
 
 from FFHNet.models.ffhnet import FFHNet
-from FFHNet.config.eval_config import EvalConfig
+from FFHNet.config.config import Config
+
 from FFHNet.utils import visualization
 
 from geometry_msgs.msg import PoseStamped
@@ -21,7 +22,10 @@ from sensor_msgs.msg import JointState
 class GraspInference():
     def __init__(self):
         rospy.init_node('grasp_inference_node')
-        cfg = EvalConfig().parse()
+        config_path = rospy.get_param('config_path')
+        config = Config(config_path)
+        cfg = config.parse()
+
         self.VISUALIZE = rospy.get_param('visualize', False)
         self.pcd_path = rospy.get_param('object_pcd_path')
 
@@ -31,7 +35,7 @@ class GraspInference():
                                       load_path=os.path.join(ffhnet_path, 'models/ffhgenerator'))
         self.FFHNet.load_ffhevaluator(epoch=30,
                                       load_path=os.path.join(ffhnet_path, 'models/ffhevaluator'))
-        self.FFHNet.load_ffhcolldetr(epoch=10,
+        self.FFHNet.load_ffhcolldetr(epoch=5,
                                      load_path=os.path.join(ffhnet_path, 'models/ffhcolldetr'))
 
     def build_pose_list(self, rot_matrix, transl, frame_id='object_centroid_vae'):
