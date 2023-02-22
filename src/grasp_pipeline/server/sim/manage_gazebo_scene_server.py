@@ -22,6 +22,7 @@ class GazeboSceneManager():
         self.prev_object_model_name = None
         self.objects_in_scene = set()
         self.scene_snapshot = None
+        self.cache_grasp_object_spawn_info = None
 
     def delete_object(self, object_model_name):
         try:

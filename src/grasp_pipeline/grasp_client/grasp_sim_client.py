@@ -40,6 +40,9 @@ from grasp_pipeline.msg import *
 
 from uuid import uuid4
 
+camera_T_world_buffer = None
+world_T_camera_buffer = None
+
 
 class GraspClient():
     """ This class is a wrapper around all the individual functionality involved in grasping experiments.
@@ -111,6 +114,7 @@ class GraspClient():
         self.is_eval_sess = is_eval_sess
 
         self.name_of_obstacle_objects_in_moveit_scene = set()
+        self.object_name_to_moveit_name = dict()
 
     # +++++++ PART I: First part are all the "helper functions" w/o interface to any other nodes/services ++++++++++
     def log_object_cycle_time(self, cycle_time):
@@ -246,7 +250,7 @@ class GraspClient():
         """ Sets the boundaries in which an object can be spawned and placed.
         Gets called
         """
-        self.spawn_object_x_min, self.spawn_object_x_max = 0.25, 0.65
+        self.spawn_object_x_min, self.spawn_object_x_max = 0.35, 0.75
         self.spawn_object_y_min, self.spawn_object_y_max = -0.2, 0.2
 
     def generate_random_object_pose_for_experiment(self):
@@ -1067,7 +1071,9 @@ class GraspClient():
                 grasp_object["mesh_frame_pose"] = PoseStamped(header=Header(frame_id='world'),
                                                                     pose=pose)
                 if moveit:
-                    self.add_to_moveit_scene(str(uuid4()), grasp_object)
+                    uuid_str = str(uuid4())
+                    self.add_to_moveit_scene(uuid_str, grasp_object)
+                    self.object_name_to_moveit_name[grasp_object['name']] = uuid_str
 
         return res.success
 
@@ -1124,8 +1130,16 @@ class GraspClient():
             rospy.sleep(0.5)
         self.name_of_obstacle_objects_in_moveit_scene.clear()
 
-    def save_scene(self):
-        pass
+    def remove_from_moveit_scene(self, object_name):
+        scene = PlanningSceneInterface()
+        rospy.sleep(0.5)
+        name = self.object_name_to_moveit_name.pop(object_name, object_name)
+        time1 = time.time()
+        scene.remove_world_object(name)
+        print('MOVEIT remove:',name,'time:',time.time()-time1)
+        rospy.sleep(0.5)
+        if name in self.name_of_obstacle_objects_in_moveit_scene:
+            self.name_of_obstacle_objects_in_moveit_scene.discard(name)
 
     def reset_scene(self, confirm):
         """Reset all object poses to original pose which is saved in snapshot.
@@ -1380,7 +1394,7 @@ class GraspClient():
         self.set_visual_data_save_paths(grasp_phase='pre')
         self.save_visual_data_client()
 
-    def segment_object_as_point_cloud(self):
+    def segment_object_as_point_cloud(self, ROI):
         world_T_camera = _get_camera_to_world_transformation()
 
         # Get camera data
@@ -1396,10 +1410,8 @@ class GraspClient():
         bgdModel = np.zeros((1, 65), np.float64)
         fgbModel = np.zeros((1, 65), np.float64)
 
-        # Select ROI
-        init_rect = _select_ROI(color_image)
-
         # Run GrabCut
+        init_rect = ROI
         cv2.grabCut(color_image, mask, init_rect, bgdModel, fgbModel, 10, cv2.GC_INIT_WITH_RECT)
         mask2 = np.where((mask == 2) | (mask == 0), 0, 1).astype('uint8')
         masked_image = color_image * mask2[:, :, np.newaxis]
@@ -1421,7 +1433,6 @@ class GraspClient():
 
         pcd_save_path = self.object_pcd_save_path
         o3d.io.write_point_cloud(pcd_save_path, object_pcd)
-        return init_rect
 
     def post_process_object_point_cloud(self):
         temp_var = self.scene_pcd_save_path
@@ -1431,16 +1442,18 @@ class GraspClient():
 
     def select_ROIs(self, obstacle_objects):
         ROIs = []
+        names = []
         for _ in range(len(obstacle_objects) + 1):
             self.save_visual_data(down_sample_pcd=False)
             color_image = cv2.imread(self.color_img_save_path)
-            ROI = _select_ROI(color_image)
+            ROI = _select_ROI(color_image, _ == len(obstacle_objects))
             ROIs.append(ROI)
             name = self._get_name_of_objcet_in_ROI(ROI, obstacle_objects)
+            names.append(name)
             self.change_model_visibility(name, False)
         
         self.make_all_visiable(obstacle_objects)
-        return ROIs
+        return ROIs, names
 
     def make_all_visiable(self, obstacle_objects):
         self.change_model_visibility(self.object_metadata['name'], True)
@@ -1827,6 +1840,7 @@ class GraspClient():
         if approach_plan_exists:
             self.clean_moveit_scene_client()
         else:
+            self.grasp_label = -1
             rospy.logerr("no traj found to approach pose")
             return False
         # Execute to approach pose
@@ -1913,7 +1927,7 @@ class GraspClient():
 ## below are codes for multiple objects generation ##
 #####################################################
 
-def _select_ROI(image):
+def _select_ROI(image, close_window=True):
     while True:
         cv2.namedWindow("Seg", cv2.WND_PROP_FULLSCREEN)
         try:
@@ -1928,8 +1942,8 @@ def _select_ROI(image):
         else:
             # user selected something
             break
-
-    cv2.destroyWindow("Seg")
+    if close_window:
+        cv2.destroyWindow("Seg")
     return roi
 
 
@@ -1961,6 +1975,9 @@ def _get_camera_intrinsics():
     return pinhole_camera_intrinsic
 
 def _get_camera_to_world_transformation():
+    global world_T_camera_buffer
+    if world_T_camera_buffer is not None:
+        return world_T_camera_buffer
     tf_buffer = tf2_ros.Buffer()
     tf_listener = tf2_ros.TransformListener(tf_buffer)
     scene_pcd_topic = rospy.get_param('scene_pcd_topic', default='/camera/depth/points')
@@ -1980,9 +1997,13 @@ def _get_camera_to_world_transformation():
     r = transform_camera_world.transform.translation
     world_T_camera = tft.quaternion_matrix([q.x, q.y, q.z, q.w])
     world_T_camera[:, 3] = [r.x, r.y, r.z, 1]
+    world_T_camera_buffer = world_T_camera
     return world_T_camera
 
 def _get_world_to_camera_transformation():
+    global camera_T_world_buffer
+    if camera_T_world_buffer is not None:
+        return camera_T_world_buffer
     tf_buffer = tf2_ros.Buffer()
     tf_listener = tf2_ros.TransformListener(tf_buffer)
     scene_pcd_topic = rospy.get_param('scene_pcd_topic', default='/camera/depth/points')
@@ -2002,4 +2023,5 @@ def _get_world_to_camera_transformation():
     r = transform_world_camera.transform.translation
     camera_T_world = tft.quaternion_matrix([q.x, q.y, q.z, q.w])
     camera_T_world[:, 3] = [r.x, r.y, r.z, 1]
+    camera_T_world_buffer = camera_T_world
     return camera_T_world
