@@ -1421,7 +1421,7 @@ class GraspClient():
 
         # Remove data with large depth offset from segmented object's median
         median = np.median(depth_image[depth_image > 0.000001])
-        depth_image = np.where(abs(depth_image - median) < 0.2, depth_image, 0)
+        depth_image = np.where(abs(depth_image - median) < 0.1, depth_image, 0)
 
         # Load depth image as o3d.Image
         depth_image_o3d = o3d.geometry.Image(depth_image)
@@ -1827,7 +1827,8 @@ class GraspClient():
         self.update_grasp_palm_pose_client(palm_pose_world)
 
         # Compute an approach pose and try to reach it. Add object mesh to moveit to avoid hitting it with the approach plan. Delete it after
-        self.create_moveit_scene_client()
+        if not self.is_eval_sess:
+            self.create_moveit_scene_client()
         approach_pose = self.approach_pose_from_palm_pose(palm_pose_world)
         approach_plan_exists = self.plan_arm_trajectory_client(approach_pose)
         if not approach_plan_exists:
@@ -1838,7 +1839,8 @@ class GraspClient():
                 count += 1
 
         if approach_plan_exists:
-            self.clean_moveit_scene_client()
+            if not self.is_eval_sess:
+                self.clean_moveit_scene_client()
         else:
             self.grasp_label = -1
             rospy.logerr("no traj found to approach pose")

@@ -111,7 +111,7 @@ for obj_full in obj_list:
     obstacle_objects = get_obstacle_objects(grasp_client.object_metadata, NUM_OBSTACLE_OBJECTS)
     obstacle_objects = distribute_obstacle_objects_randomly(grasp_object_pose, obstacle_objects)
     grasp_client.remove_obstacle_objects(obstacle_objects)
-    grasp_client.spawn_obstacle_objects(obstacle_objects)
+    grasp_client.spawn_obstacle_objects(obstacle_objects, moveit=False)
     ROIs, names = grasp_client.select_ROIs(obstacle_objects)
 
     for ROI, name in zip(ROIs, names):
@@ -152,7 +152,6 @@ for obj_full in obj_list:
 
             if grasp_client.grasp_label == 1:
                 grasp_client.change_model_visibility(name, False)
-                grasp_client.remove_from_moveit_scene(name)
                 if name == obj_name:
                     is_grasp_object_visiable = False
                 break
