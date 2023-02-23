@@ -18,8 +18,7 @@ def main():
     data_recording_path = rospy.get_param('data_recording_path')
     gc = GraspClient(grasp_data_recording_path=data_recording_path, is_rec_sess=True, is_eval_sess=True)
     color_img, depth_img = read_image('/home/ffh/Downloads/DexFFHNet_test/set_1/color_0000.png', '/home/ffh/Downloads/DexFFHNet_test/set_1/depth_0000.npy')
-    segment_object_as_point_cloud(color_img, depth_img, select_ROI(color_img), gc.object_pcd_save_path)
-    gc.post_process_object_point_cloud()
+    pcd_center = segment_object_as_point_cloud(color_img, depth_img, select_ROI(color_img), gc.object_pcd_save_path)
     gc.encode_pcd_with_bps()
     palm_poses_obj_frame, joint_confs = gc.infer_grasp_poses(n_poses=N_POSES, visualize_poses=True)
 
@@ -30,6 +29,12 @@ def main():
         thresh=FILTER_THRESH, 
         visualize_poses=True
     )
+    # translate back to camera frame
+    for i in range(len(palm_poses_obj_frame)):
+        palm_poses_obj_frame[i].pose.position.x += pcd_center[0]
+        palm_poses_obj_frame[i].pose.position.y += pcd_center[1]
+        palm_poses_obj_frame[i].pose.position.z += pcd_center[2]
+    
     np.save('/home/ffh/Downloads/DexFFHNet_test/set_1/grasp_poses_000.npy', palm_poses_obj_frame)
     np.save('/home/ffh/Downloads/DexFFHNet_test/set_1/joint_confs_000.npy', joint_confs)
 
@@ -61,8 +66,10 @@ def segment_object_as_point_cloud(color_image, depth_image, ROI, pcd_save_path):
     # Generate point cloud from depth image
     pinhole_camera_intrinsic = get_camera_intrinsics()
     object_pcd = o3d.geometry.PointCloud.create_from_depth_image(depth_image_o3d, pinhole_camera_intrinsic)
-
+    point_cloud_center = object_pcd.get_center()
+    object_pcd.translate((-1) * point_cloud_center)
     o3d.io.write_point_cloud(pcd_save_path, object_pcd)
+    return point_cloud_center
 
 def read_image(color_path, depth_path):
     color_img = cv2.imread(color_path)
