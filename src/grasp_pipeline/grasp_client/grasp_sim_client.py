@@ -1453,6 +1453,12 @@ class GraspClient():
             self.change_model_visibility(name, False)
         
         self.make_all_visiable(obstacle_objects)
+        
+        user_input = raw_input('Are the objects in ROI detected correctly? [Y/n]')
+        are_names_detected_correctly = user_input in ['Y', 'y', '']
+        if not are_names_detected_correctly:
+            ROIs = []
+            names = []
         return ROIs, names
 
     def make_all_visiable(self, obstacle_objects):
