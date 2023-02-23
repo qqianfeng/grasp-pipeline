@@ -144,12 +144,13 @@ class GraspDataHandler():
                 elif label == 0:
                     num_neg += 1
                     collision_to_grasp_pose_label = obj_grasp_gp[key]['collision_to_grasp_pose'][()]
-                    grasp_pose_collide_target_object_label = obj_grasp_gp[key]['grasp_pose_collide_target_object'][()]
-                    grasp_pose_collide_obstacle_objects_label = obj_grasp_gp[key]['grasp_pose_collide_obstacle_objects'][()]
-                    close_finger_collide_obstacle_objects_label = obj_grasp_gp[key]['close_finger_collide_obstacle_objects'][()]
-                    lift_motion_moved_obstacle_objects_label = obj_grasp_gp[key]['lift_motion_moved_obstacle_objects'][()]
+                    collision_to_approach_pose_label = obj_grasp_gp[key]['collision_to_approach_pose'][()]
+                    # grasp_pose_collide_target_object_label = obj_grasp_gp[key]['grasp_pose_collide_target_object'][()]
+                    # grasp_pose_collide_obstacle_objects_label = obj_grasp_gp[key]['grasp_pose_collide_obstacle_objects'][()]
+                    # close_finger_collide_obstacle_objects_label = obj_grasp_gp[key]['close_finger_collide_obstacle_objects'][()]
+                    # lift_motion_moved_obstacle_objects_label = obj_grasp_gp[key]['lift_motion_moved_obstacle_objects'][()]
 
-                    if collision_to_grasp_pose_label == 1:
+                    if collision_to_grasp_pose_label == 1 or collision_to_approach_pose_label == 1:
                         num_col += 1
             print("Number of negative and positive grasps for object: %s" % obj_name)
             print("{:<20} {}".format('negatives', num_neg))
@@ -236,9 +237,10 @@ class GraspDataHandler():
 
 if __name__ == '__main__':
 
-    # data_recording_path = rospy.get_param('data_recording_path')
-    # file_path = os.path.join(data_recording_path, 'grasp_data.h5')
-    file_path = '/home/vm/new_data_30_11/grasp_data.h5'
+    data_recording_path = rospy.get_param('data_recording_path')
+    file_path = os.path.join(data_recording_path, 'grasp_data.h5')
+    # file_path = '/home/vm/new_data_30_11/grasp_data.h5'
+
     gdh = GraspDataHandler(file_path=file_path)
     gdh.set_sess_name(sess_name=u'recording_session_0001') # -1
     gdh.print_metadata()
