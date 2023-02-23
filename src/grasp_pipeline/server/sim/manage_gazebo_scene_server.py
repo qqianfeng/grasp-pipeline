@@ -22,6 +22,7 @@ class GazeboSceneManager():
         self.prev_object_model_name = None
         self.objects_in_scene = set()
         self.scene_snapshot = None
+        self.cache_grasp_object_spawn_info = None
 
     def delete_object(self, object_model_name):
         try:
@@ -38,7 +39,7 @@ class GazeboSceneManager():
         self.delete_object(self.prev_object_model_name)
 
     def spawn_object(self, object_name, object_model_file, object_pose_array, model_type):
-        rospy.wait_for_service('/gazebo/spawn_' + model_type + '_model')
+        rospy.wait_for_service('/gazebo/spawn_' + model_type + '_model') 
         try:
             with open(object_model_file, 'r') as f:
                 model_file = f.read()
@@ -64,6 +65,7 @@ class GazeboSceneManager():
     def handle_update_gazebo_object(self, req):
         print("update_gazebo_object: RECEIVED REQUEST")
         print(req)
+        self.cache_grasp_object_spawn_info = req
         self.delete_prev_object(req.object_name)
         rospy.sleep(1)
         self.spawn_object(req.object_name, req.object_model_file, req.object_pose_array,
@@ -116,7 +118,6 @@ class GazeboSceneManager():
         self.clear_scene()
         self.clear_scene_snapshot()
         response = CreateNewSceneResponse()
-
         self.spawn_multiple_objects(req.objects_in_new_scene)
         if len(self.objects_in_scene) < len(req.objects_in_new_scene):
             # TODO how to avoid the failure of spawning new object
@@ -129,7 +130,7 @@ class GazeboSceneManager():
             print 'service call failed: %s' % e
             response.success = False
             return response
-
+        self.scene_snapshot.attach_spawning_info(req.objects_in_new_scene)
         response.success = True
         return response
 
@@ -205,6 +206,55 @@ class GazeboSceneManager():
         except rospy.ServiceException as e:
             print "Service call failed: %s" % e
 
+    def create_server_change_model_visibility(self):
+        rospy.Service('change_model_visibility', ChangeModelVisibility, self.handle_change_model_visibility)
+        rospy.loginfo('Service change_model_visibility:')
+        rospy.loginfo('Ready to change model visibility')
+
+    def handle_change_model_visibility(self, req):
+        if req.visible:
+            self.make_visible(req.model_name)
+        else:
+            self.make_invisible(req.model_name)
+        response = ChangeModelVisibilityResponse()
+        response.success = True
+        return response
+
+    def make_invisible(self, model_name):
+        model_state = self.scene_snapshot.get_model_state_by_name(model_name)
+        if model_state:
+            self.scene_snapshot.model_states.discard(model_state)
+            self.scene_snapshot.model_states_invisible_objects.add(model_state)
+            self.delete_object(model_name)
+
+    def make_visible(self, model_name):
+        model_state = self.scene_snapshot.get_invisible_object_model_state_by_name(model_name)
+        if model_state:
+            self.scene_snapshot.model_states_invisible_objects.discard(model_state)
+            self.scene_snapshot.model_states.add(model_state)
+
+            if model_name == self.cache_grasp_object_spawn_info.object_name:
+                # spawned with update_gazebo_object
+                self.spawn_object_do_not_modify_prev_object(
+                    self.cache_grasp_object_spawn_info.object_name, 
+                    self.cache_grasp_object_spawn_info.object_model_file, 
+                    self.cache_grasp_object_spawn_info.object_pose_array, 
+                    self.cache_grasp_object_spawn_info.model_type
+                )
+            else:
+                # spawned with create_new_scene
+                spawn_info = None 
+                for info in self.scene_snapshot.spawning_info:
+                    if info.object_name == model_name:
+                        spawn_info = info
+
+                self.spawn_object_do_not_modify_prev_object(
+                    spawn_info.object_name, 
+                    spawn_info.object_model_file, 
+                    spawn_info.object_pose_array, 
+                    spawn_info.model_type
+                )
+            self.set_model_state(model_state)
 
 def _get_stationary_scene():
     num_retries_allowed = 5
@@ -245,6 +295,7 @@ class Scene():
 
     def __init__(self, model_states):
         self.model_states = set()
+        self.model_states_invisible_objects = set()
         for each_name, each_pose, each_twist in zip(model_states.name, model_states.pose,
                                                     model_states.twist):
             model_state = ModelState()
@@ -252,6 +303,26 @@ class Scene():
             model_state.pose = each_pose
             model_state.twist = each_twist
             self.model_states.add(model_state)
+
+    def attach_spawning_info(self, spawning_info):
+        self.spawning_info = spawning_info
+
+    def get_model_state_by_name(self, name):
+        for model_state in self.model_states:
+            if model_state.model_name == name:
+                return model_state
+        return None
+
+    def get_invisible_object_model_state_by_name(self, name):
+        for model_state in self.model_states_invisible_objects:
+            if model_state.model_name == name:
+                return model_state
+        return None
+
+
+    
+        
+
 
     #####################################################
     ## above are codes for multiple objects generation ##
@@ -264,4 +335,5 @@ if __name__ == '__main__':
     manager.create_server_create_new_scene()
     manager.create_server_reset_scene()
     manager.create_server_clear_scene()
+    manager.create_server_change_model_visibility()
     rospy.spin()
