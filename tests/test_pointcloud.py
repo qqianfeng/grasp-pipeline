@@ -8,13 +8,13 @@ def visualize_normals(pcd):
     vis.create_window()
     vis.add_geometry(origin)
     vis.add_geometry(pcd)
-    vis.get_render_option().load_from_json("/home/ffh/ffh_ws/src/grasp-pipeline/save.json")
+    vis.get_render_option().load_from_json("/home/vm/hand_ws/src/grasp-pipeline/save.json")
     vis.run()
 
 
 origin = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1)
 
-pcd_scene = o3d.io.read_point_cloud("/home/ffh/scene.pcd")
+pcd_scene = o3d.io.read_point_cloud("/home/vm/scene.pcd")
 o3d.visualization.draw_geometries([pcd_scene, origin])
 
 # no panda
@@ -58,7 +58,7 @@ visualize_normals(object_pcd_down_reg)
 # print(np.asarray(pcd2.points).shape)
 # o3d.visualization.draw_geometries([pcd2])
 
-# depth_image = o3d.io.read_image("/home/ffh/depth.png")
+# depth_image = o3d.io.read_image("/home/vm/depth.png")
 
 # intrinsics = o3d.camera.PinholeCameraIntrinsic(width=1280,
 #                                                height=720,
@@ -72,7 +72,7 @@ visualize_normals(object_pcd_down_reg)
 
 # from scipy import misc
 
-# a = misc.imread("/home/ffh/depth.png")
+# a = misc.imread("/home/vm/depth.png")
 
 # image = np.interp(a, (a.min(), a.max()), (458, 1500))
 

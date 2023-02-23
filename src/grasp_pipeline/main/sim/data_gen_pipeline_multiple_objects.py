@@ -23,8 +23,8 @@ def get_obstacle_objects(gazebo_objects_path, grasp_object, amount=3):
         metadata_handler = MetadataHandler(gazebo_objects_path)
         num_total = metadata_handler.get_total_num_objects()
         for _ in range(num_total):
-            all_grasp_objects.append(metadata_handler.choose_next_grasp_object(case='generation'))
-    
+            all_grasp_objects.append(metadata_handler.choose_next_grasp_object(case="generation"))
+
     objects = []
     num_total = len(all_grasp_objects)
     if num_total < 20:
@@ -47,8 +47,8 @@ def distribute_obstacle_objects_randomly(grasp_object_pose, obstacle_objects, mi
         position = np.array([obstacle_objects[idx]['mesh_frame_pose'].pose.position.x, obstacle_objects[idx]['mesh_frame_pose'].pose.position.y, obstacle_objects[idx]['mesh_frame_pose'].pose.position.z])
         while not all([np.linalg.norm(position[:2] - existing_position[:2]) > min_center_to_center_distance for existing_position in existing_object_positions]):
             obstacle_objects[idx] = grasp_client.set_to_random_pose(obj)
-            position = np.array([obstacle_objects[idx]['mesh_frame_pose'].pose.position.x, 
-                                 obstacle_objects[idx]['mesh_frame_pose'].pose.position.y, 
+            position = np.array([obstacle_objects[idx]['mesh_frame_pose'].pose.position.x,
+                                 obstacle_objects[idx]['mesh_frame_pose'].pose.position.y,
                                  obstacle_objects[idx]['mesh_frame_pose'].pose.position.z])
         existing_object_positions.append(position)
     return obstacle_objects
@@ -61,7 +61,7 @@ if __name__ == '__main__':
     gazebo_objects_path = os.path.join(object_datasets_folder, 'objects_gazebo')
 
     # Remove these while testing
-    # shutil.rmtree('/home/ffh/grasp_data', ignore_errors=True)
+    # shutil.rmtree('/home/vm/grasp_data', ignore_errors=True)
 
     # Create grasp client and metadata handler
     grasp_client = GraspClient(is_rec_sess=True, grasp_data_recording_path=data_recording_path)
@@ -70,7 +70,7 @@ if __name__ == '__main__':
     # This loop runs for all objects, 4 poses, and evaluates N grasps per pose
     for i in range(metadata_handler.get_total_num_objects()):
         # Specify the object to be grasped, its pose, dataset, type, name etc.
-        object_metadata = metadata_handler.choose_next_grasp_object(case='generation')
+        object_metadata = metadata_handler.choose_next_grasp_object(case="generation")
         grasp_client.update_object_metadata(object_metadata)
         for pose_idx, pose in enumerate(poses):
             object_cycle_start = time.time()
@@ -88,7 +88,7 @@ if __name__ == '__main__':
 
             # Spawn a new object in Gazebo and moveit in a random valid pose and delete the old object
             grasp_client.spawn_object(pose_type="init", pose_arr=pose)
-            
+
             grasp_client.set_path_and_save_visual_data(grasp_phase="single")
             # First take a shot of the scene and store RGB, depth and point cloud to disk
             # Then segment the object point cloud from the rest of the scene
@@ -117,7 +117,7 @@ if __name__ == '__main__':
 
                     # Reset panda and hithand
                     grasp_client.reset_hithand_and_panda()
-                    
+
                     # Spawn object in same position
                     grasp_client.spawn_object(pose_type="same")
                     rospy.logdebug("grasp_client.spawn_object(pose_type='same')")

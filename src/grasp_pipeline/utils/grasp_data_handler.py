@@ -22,7 +22,7 @@ class GraspDataHandlerVae:
         self.file_path = file_path
 
     def get_grasps_for_object(self, obj_name, outcome='positive'):
-        """ Returns either all grasps for an outcome in [positive, negative, collision, all]. 
+        """ Returns either all grasps for an outcome in [positive, negative, collision, all].
         All means all outcomes are combined and returned.
         """
         def grasps_for_outcome(file_path, outcome):
@@ -99,7 +99,6 @@ class GraspDataHandler():
             self.sess_name = sess_name
         else:
             with h5py.File(self.file_path, "r") as grasp_file:
-                print(grasp_file[RS].keys())
                 self.sess_name = grasp_file[RS].keys()[-1]
 
     def check_sess_name(self, grasp_file):
@@ -236,7 +235,7 @@ class GraspDataHandler():
 
 
 if __name__ == '__main__':
-    
+
     # data_recording_path = rospy.get_param('data_recording_path')
     # file_path = os.path.join(data_recording_path, 'grasp_data.h5')
     file_path = '/home/vm/new_data_30_11/grasp_data.h5'
