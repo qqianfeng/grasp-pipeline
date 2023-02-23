@@ -315,7 +315,7 @@ class ObjectSegmenter():
 
         if not req.down_sample_pcd:  # if req.down_sample is false, we assume this should be stored in VAE format, therefore transform the cloud back to camera frame
             self.object_centroid = object_pcd.get_center()
-            if not req.pcd_in_world_frame:
+            if not req.need_to_transfer_pcd_to_world_frame:
                 object_pcd.transform(self.camera_T_world)
                 object_pcd.translate((-1) * object_pcd.get_center())
             print("pcd in world frame")
