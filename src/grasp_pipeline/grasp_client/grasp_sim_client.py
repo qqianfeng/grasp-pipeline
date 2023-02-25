@@ -1524,10 +1524,35 @@ class GraspClient():
                 min_distance = distance
         return closest_object
 
-    def remove_ground_plane(self, scene_pcd_path=self.scene_pcd_save_path):
+    def remove_ground_plane_and_robot(self, scene_pcd_path=None):
+        if scene_pcd_path is None:
+            scene_pcd_path = self.scene_pcd_save_path
         scene_pcd = o3d.io.read_point_cloud(scene_pcd_path)
-        _, inliers = pcd.segment_plane(distance_threshold=0.01, ransac_n=3, num_iterations=30)
-        plane_removed_pcd = pcd.select_down_sample(inliers, invert=True)
+
+        # segment the panda base from point cloud
+        points = np.asarray(scene_pcd.points)  # shape [x,3]
+        colors = np.asarray(scene_pcd.colors)
+
+        # currently the mask cropping is removed
+        mask1 = points[:, 0] > 0.1
+        mask2 = points[:, 2] < 10
+        mask = np.logical_and(mask1,mask2)
+        del scene_pcd
+        scene_pcd = o3d.geometry.PointCloud()
+        scene_pcd.points = o3d.utility.Vector3dVector(points[mask])
+        scene_pcd.colors = o3d.utility.Vector3dVector(colors[mask])
+
+        _, inliers = scene_pcd.segment_plane(distance_threshold=0.01, ransac_n=3, num_iterations=30)
+        plane_removed_pcd = scene_pcd.select_down_sample(inliers, invert=True)
+        o3d.io.write_point_cloud(rospy.get_param('multi_object_pcd_path'), plane_removed_pcd)
+
+    def remove_ground_plane(self, scene_pcd_path=None):
+        if scene_pcd_path is None:
+            scene_pcd_path = self.scene_pcd_save_path
+        scene_pcd = o3d.io.read_point_cloud(scene_pcd_path)
+
+        _, inliers = scene_pcd.segment_plane(distance_threshold=0.01, ransac_n=3, num_iterations=30)
+        plane_removed_pcd = scene_pcd.select_down_sample(inliers, invert=True)
         o3d.io.write_point_cloud(rospy.get_param('multi_object_pcd_path'), plane_removed_pcd)
 
     #####################################################
