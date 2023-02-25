@@ -1,4 +1,4 @@
-""" This file is used to evaluate the model and sample grasps. 
+""" This file is used to evaluate the model and sample grasps.
 """
 import numpy as np
 import shutil
@@ -36,14 +36,14 @@ def get_obstacle_objects(grasp_object, amount=3):
     if len(all_grasp_objects) == 0:
         # initilize once
         metadata_handler = MetadataHandler(gazebo_objects_path)
-        
+
         for obj_full in obj_list:
             dset, obj_name = metadata_handler.split_full_name(obj_full)
 
             # get metadata on object
             metadata = metadata_handler.get_object_metadata(dset, obj_name)
             all_grasp_objects.append(metadata)
-    
+
     objects = []
     object_names = set()
     num_total = len(all_grasp_objects)
@@ -67,8 +67,8 @@ def distribute_obstacle_objects_randomly(grasp_object_pose, obstacle_objects, mi
         position = np.array([obstacle_objects[idx]['mesh_frame_pose'].pose.position.x, obstacle_objects[idx]['mesh_frame_pose'].pose.position.y, obstacle_objects[idx]['mesh_frame_pose'].pose.position.z])
         while not all([np.linalg.norm(position[:2] - existing_position[:2]) > min_center_to_center_distance for existing_position in existing_object_positions]):
             obstacle_objects[idx] = grasp_client.set_to_random_pose(obj)
-            position = np.array([obstacle_objects[idx]['mesh_frame_pose'].pose.position.x, 
-                                 obstacle_objects[idx]['mesh_frame_pose'].pose.position.y, 
+            position = np.array([obstacle_objects[idx]['mesh_frame_pose'].pose.position.x,
+                                 obstacle_objects[idx]['mesh_frame_pose'].pose.position.y,
                                  obstacle_objects[idx]['mesh_frame_pose'].pose.position.z])
         existing_object_positions.append(position)
     return obstacle_objects
@@ -76,7 +76,7 @@ def distribute_obstacle_objects_randomly(grasp_object_pose, obstacle_objects, mi
 def prepare_object_metadata(name, grasp_client, obstacle_objects):
     global object_metadata_buffer
     if object_metadata_buffer is not None:
-        raise RuntimeError('please call recover_object_metadata first') 
+        raise RuntimeError('please call recover_object_metadata first')
     if name == grasp_client.object_metadata['name']:
         return
     for obj in obstacle_objects:
@@ -88,7 +88,7 @@ def recover_object_metadata(grasp_client):
     if object_metadata_buffer is None:
         return
     grasp_client.object_metadata = object_metadata_buffer
-    object_metadata_buffer = None 
+    object_metadata_buffer = None
 
 def _replace_object_metadata(grasp_client, object_metadata):
     global object_metadata_buffer
@@ -101,12 +101,12 @@ for obj_full in obj_list:
     grasp_client.update_object_metadata(metadata)
     obj_name = grasp_client.object_metadata['name']
     grasp_client.create_dirs_new_grasp_trial(is_new_pose_or_object=True)
-    
+
     grasp_client.reset_hithand_and_panda()
     grasp_client.spawn_object(pose_type="random")
     grasp_object_pose = grasp_client.object_metadata['mesh_frame_pose']
-    grasp_object_pose = np.array([grasp_object_pose.pose.position.x, 
-                                    grasp_object_pose.pose.position.y, 
+    grasp_object_pose = np.array([grasp_object_pose.pose.position.x,
+                                    grasp_object_pose.pose.position.y,
                                     grasp_object_pose.pose.position.z])
     obstacle_objects = get_obstacle_objects(grasp_client.object_metadata, NUM_OBSTACLE_OBJECTS)
     obstacle_objects = distribute_obstacle_objects_randomly(grasp_object_pose, obstacle_objects)
@@ -139,16 +139,17 @@ for obj_full in obj_list:
 
         # Execute the grasps and record results
         for i in range(FILTER_NUM_GRASPS):
-            grasp_executed = grasp_client.grasp_from_inferred_pose(palm_poses_obj_frame[i], joint_confs[i])
+            grasp_executed = grasp_client.grasp_from_inferred_pose_multi_obj(palm_poses_obj_frame[i], joint_confs[i], obstacle_objects)
             if grasp_executed:
-                grasp_client.record_grasp_trial_data_client()
+                grasp_client.record_grasp_trial_data_multi_obj_client(obstacle_objects)
                 grasp_client.reset_hithand_and_panda()
                 if is_grasp_object_visiable:
                     recover_object_metadata(grasp_client)
                     grasp_client.spawn_object(pose_type='same')
                     prepare_object_metadata(name, grasp_client, obstacle_objects)
 
-                grasp_client.reset_obstacle_objects(obstacle_objects)
+            grasp_client.reset_hithand_and_panda()
+            grasp_client.reset_obstacle_objects(obstacle_objects)
 
             if grasp_client.grasp_label == 1:
                 grasp_client.change_model_visibility(name, False)
@@ -156,17 +157,16 @@ for obj_full in obj_list:
                     is_grasp_object_visiable = False
                 break
 
-        grasp_client.reset_hithand_and_panda()
         if is_grasp_object_visiable:
             recover_object_metadata(grasp_client)
             grasp_client.spawn_object(pose_type='same')
             prepare_object_metadata(name, grasp_client, obstacle_objects)
-        
+
         recover_object_metadata(grasp_client)
         grasp_client.reset_obstacle_objects(obstacle_objects)
-        
+
         if grasp_client.grasp_label != 1:
-            # skip the rest if one of the objects could not be picked up after 
+            # skip the rest if one of the objects could not be picked up after
             # several trials
             break
 

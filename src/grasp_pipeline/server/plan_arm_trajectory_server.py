@@ -56,7 +56,7 @@ class CartesianPoseMoveitPlanner():
             self.solver_margin_ori)
 
         if ik_js is None:
-            rospy.logdebug('No IK solution found')
+            rospy.loginfo('No IK solution found')
             return None
         self.move_group.set_joint_value_target(np.array(ik_js))
         plan_goal = self.move_group.plan()

@@ -52,7 +52,7 @@ class ObjectSegmenter():
         r = self.transform_world_camera.transform.translation
         self.camera_T_world = tft.quaternion_matrix([q.x, q.y, q.z, q.w])
         self.camera_T_world[:, 3] = [r.x, r.y, r.z, 1]
-
+        print('self.camera_T_world',self.camera_T_world)
         self.bounding_box_corner_pub = rospy.Publisher(
             '/segmented_object_bounding_box_corner_points',
             Float64MultiArray,

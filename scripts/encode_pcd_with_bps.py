@@ -1,5 +1,5 @@
-""" This server only runs under python 3. It reads a segmented pcd from disk and also a BPS. 
-When it is called it will compute the BPS encoding of the object. 
+""" This server only runs under python 3. It reads a segmented pcd from disk and also a BPS.
+When it is called it will compute the BPS encoding of the object.
 """
 import bps_torch.bps as b_torch
 import numpy as np
@@ -19,21 +19,42 @@ class BPSEncoder():
         self.bps_np = np.load(bps_path)
         self.bps = b_torch.bps_torch(custom_basis=self.bps_np)
 
+        self.multi_bps_np = np.load(rospy.get_param('multi_bps_path'))
+        self.multi_bps = b_torch.bps_torch(custom_basis=self.multi_bps_np)
+
         self.pcd_path = rospy.get_param('object_pcd_path')
         self.enc_path = rospy.get_param('object_pcd_enc_path')
 
+        self.multi_pcd_path = rospy.get_param('multi_object_pcd_path')
+        self.multi_enc_path = rospy.get_param('multi_object_pcd_enc_path')
+
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-        self.VISUALIZE = False
+        self.VISUALIZE = True
 
     def handle_encode_pcd_with_bps(self, req, res):
-        obj_pcd = o3d.io.read_point_cloud(self.pcd_path)
-        obj_tensor = torch.from_numpy(np.asarray(obj_pcd.points))
-        obj_tensor.to(self.device)
+        if req.multi:
+            obj_pcd = o3d.io.read_point_cloud(self.multi_pcd_path)
+            obj_tensor = torch.from_numpy(np.asarray(obj_pcd.points))
+            obj_tensor.to(self.device)
 
-        enc_dict = self.bps.encode(obj_tensor)
-        enc_np = enc_dict['dists'].cpu().detach().numpy()
-        np.save(self.enc_path, enc_np)
+            enc_dict = self.multi_bps.encode(obj_tensor)
+            print('encode pcd with multi bps encoder')
+
+            enc_np = enc_dict['dists'].cpu().detach().numpy()
+            np.save(self.multi_enc_path, enc_np)
+
+        else:
+
+            obj_pcd = o3d.io.read_point_cloud(self.pcd_path)
+            obj_tensor = torch.from_numpy(np.asarray(obj_pcd.points))
+            obj_tensor.to(self.device)
+
+            enc_dict = self.bps.encode(obj_tensor)
+            print('encode pcd with single bps encoder')
+
+            enc_np = enc_dict['dists'].cpu().detach().numpy()
+            np.save(self.enc_path, enc_np)
 
         # if all dists are greater, pcd is too far from bps
         assert enc_np.min() < 0.1, 'The pcd might not be in centered in origin!'

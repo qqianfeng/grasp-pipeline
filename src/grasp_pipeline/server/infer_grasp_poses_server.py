@@ -35,7 +35,7 @@ class GraspInference():
                                       load_path=os.path.join(ffhnet_path, 'models/ffhgenerator'))
         self.FFHNet.load_ffhevaluator(epoch=30,
                                       load_path=os.path.join(ffhnet_path, 'models/ffhevaluator'))
-        self.FFHNet.load_ffhcolldetr(epoch=5,
+        self.FFHNet.load_ffhcolldetr(epoch=19,
                                      load_path=os.path.join(ffhnet_path, 'models/ffhcolldetr'))
 
     def build_pose_list(self, rot_matrix, transl, frame_id='object_centroid_vae'):
@@ -125,25 +125,26 @@ class GraspInference():
     def handle_evaluate_and_filter_grasp_poses(self, req):
         bps_object = np.load(rospy.get_param('object_pcd_enc_path'))
         grasp_dict = self.to_grasp_dict(req.palm_poses, req.joint_confs)
-
-        grasp_dict = self.FFHNet.filter_grasps_in_collision(bps_object, grasp_dict, thresh=req.thresh)
-
-        results = self.FFHNet.filter_grasps(bps_object, grasp_dict, thresh=req.thresh)
-
-        n_grasps_filt = results['rot_matrix'].shape[0]
-
         palm_poses = req.palm_poses
         n_samples = len(palm_poses)
-        print("n_grasps after filtering: %d" % n_grasps_filt)
-        print("This means %.2f of grasps pass the filtering" % (n_grasps_filt / n_samples))
+
+        grasp_dict = self.FFHNet.filter_grasps_in_collision(bps_object, grasp_dict, thresh=req.thresh)
+        n_grasp_no_col = grasp_dict['rot_matrix'].shape[0]
+        print("This means %.2f of grasps pass the filtering" % (n_grasp_no_col / n_samples))
+
+        # grasp_dict = self.FFHNet.filter_grasps(bps_object, grasp_dict, thresh=req.thresh)
+
+        # n_grasps_filt = grasp_dict['rot_matrix'].shape[0]
+        # print("n_grasps after filtering: %d" % n_grasps_filt)
+        # print("This means %.2f of grasps pass the filtering" % (n_grasps_filt / n_samples))
 
         if self.VISUALIZE:
-            visualization.show_generated_grasp_distribution(self.pcd_path, results)
+            visualization.show_generated_grasp_distribution(self.pcd_path, grasp_dict)
 
         # prepare response
         res = EvaluateAndFilterGraspPosesResponse()
-        res.palm_poses = self.build_pose_list(results['rot_matrix'], results['transl'])
-        res.joint_confs = self.build_joint_conf_list(results['joint_conf'])
+        res.palm_poses = self.build_pose_list(grasp_dict['rot_matrix'], grasp_dict['transl'])
+        res.joint_confs = self.build_joint_conf_list(grasp_dict['joint_conf'])
 
         return res
 
