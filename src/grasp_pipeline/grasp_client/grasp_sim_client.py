@@ -400,16 +400,14 @@ class GraspClient():
         rospy.logdebug('Service check_pose_validity_utah is executed.')
         return res.is_valid
 
-    @staticmethod
-    def encode_pcd_with_bps_client(multi=False):
+    def encode_pcd_with_bps_client(self):
         """ Encodes a pcd from disk (assumed static location) with bps_torch and saves the result to disk,
         from where the infer_grasp server can load it to sample grasps.
         """
         wait_for_service('encode_pcd_with_bps')
         try:
-            encode_pcd_with_bps = rospy.ServiceProxy('encode_pcd_with_bps', BPSEncoder)
-            req = BPSEncoderRequest()
-            req.multi = multi
+            encode_pcd_with_bps = rospy.ServiceProxy('encode_pcd_with_bps', SetBool)
+            req = SetBoolRequest(data=True)
             res = encode_pcd_with_bps(req)
         except rospy.ServiceException as e:
             rospy.logerr('Service encode_pcd_with_bps call failed: %s' % e)
