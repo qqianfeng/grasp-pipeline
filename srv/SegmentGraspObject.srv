@@ -1,5 +1,5 @@
 bool down_sample_pcd
-bool pcd_in_world_frame
+bool need_to_transfer_pcd_to_world_frame
 string scene_pcd_path
 string object_pcd_path
 string object_pcd_record_path

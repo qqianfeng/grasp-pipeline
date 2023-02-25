@@ -944,13 +944,13 @@ class GraspClient():
             rospy.logerr('Service save_visual_data call failed: %s' % e)
         rospy.logdebug('Service save_visual_data is executed %s' % res.success)
 
-    def segment_object_client(self, align_object_world=True, down_sample_pcd=True, pcd_in_world_frame=False):
+    def segment_object_client(self, align_object_world=True, down_sample_pcd=True, need_to_transfer_pcd_to_world_frame=False):
         wait_for_service('segment_object')
         try:
             segment_object = rospy.ServiceProxy('segment_object', SegmentGraspObject)
             req = SegmentGraspObjectRequest()
             req.down_sample_pcd = down_sample_pcd
-            req.pcd_in_world_frame = pcd_in_world_frame
+            req.need_to_transfer_pcd_to_world_frame = need_to_transfer_pcd_to_world_frame
             req.scene_pcd_path = self.scene_pcd_save_path
             req.object_pcd_path = self.object_pcd_save_path
             req.object_pcd_record_path = self.object_pcd_record_path
@@ -1451,7 +1451,7 @@ class GraspClient():
             name = self._get_name_of_objcet_in_ROI(ROI, obstacle_objects)
             names.append(name)
             self.change_model_visibility(name, False)
-        
+
         self.make_all_visiable(obstacle_objects)
         
         user_input = raw_input('Are the objects in ROI detected correctly? [Y/n]')
@@ -1465,7 +1465,7 @@ class GraspClient():
         self.change_model_visibility(self.object_metadata['name'], True)
         for obj in obstacle_objects:
             self.change_model_visibility(obj['name'], True)
-        
+
 
     def change_model_visibility(self, model_name, visible):
         wait_for_service("update_object_mesh_frame_pose")
