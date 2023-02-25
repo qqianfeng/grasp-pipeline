@@ -122,6 +122,7 @@ for obj_full in obj_list:
 
         # Get point cloud (mean-free, orientation of camera frame)
         grasp_client.save_visual_data(down_sample_pcd=False)
+        grasp_client.remove_ground_plane()
         grasp_client.segment_object_as_point_cloud(ROI) # outputs segmented object to self.object_pcd_save_path
         grasp_client.post_process_object_point_cloud() # goes through the origional segmentation process to get object frame published
 
