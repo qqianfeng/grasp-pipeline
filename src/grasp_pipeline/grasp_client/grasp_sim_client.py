@@ -400,14 +400,16 @@ class GraspClient():
         rospy.logdebug('Service check_pose_validity_utah is executed.')
         return res.is_valid
 
-    def encode_pcd_with_bps_client(self):
+    @staticmethod
+    def encode_pcd_with_bps_client(multi=False):
         """ Encodes a pcd from disk (assumed static location) with bps_torch and saves the result to disk,
         from where the infer_grasp server can load it to sample grasps.
         """
         wait_for_service('encode_pcd_with_bps')
         try:
-            encode_pcd_with_bps = rospy.ServiceProxy('encode_pcd_with_bps', SetBool)
-            req = SetBoolRequest(data=True)
+            encode_pcd_with_bps = rospy.ServiceProxy('encode_pcd_with_bps', BPSEncoder)
+            req = BPSEncoderRequest()
+            req.multi = multi
             res = encode_pcd_with_bps(req)
         except rospy.ServiceException as e:
             rospy.logerr('Service encode_pcd_with_bps call failed: %s' % e)
@@ -460,17 +462,20 @@ class GraspClient():
             rospy.logerr('Service execute_joint_trajectory call failed: %s' % e)
         rospy.logdebug('Service execute_joint_trajectory is executed.')
 
-    def filter_palm_goal_poses_client(self):
+    def filter_palm_goal_poses_client(self,palm_poses=False):
         wait_for_service('filter_palm_goal_poses')
         try:
             filter_palm_goal_poses = rospy.ServiceProxy('filter_palm_goal_poses', FilterPalmPoses)
             req = FilterPalmPosesRequest()
-            req.palm_goal_poses_world = self.heuristic_preshapes.palm_goal_poses_world
-
+            if palm_poses is False:
+                req.palm_goal_poses_world = self.heuristic_preshapes.palm_goal_poses_world
+            else:
+                req.palm_goal_poses_world = palm_poses
             res = filter_palm_goal_poses(req)
         except rospy.ServiceException, e:
             rospy.logerr('Service filter_palm_goal_poses call failed: %s' % e)
         rospy.logdebug('Service filter_palm_goal_poses is executed.')
+        print("filtered so many:", len(res.prune_idxs)/len(req.palm_goal_poses_world))
         return res.prune_idxs, res.no_ik_idxs, res.collision_idxs
 
     def generate_hithand_preshape_client(self):
@@ -1453,7 +1458,7 @@ class GraspClient():
             self.change_model_visibility(name, False)
 
         self.make_all_visiable(obstacle_objects)
-        
+
         user_input = raw_input('Are the objects in ROI detected correctly? [Y/n]')
         are_names_detected_correctly = user_input in ['Y', 'y', '']
         if not are_names_detected_correctly:
@@ -1690,7 +1695,7 @@ class GraspClient():
     ################################################
 
     def grasp_and_lift_object(self, obstacle_objects):
-        """ Used in data generation.
+        """ Used in data generation. For multi object generation.
         """
         # Record all object poses before grasp experiments
         target_obj_pose = self.get_grasp_object_pose_client()
@@ -1937,6 +1942,142 @@ class GraspClient():
         # raw_input('Continue?')
         return True
 
+    def grasp_from_inferred_pose_multi_obj(self, pose_obj_frame, joint_conf, obstacle_objects):
+        """ Used in FFHNet evaluataion. Try to reach the pose and joint conf and attempt grasp given grasps from FFHNet.
+
+        Args:
+            pose_obj_frame (PoseStamped): 6D pose of the hand wrist in the object centroid vae frame.
+            joint_conf (JointState): The desired joint position.
+        """
+        # transform the pose_obj_frame to world_frame
+        palm_pose_world = self.transform_pose(pose_obj_frame, 'object_centroid_vae', 'world')
+
+        target_obj_pose = self.get_grasp_object_pose_client()
+        obstacle_obj_poses = self.get_obstacle_objects_poses(obstacle_objects)
+
+        # save the desired pre of the palm and joints (given to function call) in an ins
+        # tance variable
+        self.palm_poses['desired_pre'] = palm_pose_world
+        self.hand_joint_states['desired_pre'] = joint_conf
+
+        # Update the palm pose for visualization in RVIZ
+        self.update_grasp_palm_pose_client(palm_pose_world)
+
+        # Compute an approach pose and try to reach it. Add object mesh to moveit to avoid hitting it with the approach plan. Delete it after
+        if not self.is_eval_sess:
+            self.create_moveit_scene_client()
+        approach_pose = self.approach_pose_from_palm_pose(palm_pose_world)
+        approach_plan_exists = self.plan_arm_trajectory_client(approach_pose)
+        if not approach_plan_exists:
+            count = 0
+            while not approach_plan_exists and count < 3:
+                approach_pose = self.add_position_noise(approach_pose)
+                approach_plan_exists = self.plan_arm_trajectory_client(approach_pose)
+                count += 1
+
+        if approach_plan_exists:
+            if not self.is_eval_sess:
+                self.clean_moveit_scene_client()
+        else:
+            self.grasp_label = -1
+            rospy.logerr("no traj found to approach pose")
+            return False
+        # Execute to approach pose
+        self.execute_joint_trajectory_client(speed='mid')
+
+        # Check if any object is being moved, if so, skip this experiment
+        is_target_obj_moved = self.check_if_target_object_moved(target_obj_pose)
+        obstacle_obj_poses_tmp = self.get_obstacle_objects_poses(obstacle_objects)
+        are_obstacle_obj_moved = self.check_if_any_obstacle_object_moved(obstacle_obj_poses,obstacle_obj_poses_tmp)
+        # TODO: it's better for each grasp pose, try more times with diff. approach pose to avoid wired trajectory.
+        # Now once it failed once, we remove this grasp pose.
+        if is_target_obj_moved or are_obstacle_obj_moved:
+            rospy.logerr("Way to approach pose, target_object_moved: %s or obstacle_object_mmoved: %s" % (is_target_obj_moved, are_obstacle_obj_moved))
+            return False
+
+        # Try to find a plan to the final destination
+        plan_exists = self.plan_arm_trajectory_client(palm_pose_world)
+
+        # TODO: Move L Motion not working
+        # self.plan_cartesian_path_trajectory_client(palm_pose_world)
+
+        # Backup if no plan found
+        if not plan_exists:
+            plan_exists = self.plan_arm_trajectory_client(palm_pose_world)
+            if not plan_exists:
+                self.grasp_label = -1
+                rospy.logerr("no traj found to final grasp pose")
+                return False
+
+        # Execute joint trajectory
+        self.execute_joint_trajectory_client(speed='mid')
+
+        # Check if any object is being moved
+        is_target_obj_moved = self.check_if_target_object_moved(target_obj_pose)
+        obstacle_obj_poses_tmp = self.get_obstacle_objects_poses(obstacle_objects)
+        are_obstacle_obj_moved = self.check_if_any_obstacle_object_moved(obstacle_obj_poses,obstacle_obj_poses_tmp)
+        self.grasp_pose_collide_target_object = 1 if is_target_obj_moved else 0
+        self.grasp_pose_collide_obstacle_objects = 1 if are_obstacle_obj_moved else 0
+        rospy.loginfo("The grasp_pose_collide_target_object label: %s" % self.grasp_pose_collide_target_object)
+        rospy.loginfo("The grasp_pose_collide_obstacle_objects label: %s" % self.grasp_pose_collide_obstacle_objects)
+
+        # Get the current actual joint position and palm pose
+        self.palm_poses["true_pre"], self.hand_joint_states[
+            "true_pre"] = self.get_hand_palm_pose_and_joint_state()
+
+        # Check if robot reach the target grasp pose.
+        pos_error = self.get_poses_distance(self.palm_poses["desired_pre"],self.palm_poses["true_pre"])
+        if pos_error > 0.01:
+            rospy.logerr("Cannot reach goal pose with error: %f m" % pos_error)
+        else:
+            rospy.logdebug("pos_error to target pose %f" % pos_error)
+
+        # Go into the joint conf:
+        self.control_hithand_config_client(joint_conf=joint_conf)
+
+        # Check if any obstacle obj being moved during finger close
+        obstacle_obj_poses_tmp = self.get_obstacle_objects_poses(obstacle_objects)
+        are_obstacle_obj_moved = self.check_if_any_obstacle_object_moved(obstacle_obj_poses,obstacle_obj_poses_tmp)
+        self.close_finger_collide_obstacle_objects = 1 if are_obstacle_obj_moved else 0
+        rospy.loginfo("The close_finger_collide_obstacle_objects label: %s" % self.close_finger_collide_obstacle_objects)
+
+        # Possibly apply some more control to apply more force
+
+        # Get the current actual joint position and palm pose
+        self.palm_poses["closed"], self.hand_joint_states[
+            "closed"] = self.get_hand_palm_pose_and_joint_state()
+
+        # Plan lift trajectory client
+        lift_pose = copy.deepcopy(self.palm_poses["desired_pre"])
+        lift_pose.pose.position.z += self.object_lift_height
+        start = time.time()
+        execution_success = False
+        while not execution_success:
+            if time.time() - start > 60:
+                rospy.logerr('Could not find a lift pose')
+                break
+            plan_exists = self.plan_arm_trajectory_client(place_goal_pose=lift_pose)
+            if plan_exists:
+                execution_success = self.execute_joint_trajectory_client(speed='slow')
+            lift_pose.pose.position.x += np.random.uniform(-0.05, 0.05)
+            lift_pose.pose.position.y += np.random.uniform(-0.05, 0.05)
+            lift_pose.pose.position.z += np.random.uniform(0, 0.1)
+
+        # Check if any obj moved during lift
+        obstacle_obj_poses_tmp = self.get_obstacle_objects_poses(obstacle_objects)
+        are_obstacle_obj_moved = self.check_if_any_obstacle_object_moved(obstacle_obj_poses,obstacle_obj_poses_tmp)
+        self.lift_motion_moved_obstacle_objects = 1 if are_obstacle_obj_moved else 0
+        rospy.loginfo("The lift_motion_moved_obstacle_objects label: %s" % self.lift_motion_moved_obstacle_objects)
+
+        # Get the joint position and palm pose after lifting
+        self.palm_poses["lifted"], self.hand_joint_states[
+            "lifted"] = self.get_hand_palm_pose_and_joint_state()
+
+        # Evaluate success
+        self.label_grasp()
+
+        # raw_input('Continue?')
+        return True
 #####################################################
 ## below are codes for multiple objects generation ##
 #####################################################
