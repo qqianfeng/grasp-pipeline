@@ -6,8 +6,8 @@
     <!-- +++++++++++++++++++ Set the params needed by the different nodes ++++++++++++++++++++++++++++++++ -->
     <param name="object_pcd_path"         value="/home/ffh/object.pcd"       type="string" />
     <param name="object_pcd_enc_path"     value="/home/ffh/pcd_enc.npy" type="string"/>
-    <param name="multi_object_pcd_path"         value="/home/vm/multi_object.pcd"       type="string" />
-    <param name="multi_object_pcd_enc_path"     value="/home/vm/multi_pcd_enc.npy" type="string"/>
+    <param name="multi_object_pcd_path"         value="/home/ffh/multi_object.pcd"       type="string" />
+    <param name="multi_object_pcd_enc_path"     value="/home/ffh/multi_pcd_enc.npy" type="string"/>
     <param name="scene_pcd_path"          value="/home/ffh/scene.pcd"        type="string" />
     <param name="object_datasets_folder"  value="/home/ffh/ffh_ws/gazebo-objects"   type="string" />
     <param name="color_img_save_path"     value="/home/ffh/scene.jpg"        type="string" />
@@ -20,8 +20,8 @@
     <param name="hithand_ws_path"         value="/home/ffh/ffh_ws" type="string"/>
     <param name="data_recording_path"     value="/tmp/" type="string"/>
     <param name="ffhnet_path"             value="/home/ffh/ffh_ws/src/FFHNet" type="string"/>
-    <param name="multi_bps_path"          value="/home/vm/new_data_full/basis_point_set.npy" type="string"/>
-    <param name="config_path"             value="/home/vm/hand_ws/src/ffhnet/FFHNet/config/config_ffhnet_vm_test.yaml" type="string"/>
+    <param name="multi_bps_path"          value="/home/ffh/new_data_full/basis_point_set.npy" type="string"/>
+    <param name="config_path"             value="/home/ffh/hand_ws/src/FFHNet/FFHNet/config/config_ffhnet_vm_test.yaml" type="string"/>
     <param name="visualize"               value="True"/>
 
     <!-- Gazebo scene manager -->
