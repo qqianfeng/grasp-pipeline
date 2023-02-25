@@ -1526,8 +1526,8 @@ class GraspClient():
                 min_distance = distance
         return closest_object
 
-    def remove_ground_plane(self):
-        scene_pcd = o3d.io.read_point_cloud(self.scene_pcd_save_path)
+    def remove_ground_plane(self, scene_pcd_path=self.scene_pcd_save_path):
+        scene_pcd = o3d.io.read_point_cloud(scene_pcd_path)
         _, inliers = pcd.segment_plane(distance_threshold=0.01, ransac_n=3, num_iterations=30)
         plane_removed_pcd = pcd.select_down_sample(inliers, invert=True)
         o3d.io.write_point_cloud(rospy.get_param('multi_object_pcd_path'), plane_removed_pcd)

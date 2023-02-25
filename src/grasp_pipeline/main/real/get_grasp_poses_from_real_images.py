@@ -16,6 +16,7 @@ def main():
     gc = GraspClient(grasp_data_recording_path=data_recording_path, is_rec_sess=True, is_eval_sess=True)
     color_img, depth_img = read_image('/home/ffh/Downloads/DexFFHNet_test/set_1/color_0000.png', '/home/ffh/Downloads/DexFFHNet_test/set_1/depth_0000.npy')
     pcd_center = segment_object_as_point_cloud(color_img, depth_img, select_ROI(color_img), gc.object_pcd_save_path)
+    gc.remove_ground_plane('/home/ffh/Downloads/DexFFHNet_test/set_1/point_cloud_0000.pcd')
     gc.encode_pcd_with_bps()
     palm_poses_obj_frame, joint_confs = gc.infer_grasp_poses(n_poses=N_POSES, visualize_poses=True)
 
