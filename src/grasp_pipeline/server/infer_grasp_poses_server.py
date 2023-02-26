@@ -36,7 +36,7 @@ class GraspInference():
                                       load_path=os.path.join(ffhnet_path, 'models/ffhgenerator'))
         self.FFHNet.load_ffhevaluator(epoch=30,
                                       load_path=os.path.join(ffhnet_path, 'models/ffhevaluator'))
-        self.FFHNet.load_ffhcolldetr(epoch=19,
+        self.FFHNet.load_ffhcolldetr(epoch=8,
                                      load_path=os.path.join(ffhnet_path, 'models/ffhcolldetr'))
 
     def build_pose_list(self, rot_matrix, transl, frame_id='object_centroid_vae'):
