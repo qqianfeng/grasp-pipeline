@@ -28,6 +28,7 @@ class GraspInference():
 
         self.VISUALIZE = rospy.get_param('visualize', False)
         self.pcd_path = rospy.get_param('object_pcd_path')
+        self.multi_pcd_path = rospy.get_param('multi_object_pcd_path')
 
         self.FFHNet = FFHNet(cfg)
         ffhnet_path = rospy.get_param('ffhnet_path')
@@ -122,24 +123,56 @@ class GraspInference():
 
         return grasp_dict
 
+    # # For FFHNet evaluation
+    # def handle_evaluate_and_filter_grasp_poses(self, req):
+        # bps_object = np.load(rospy.get_param('object_pcd_enc_path'))
+        # grasp_dict = self.to_grasp_dict(req.palm_poses, req.joint_confs)
+
+        # # grasp_dict = self.FFHNet.filter_grasps_in_collision(bps_object, grasp_dict, thresh=req.thresh)
+
+        # results = self.FFHNet.filter_grasps(bps_object, grasp_dict, thresh=req.thresh)
+
+        # n_grasps_filt = results['rot_matrix'].shape[0]
+
+        # palm_poses = req.palm_poses
+        # n_samples = len(palm_poses)
+        # print("n_grasps after filtering: %d" % n_grasps_filt)
+        # print("This means %.2f of grasps pass the filtering" % (n_grasps_filt / n_samples))
+
+        # if self.VISUALIZE:
+        #     visualization.show_generated_grasp_distribution(self.pcd_path, results)
+
+        # # prepare response
+        # res = EvaluateAndFilterGraspPosesResponse()
+        # res.palm_poses = self.build_pose_list(results['rot_matrix'], results['transl'])
+        # res.joint_confs = self.build_joint_conf_list(results['joint_conf'])
+
+        # return res
+
+    # For DexFFHNet
     def handle_evaluate_and_filter_grasp_poses(self, req):
         bps_object = np.load(rospy.get_param('object_pcd_enc_path'))
+        multi_obj_object = np.load(rospy.get_param('multi_object_pcd_enc_path'))
+
         grasp_dict = self.to_grasp_dict(req.palm_poses, req.joint_confs)
         palm_poses = req.palm_poses
         n_samples = len(palm_poses)
 
-        grasp_dict = self.FFHNet.filter_grasps_in_collision(bps_object, grasp_dict, thresh=req.thresh)
+        grasp_dict = self.FFHNet.filter_grasps_in_collision(multi_obj_object, grasp_dict, thresh=0.4)
         n_grasp_no_col = grasp_dict['rot_matrix'].shape[0]
-        print("This means %.2f of grasps pass the filtering" % (n_grasp_no_col / n_samples))
-
-        # grasp_dict = self.FFHNet.filter_grasps(bps_object, grasp_dict, thresh=req.thresh)
-
-        # n_grasps_filt = grasp_dict['rot_matrix'].shape[0]
-        # print("n_grasps after filtering: %d" % n_grasps_filt)
-        # print("This means %.2f of grasps pass the filtering" % (n_grasps_filt / n_samples))
+        print("This means %.2f of grasps pass the filtering" % (1.0 * n_grasp_no_col / n_samples))
 
         if self.VISUALIZE:
-            visualization.show_generated_grasp_distribution(self.pcd_path, grasp_dict)
+            visualization.show_generated_grasp_distribution(self.multi_pcd_path, grasp_dict)
+
+        grasp_dict = self.FFHNet.filter_grasps(bps_object, grasp_dict, thresh=req.thresh)
+
+        n_grasps_filt = grasp_dict['rot_matrix'].shape[0]
+        print("n_grasps after filtering: %d" % n_grasps_filt)
+        print("This means %.2f of grasps pass the filtering" % (1.0 * n_grasps_filt / n_samples))
+
+        if self.VISUALIZE:
+            visualization.show_generated_grasp_distribution(self.multi_pcd_path, grasp_dict)
 
         # prepare response
         res = EvaluateAndFilterGraspPosesResponse()
