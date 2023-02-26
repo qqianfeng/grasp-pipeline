@@ -250,7 +250,7 @@ class GraspClient():
         """ Sets the boundaries in which an object can be spawned and placed.
         Gets called
         """
-        self.spawn_object_x_min, self.spawn_object_x_max = 0.35, 0.75
+        self.spawn_object_x_min, self.spawn_object_x_max = 0.45, 0.65
         self.spawn_object_y_min, self.spawn_object_y_max = -0.2, 0.2
 
     def generate_random_object_pose_for_experiment(self):
