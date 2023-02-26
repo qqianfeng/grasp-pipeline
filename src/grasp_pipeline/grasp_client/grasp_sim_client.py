@@ -34,6 +34,7 @@ from std_srvs.srv import SetBool, SetBoolRequest
 
 from grasp_pipeline.utils.utils import wait_for_service, get_pose_stamped_from_array, get_pose_array_from_stamped, plot_voxel
 from grasp_pipeline.utils import utils
+from grasp_pipeline.utils.open3d_draw_with_timeout import draw_with_time_out
 from grasp_pipeline.utils.align_object_frame import align_object
 from grasp_pipeline.srv import *
 from grasp_pipeline.msg import *
@@ -1436,6 +1437,7 @@ class GraspClient():
 
         pcd_save_path = self.object_pcd_save_path
         o3d.io.write_point_cloud(pcd_save_path, object_pcd)
+        draw_with_time_out(object_pcd, 3)
 
     def post_process_object_point_cloud(self):
         temp_var = self.scene_pcd_save_path
