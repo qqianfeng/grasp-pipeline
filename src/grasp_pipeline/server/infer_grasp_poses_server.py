@@ -79,6 +79,9 @@ class GraspInference():
         n_samples = req.n_poses
         results = self.FFHNet.generate_grasps(bps_object, n_samples=n_samples, return_arr=True)
 
+        filename = os.path.join(rospy.get_param('ffhnet_output_save_path'), 'generator.npy')
+        np.save(filename, results)
+
         if self.VISUALIZE:
             visualization.show_generated_grasp_distribution(self.pcd_path, results)
 
@@ -158,7 +161,11 @@ class GraspInference():
         palm_poses = req.palm_poses
         n_samples = len(palm_poses)
 
-        grasp_dict = self.FFHNet.filter_grasps_in_collision(multi_obj_object, grasp_dict, thresh=0.4)
+        grasp_dict = self.FFHNet.filter_grasps_in_collision(multi_obj_object, grasp_dict, thresh=0.8)
+
+        filename = os.path.join(rospy.get_param('ffhnet_output_save_path'), 'coll_detector.npy')
+        np.save(filename, grasp_dict)
+
         n_grasp_no_col = grasp_dict['rot_matrix'].shape[0]
         print("This means %.2f of grasps pass the filtering" % (1.0 * n_grasp_no_col / n_samples))
 
@@ -166,6 +173,9 @@ class GraspInference():
             visualization.show_generated_grasp_distribution(self.multi_pcd_path, grasp_dict)
 
         grasp_dict = self.FFHNet.filter_grasps(bps_object, grasp_dict, thresh=req.thresh)
+
+        filename = os.path.join(rospy.get_param('ffhnet_output_save_path'), 'evaluator.npy')
+        np.save(filename, grasp_dict)
 
         n_grasps_filt = grasp_dict['rot_matrix'].shape[0]
         print("n_grasps after filtering: %d" % n_grasps_filt)
