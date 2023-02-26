@@ -114,10 +114,10 @@ for obj_full in obj_list:
     grasp_client.spawn_obstacle_objects(obstacle_objects, moveit=False)
     ROIs, names = grasp_client.select_ROIs(obstacle_objects)
 
+    is_grasp_object_visiable = True
     for ROI, name in zip(ROIs, names):
         print('grasping', name)
         # Reset
-        is_grasp_object_visiable = True
         prepare_object_metadata(name, grasp_client, obstacle_objects)
 
         # Get point cloud (mean-free, orientation of camera frame)
