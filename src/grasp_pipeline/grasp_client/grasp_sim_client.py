@@ -1433,7 +1433,11 @@ class GraspClient():
         # Generate point cloud from depth image
         pinhole_camera_intrinsic = _get_camera_intrinsics()
         object_pcd = o3d.geometry.PointCloud.create_from_depth_image(depth_image_o3d, pinhole_camera_intrinsic)
-        object_pcd.transform(world_T_camera)
+
+        # We keep single object pcd in center and camera orientation for FFHGenerator
+        # object_pcd.transform(world_T_camera)
+        # np.save("/home/vm/single_")
+        object_pcd.translate((-1) * object_pcd.get_center())
 
         pcd_save_path = self.object_pcd_save_path
         o3d.io.write_point_cloud(pcd_save_path, object_pcd)
@@ -1527,6 +1531,11 @@ class GraspClient():
         return closest_object
 
     def remove_ground_plane_and_robot(self, scene_pcd_path=None):
+        """ Segmentation to remove ground plane.
+
+        Args:
+            scene_pcd_path (_type_, optional): _description_. Defaults to None.
+        """
         if scene_pcd_path is None:
             scene_pcd_path = self.scene_pcd_save_path
         scene_pcd = o3d.io.read_point_cloud(scene_pcd_path)
@@ -1560,6 +1569,23 @@ class GraspClient():
     #####################################################
     ## above are codes for multiple objects generation ##
     #####################################################
+
+    def transform_pcd_from_world_to_grasp(self, grasp,vis=False):
+        world_multi_obj_pcd = o3d.io.read_point_cloud(rospy.get_param('multi_object_pcd_path'))
+        world_T_grasp_pose = self.transform_pose(grasp, 'object_centroid_vae', 'world')
+        grasp_pose_T_world = np.linalg.inv(world_T_grasp_pose)
+        world_multi_obj_pcd.transform(grasp_pose_T_world)
+        if vis:
+            origin = o3d.geometry.TriangleMesh.create_coordinate_frame(
+                    size=0.1)
+            print("original pcd")
+            o3d.visualization.draw_geometries([pcd, origin])
+            # TODO: wrong world_T_mesh in visualization
+            origin.transform(world_T_grasp_pose)
+            o3d.visualization.draw_geometries([pcd, origin])
+            visualization.show_dataloader_grasp_with_pcd_in_world_frame(bps_path, obj_name, world_T_mesh, world_T_grasp_pose, palm_pose_hom
+                        , pcd)
+        o3d.io.write_point_cloud(rospy.get_param('multi_object_pcd_path'))
 
     def set_visual_data_save_paths(self, grasp_phase):
         if self.is_rec_sess:

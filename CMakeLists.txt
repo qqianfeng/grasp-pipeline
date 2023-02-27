@@ -33,6 +33,7 @@ add_message_files(
 
 add_service_files(
     FILES
+    BPSEncode.srv
     CheckPoseValidity.srv
     ControlHithand.srv
     EvaluateAndFilterGraspPoses.srv

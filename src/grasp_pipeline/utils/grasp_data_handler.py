@@ -243,7 +243,7 @@ class GraspDataHandler():
 if __name__ == '__main__':
 
     # data_recording_path = rospy.get_param('data_recording_path')
-    data_recording_path = '/home/vm/experiment_data_1'
+    data_recording_path = '/home/vm/experiment_data_dexffh_1'
     file_path = os.path.join(data_recording_path, 'grasp_data.h5')
     # file_path = '/home/vm/new_data_30_11/grasp_data.h5'
 

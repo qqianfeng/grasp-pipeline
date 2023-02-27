@@ -23,9 +23,9 @@
     <param name="hithand_ws_path"         value="/home/vm/hand_ws" type="string"/>
     <param name="data_recording_path"     value="/home/vm/experiment_data" type="string"/>
     <param name="ffhnet_path"             value="/home/vm/hand_ws/src/ffhnet" type="string"/>
-    <param name="visualize"               value="False"/>
+    <param name="visualize"               value="True"/>
     <param name="ffhnet_output_save_path"             value="/home/vm/ffh_outputs" type="string"/>
-    
+
     <!-- Gazebo scene manager -->
     <node name="manage_gazebo_scene_node" pkg="grasp_pipeline" type="manage_gazebo_scene_server.py" output="screen"/>
 

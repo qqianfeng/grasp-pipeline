@@ -27,8 +27,8 @@ def main():
     gc.object_metadata = {'name' : 'test_eval_real_images'}
     # Evaluate the generated poses according to the FFHEvaluator
     palm_poses_obj_frame, joint_confs = gc.evaluate_and_remove_grasps(
-        palm_poses_obj_frame, joint_confs, 
-        thresh=FILTER_THRESH, 
+        palm_poses_obj_frame, joint_confs,
+        thresh=FILTER_THRESH,
         visualize_poses=True
     )
     # translate back to camera frame
@@ -36,10 +36,10 @@ def main():
         palm_poses_obj_frame[i].pose.position.x += pcd_center[0]
         palm_poses_obj_frame[i].pose.position.y += pcd_center[1]
         palm_poses_obj_frame[i].pose.position.z += pcd_center[2]
-    
+
     np.save('/home/ffh/Downloads/DexFFHNet_test/set_1/grasp_poses_000.npy', palm_poses_obj_frame)
     np.save('/home/ffh/Downloads/DexFFHNet_test/set_1/joint_confs_000.npy', joint_confs)
-    pcd_center
+
 
 
 def segment_object_as_point_cloud(color_image, depth_image, ROI, pcd_save_path):
@@ -55,7 +55,7 @@ def segment_object_as_point_cloud(color_image, depth_image, ROI, pcd_save_path):
     cv2.grabCut(color_image, mask, init_rect, bgdModel, fgbModel, 10, cv2.GC_INIT_WITH_RECT)
     mask2 = np.where((mask == 2) | (mask == 0), 0, 1).astype('uint8')
     masked_image = color_image * mask2[:, :, np.newaxis]
-    
+
     # Set area outside of the segmentation mask to zero
     depth_image *= mask2
 
@@ -69,9 +69,30 @@ def segment_object_as_point_cloud(color_image, depth_image, ROI, pcd_save_path):
     # Generate point cloud from depth image
     pinhole_camera_intrinsic = get_camera_intrinsics_sim()
     object_pcd = o3d.geometry.PointCloud.create_from_depth_image(depth_image_o3d, pinhole_camera_intrinsic)
+
+    ### TODO ###
+    # transform obect_pcd in real_camera frame to sim_camera frame
+    # Rotation from base frame to camera frame which FFHNet was trained with
+    ee_home_R_cam_ffh = R.from_euler('zyx', [0.0, 0.0, 1.87079632679]).as_dcm()
+    base_T_camera = np.array([[-0.70142499, 0.5075982, -0.50034694, -0.66997968],
+                            [0.71263112, 0.51191254, -0.47968994, -0.33825375],
+                            [0.01264412, -0.69302931, -0.72079852, 0.3407771 ],
+                            [0., 0., 0., 1. ]])
+
+    # # object_pcd = object_pcd.rotate(base_T_camera[:3,:3])
+    # rot_z = np.array([[np.cos(np.pi),-np.sin(np.pi),0],[np.sin(np.pi),np.cos(np.pi),0],[0,0,1]])
+    # object_pcd = object_pcd.rotate(rot_z)
+
+
     point_cloud_center = object_pcd.get_center()
     object_pcd.translate((-1) * point_cloud_center)
+
+    origin = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1)
+    o3d.visualization.draw_geometries([object_pcd, origin])
     o3d.io.write_point_cloud(pcd_save_path, object_pcd)
+
+    # suppose to save point cloud in virtual sim camera frame and translate into point cloud center
+
     return point_cloud_center
 
 def read_image(color_path, depth_path):
@@ -152,7 +173,7 @@ def visualize_grasp_poses_grasp_dict(color_img, depth_img, grasp_dict):
     scene_rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(color_img, depth_img, convert_rgb_to_intensity=False, depth_scale=1)
     scene_pcd = o3d.geometry.PointCloud.create_from_rgbd_image(scene_rgbd, get_camera_intrinsics_sim())
     grasp_poses_visual_frame = []
-    
+
     global pcd_center
     print grasp_dict['transl'].shape[0]
     for i in range(grasp_dict['transl'].shape[0]):
@@ -163,10 +184,11 @@ def visualize_grasp_poses_grasp_dict(color_img, depth_img, grasp_dict):
 
 def helper_visualize():
     color_img, depth_img = read_image('/home/ffh/ffh_grasp_visualization/1/BathDetergent_color.jpg', '/home/ffh/ffh_grasp_visualization/1/BathDetergent_depth.npy')
-    grasp_dicts = [] 
+    grasp_dicts = []
     grasp_dicts.append(np.load('/home/ffh/ffh_outputs/generator.npy', allow_pickle=True).item())
     grasp_dicts.append(np.load('/home/ffh/ffh_outputs/coll_detector.npy', allow_pickle=True).item())
     grasp_dicts.append(np.load('/home/ffh/ffh_outputs/evaluator.npy', allow_pickle=True).item())
+    color_img = cv2.cvtColor(color_img,cv2.COLOR_RGB2BGR)
     color_img = o3d.geometry.Image(color_img)
     depth_img = o3d.geometry.Image(depth_img)
     for grasp_dict in grasp_dicts:
