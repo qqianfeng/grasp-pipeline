@@ -1045,6 +1045,36 @@ class GraspClient():
         rospy.logdebug('Service update_gazebo_object is executed %s.' % str(res.success))
         return res.success
 
+    #####################
+    ## Test spawn hand ##
+    #####################
+    def spawn_hand(self, pose_type, pose_arr=None):
+
+        # set the roll angle
+        # TODO change this to hand
+        # pose_arr[3] = self.object_metadata["spawn_angle_roll"]  # 0
+        # pose_arr[2] = self.object_metadata["spawn_height_z"]  # 0.05
+        # pose_arr is a list of [6,] [x,y,z,angle1,angle2,angle3]
+
+        # Update gazebo object, delete old object and spawn new one
+        self.update_gazebo_hand_client(pose_arr)
+
+    def update_gazebo_hand_client(self, object_pose_array):
+        """Gazebo management client, spawns new object
+        """
+        wait_for_service('update_gazebo_hand')
+        try:
+            update_gazebo_hand = rospy.ServiceProxy('update_gazebo_hand', UpdateHandGazebo)
+            req = UpdateHandGazeboRequest()
+            req.object_name = 'hand'
+            req.object_model_file = '/home/vm/hand_ws/src/hithand-ros/hithand_description/urdf/hithand.urdf'
+            req.object_pose_array = object_pose_array
+            req.model_type = 'urdf'
+            res = update_gazebo_hand(req)
+        except rospy.ServiceException, e:
+            rospy.logerr('Service update_gazebo_object call failed: %s' % e)
+        rospy.logdebug('Service update_gazebo_object is executed %s.' % str(res.success))
+        return res.success
     #####################################################
     ## below are codes for multiple objects generation ##
     #####################################################

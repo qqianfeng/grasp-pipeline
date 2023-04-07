@@ -39,7 +39,7 @@ class GazeboSceneManager():
         self.delete_object(self.prev_object_model_name)
 
     def spawn_object(self, object_name, object_model_file, object_pose_array, model_type):
-        rospy.wait_for_service('/gazebo/spawn_' + model_type + '_model') 
+        rospy.wait_for_service('/gazebo/spawn_' + model_type + '_model')
         try:
             with open(object_model_file, 'r') as f:
                 model_file = f.read()
@@ -79,6 +79,53 @@ class GazeboSceneManager():
         rospy.Service('update_gazebo_object', UpdateObjectGazebo, self.handle_update_gazebo_object)
         rospy.loginfo('Service update_gazebo_object:')
         rospy.loginfo('Ready to update the object the in the Gazebo scene')
+
+    #############################################
+    ## Test to spawn hand directly without arm ##
+    #############################################
+
+    # TODO  delete hand
+    def spawn_hand(self, object_name, hand_model_file, object_pose_array, model_type):
+        rospy.wait_for_service('/gazebo/spawn_' + model_type + '_model')
+        try:
+            with open(hand_model_file, 'r') as f:
+                model_file = f.read()
+            quaternion = quaternion_from_euler(object_pose_array[3], object_pose_array[4],
+                                               object_pose_array[5])
+            initial_pose = Pose()
+            initial_pose.position.x = object_pose_array[0]
+            initial_pose.position.y = object_pose_array[1]
+            initial_pose.position.z = object_pose_array[2]
+            initial_pose.orientation.x = quaternion[0]
+            initial_pose.orientation.y = quaternion[1]
+            initial_pose.orientation.z = quaternion[2]
+            initial_pose.orientation.w = quaternion[3]
+            rospy.loginfo('Spawning model: ' + object_name)
+            spawn_model = rospy.ServiceProxy('/gazebo/spawn_' + model_type + '_model', SpawnModel)
+            spawn_model(object_name, model_file, '', initial_pose, 'world')
+            # self.prev_object_model_name = object_name
+        except rospy.ServiceException as e:
+            print "Service call failed: %s" % e
+            return False
+        return True
+
+    def handle_update_gazebo_hand(self, req):
+        print("update_gazebo_hand: RECEIVED REQUEST")
+        print(req)
+        self.cache_grasp_object_spawn_info = req
+        self.delete_prev_object(req.object_name)
+        rospy.sleep(1)
+        self.spawn_hand(req.object_name, req.object_model_file, req.object_pose_array,
+                          req.model_type)
+
+        response = UpdateHandGazeboResponse()
+        response.success = True
+        return response
+
+    def create_update_gazebo_hand_server(self):
+        rospy.Service('update_gazebo_hand', UpdateHandGazebo, self.handle_update_gazebo_hand)
+        rospy.loginfo('Service update_gazebo_hand:')
+        rospy.loginfo('Ready to update the hand the in the Gazebo scene')
 
     #####################################################
     ## below are codes for multiple objects generation ##
@@ -236,22 +283,22 @@ class GazeboSceneManager():
             if model_name == self.cache_grasp_object_spawn_info.object_name:
                 # spawned with update_gazebo_object
                 self.spawn_object_do_not_modify_prev_object(
-                    self.cache_grasp_object_spawn_info.object_name, 
-                    self.cache_grasp_object_spawn_info.object_model_file, 
-                    self.cache_grasp_object_spawn_info.object_pose_array, 
+                    self.cache_grasp_object_spawn_info.object_name,
+                    self.cache_grasp_object_spawn_info.object_model_file,
+                    self.cache_grasp_object_spawn_info.object_pose_array,
                     self.cache_grasp_object_spawn_info.model_type
                 )
             else:
                 # spawned with create_new_scene
-                spawn_info = None 
+                spawn_info = None
                 for info in self.scene_snapshot.spawning_info:
                     if info.object_name == model_name:
                         spawn_info = info
 
                 self.spawn_object_do_not_modify_prev_object(
-                    spawn_info.object_name, 
-                    spawn_info.object_model_file, 
-                    spawn_info.object_pose_array, 
+                    spawn_info.object_name,
+                    spawn_info.object_model_file,
+                    spawn_info.object_pose_array,
                     spawn_info.model_type
                 )
             self.set_model_state(model_state)
@@ -320,8 +367,8 @@ class Scene():
         return None
 
 
-    
-        
+
+
 
 
     #####################################################
@@ -336,4 +383,6 @@ if __name__ == '__main__':
     manager.create_server_reset_scene()
     manager.create_server_clear_scene()
     manager.create_server_change_model_visibility()
+
+    manager.create_update_gazebo_hand_server()
     rospy.spin()

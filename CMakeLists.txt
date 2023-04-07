@@ -57,6 +57,7 @@ add_service_files(
     SegmentGraspObject.srv
     SimGraspData.srv
     UpdateObjectGazebo.srv
+    UpdateHandGazebo.srv
     UpdateObjectPose.srv
     UpdatePalmPose.srv
     VisualizeGraspPoseList.srv
