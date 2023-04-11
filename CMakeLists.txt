@@ -36,6 +36,7 @@ add_service_files(
     BPSEncode.srv
     CheckPoseValidity.srv
     ControlHithand.srv
+    DeleteHandGazebo.srv
     EvaluateAndFilterGraspPoses.srv
     ExecuteJointTrajectory.srv
     FilterPalmPoses.srv

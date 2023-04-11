@@ -19,7 +19,7 @@ while (True):
 
     grasp_client.update_object_metadata(object_metadata)
 
-    grasp_client.spawn_hand(pose_type='init', pose_arr=pose)
+    grasp_client.spawn_hand(pose_arr=pose)
 
     letter = raw_input("Append object to list? (Y/n): ")
     if letter == 'y':

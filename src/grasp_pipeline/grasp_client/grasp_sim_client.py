@@ -1048,33 +1048,79 @@ class GraspClient():
     #####################
     ## Test spawn hand ##
     #####################
-    def spawn_hand(self, pose_type, pose_arr=None):
+    def get_base_link_hithand_pose(self):
+        trans = self.tf_buffer.lookup_transform('world',
+                                                'base_link_hithand',
+                                                rospy.Time(0),
+                                                timeout=rospy.Duration(10))
+        palm_pose = PoseStamped()
+        palm_pose.header.frame_id = 'world'
+        palm_pose.pose.position.x = trans.transform.translation.x
+        palm_pose.pose.position.y = trans.transform.translation.y
+        palm_pose.pose.position.z = trans.transform.translation.z
+        palm_pose.pose.orientation.x = trans.transform.rotation.x
+        palm_pose.pose.orientation.y = trans.transform.rotation.y
+        palm_pose.pose.orientation.z = trans.transform.rotation.z
+        palm_pose.pose.orientation.w = trans.transform.rotation.w
+        palm_pose_in_flange = utils.get_pose_array_from_stamped(palm_pose)
+        return palm_pose_in_flange
 
-        # set the roll angle
-        # TODO change this to hand
-        # pose_arr[3] = self.object_metadata["spawn_angle_roll"]  # 0
-        # pose_arr[2] = self.object_metadata["spawn_height_z"]  # 0.05
-        # pose_arr is a list of [6,] [x,y,z,angle1,angle2,angle3]
-
-        # Update gazebo object, delete old object and spawn new one
-        self.update_gazebo_hand_client(pose_arr)
-
-    def update_gazebo_hand_client(self, object_pose_array):
+    def spawn_hand(self, pose_arr):
         """Gazebo management client, spawns new object
+
+        Args:
+            pose_arr (list): _description_. Example: [0.5, 0.0, 0.2, 0, 0, 0]
         """
         wait_for_service('update_gazebo_hand')
+        # TODO: Clean up
+        palm_pose_in_flange = np.array([[ 2.68490602e-01,  1.43867476e-01, -9.52478318e-01,  2.00000000e-02],
+                                        [ 9.00297098e-04,  9.88746286e-01,  1.49599368e-01,  0.00000000e+00],
+                                        [ 9.63281883e-01, -4.10235378e-02,  2.65339562e-01,  6.00000000e-02],
+                                        [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  1.00000000e+00]])
+        trans = self.tf_buffer.lookup_transform('base_link_hithand',
+                                                'palm_link_hithand',
+                                                rospy.Time(0),
+                                                timeout=rospy.Duration(10))
+        palm_pose = PoseStamped()
+        palm_pose.header.frame_id = 'world'
+        palm_pose.pose.position.x = trans.transform.translation.x
+        palm_pose.pose.position.y = trans.transform.translation.y
+        palm_pose.pose.position.z = trans.transform.translation.z
+        palm_pose.pose.orientation.x = trans.transform.rotation.x
+        palm_pose.pose.orientation.y = trans.transform.rotation.y
+        palm_pose.pose.orientation.z = trans.transform.rotation.z
+        palm_pose.pose.orientation.w = trans.transform.rotation.w
+        hand_palm_pose_world = utils.hom_matrix_from_6D_pose(pose_arr[:3],pose_arr[3:])
+        palm_pose_in_flange2 = utils.hom_matrix_from_pose_stamped(palm_pose)
+
+        pose_arr_palm_hand = np.matmul(hand_palm_pose_world, np.linalg.inv(palm_pose_in_flange2))
+        pose_stamped_palm_hand = utils.pose_stamped_from_hom_matrix(pose_arr_palm_hand,'world')
+        pose_arr = utils.get_pose_array_from_stamped(pose_stamped_palm_hand)
+        print("spawn hand at", pose_arr)
+
         try:
             update_gazebo_hand = rospy.ServiceProxy('update_gazebo_hand', UpdateHandGazebo)
             req = UpdateHandGazeboRequest()
             req.object_name = 'hand'
             req.object_model_file = '/home/vm/hand_ws/src/hithand-ros/hithand_description/urdf/hithand.urdf'
-            req.object_pose_array = object_pose_array
+            req.object_pose_array = pose_arr
             req.model_type = 'urdf'
             res = update_gazebo_hand(req)
         except rospy.ServiceException, e:
-            rospy.logerr('Service update_gazebo_object call failed: %s' % e)
-        rospy.logdebug('Service update_gazebo_object is executed %s.' % str(res.success))
+            rospy.logerr('Service update_gazebo_hand call failed: %s' % e)
+        rospy.logdebug('Service update_gazebo_hand is executed %s.' % str(res.success))
         return res.success
+
+    def delete_hand(self):
+        wait_for_service('delete_gazebo_hand')
+        try:
+            delete_gazebo_hand = rospy.ServiceProxy('delete_gazebo_hand', DeleteHandGazebo)
+            res = delete_gazebo_hand()
+        except rospy.ServiceException, e:
+            rospy.logerr('Service delete_gazebo_hand call failed: %s' % e)
+        rospy.logdebug('Service delete_gazebo_hand is executed %s.' % str(res.success))
+        return res.success
+
     #####################################################
     ## below are codes for multiple objects generation ##
     #####################################################
@@ -1351,6 +1397,7 @@ class GraspClient():
         reset_plan_exists = self.plan_reset_trajectory_client()
         if reset_plan_exists:
             self.execute_joint_trajectory_client()
+        self.delete_hand()
 
     def spawn_object(self, pose_type, pose_arr=None):
         # Generate a random valid object pose
@@ -1799,6 +1846,21 @@ class GraspClient():
 
             if not self.grasps_available:
                 break
+
+            # Step 1.5 spawn hand to check collision
+            palm_pose_world_arr = get_pose_array_from_stamped(self.palm_poses["desired_pre"])
+            self.spawn_hand(palm_pose_world_arr)
+            # Check if any object is being moved, if so, skip this experiment
+            is_target_obj_moved = self.check_if_target_object_moved(target_obj_pose)
+            obstacle_obj_poses_tmp = self.get_obstacle_objects_poses(obstacle_objects)
+            are_obstacle_obj_moved = self.check_if_any_obstacle_object_moved(obstacle_obj_poses,obstacle_obj_poses_tmp)
+            raw_input('hand ok?')
+            self.delete_hand()
+            # Now once it failed once, we remove this grasp pose.
+            if is_target_obj_moved or are_obstacle_obj_moved:
+                rospy.logerr("target_object_moved: %s or obstacle_object_mmoved: %s" % (is_target_obj_moved, are_obstacle_obj_moved))
+                self.remove_grasp_pose()
+
 
             # Step 2, if the previous grasp type is not same as current grasp type move to approach pose
             if self.previous_grasp_type != self.chosen_grasp_type or i == 1:

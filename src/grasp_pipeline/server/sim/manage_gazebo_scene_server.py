@@ -109,12 +109,12 @@ class GazeboSceneManager():
             return False
         return True
 
+    def delete_hand(self):
+        self.delete_object(object_model_name='hand')
+
     def handle_update_gazebo_hand(self, req):
         print("update_gazebo_hand: RECEIVED REQUEST")
         print(req)
-        self.cache_grasp_object_spawn_info = req
-        self.delete_prev_object(req.object_name)
-        rospy.sleep(1)
         self.spawn_hand(req.object_name, req.object_model_file, req.object_pose_array,
                           req.model_type)
 
@@ -122,10 +122,21 @@ class GazeboSceneManager():
         response.success = True
         return response
 
+    def handle_delete_gazebo_hand(self, req):
+        self.delete_hand()
+        response = DeleteHandGazeboResponse()
+        response.success = True
+        return response
+
     def create_update_gazebo_hand_server(self):
         rospy.Service('update_gazebo_hand', UpdateHandGazebo, self.handle_update_gazebo_hand)
         rospy.loginfo('Service update_gazebo_hand:')
         rospy.loginfo('Ready to update the hand the in the Gazebo scene')
+
+    def create_delete_gazebo_hand_server(self):
+        rospy.Service('delete_gazebo_hand', DeleteHandGazebo, self.handle_delete_gazebo_hand)
+        rospy.loginfo('Service delete_gazebo_hand:')
+        rospy.loginfo('Ready to delete the hand the in the Gazebo scene')
 
     #####################################################
     ## below are codes for multiple objects generation ##
@@ -367,10 +378,6 @@ class Scene():
         return None
 
 
-
-
-
-
     #####################################################
     ## above are codes for multiple objects generation ##
     #####################################################
@@ -385,4 +392,5 @@ if __name__ == '__main__':
     manager.create_server_change_model_visibility()
 
     manager.create_update_gazebo_hand_server()
+    manager.create_delete_gazebo_hand_server()
     rospy.spin()
