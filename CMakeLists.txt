@@ -33,8 +33,10 @@ add_message_files(
 
 add_service_files(
     FILES
+    BPSEncode.srv
     CheckPoseValidity.srv
     ControlHithand.srv
+    DeleteHandGazebo.srv
     EvaluateAndFilterGraspPoses.srv
     ExecuteJointTrajectory.srv
     FilterPalmPoses.srv
@@ -56,6 +58,7 @@ add_service_files(
     SegmentGraspObject.srv
     SimGraspData.srv
     UpdateObjectGazebo.srv
+    UpdateHandGazebo.srv
     UpdateObjectPose.srv
     UpdatePalmPose.srv
     VisualizeGraspPoseList.srv

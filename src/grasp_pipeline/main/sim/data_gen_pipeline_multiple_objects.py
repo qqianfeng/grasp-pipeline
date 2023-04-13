@@ -17,6 +17,19 @@ all_grasp_objects = []
 
 
 def get_obstacle_objects(gazebo_objects_path, grasp_object, amount=3):
+    """Randomly choose a number of obstacble objects
+
+    Args:
+        gazebo_objects_path (str):
+        grasp_object (dict):
+        amount (int, optional): number of obstacle objects. Defaults to 3.
+
+    Raises:
+        ValueError:
+
+    Returns:
+        objects (list): a list of chosen obstacle objects
+    """
     global all_grasp_objects
     if len(all_grasp_objects) == 0:
         # initilize once
@@ -41,6 +54,16 @@ def get_obstacle_objects(gazebo_objects_path, grasp_object, amount=3):
 
 
 def distribute_obstacle_objects_randomly(grasp_object_pose, obstacle_objects, min_center_to_center_distance=0.1):
+    """Assign random location to each obstacle objects. Location is defined within a certain space.
+
+    Args:
+        grasp_object_pose (_type_):
+        obstacle_objects (list): a list of obstacle objects
+        min_center_to_center_distance (float, optional): distance between object center. Describe the clutterness of the scene. Defaults to 0.1.
+
+    Returns:
+        objects (list): a list of chosen obstacle objects
+    """
     existing_object_positions = [np.array(grasp_object_pose)[:3]]
     for idx, obj in enumerate(obstacle_objects):
         obstacle_objects[idx] = grasp_client.set_to_random_pose(obj)
@@ -59,9 +82,6 @@ if __name__ == '__main__':
     data_recording_path = rospy.get_param('data_recording_path')
     object_datasets_folder = rospy.get_param('object_datasets_folder')
     gazebo_objects_path = os.path.join(object_datasets_folder, 'objects_gazebo')
-
-    # Remove these while testing
-    # shutil.rmtree('/home/vm/grasp_data', ignore_errors=True)
 
     # Create grasp client and metadata handler
     grasp_client = GraspClient(is_rec_sess=True, grasp_data_recording_path=data_recording_path)
@@ -85,6 +105,7 @@ if __name__ == '__main__':
             # Reset panda and hithand
             grasp_client.reset_hithand_and_panda()
             grasp_client.remove_obstacle_objects(obstacle_objects)
+            grasp_client.clean_moveit_scene_client()
 
             # Spawn a new object in Gazebo and moveit in a random valid pose and delete the old object
             grasp_client.spawn_object(pose_type="init", pose_arr=pose)

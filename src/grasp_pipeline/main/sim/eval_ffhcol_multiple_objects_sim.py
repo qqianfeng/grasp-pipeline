@@ -1,4 +1,4 @@
-""" This file is used to evaluate the model and sample grasps.
+""" This file is used to evaluate the ffhcoldetr compared to moveit.
 """
 import numpy as np
 import shutil
@@ -111,21 +111,17 @@ for obj_full in obj_list:
     obstacle_objects = get_obstacle_objects(grasp_client.object_metadata, NUM_OBSTACLE_OBJECTS)
     obstacle_objects = distribute_obstacle_objects_randomly(grasp_object_pose, obstacle_objects)
     grasp_client.remove_obstacle_objects(obstacle_objects)
-    grasp_client.spawn_obstacle_objects(obstacle_objects, moveit=False)
+    grasp_client.spawn_obstacle_objects(obstacle_objects, moveit=True)
     ROIs, names = grasp_client.select_ROIs(obstacle_objects)
 
-    is_grasp_object_visiable = True
     for ROI, name in zip(ROIs, names):
         print('grasping', name)
         # Reset
+        is_grasp_object_visiable = True
         prepare_object_metadata(name, grasp_client, obstacle_objects)
 
         # Get point cloud (mean-free, orientation of camera frame)
         grasp_client.save_visual_data(down_sample_pcd=False)
-
-        # Remove this if it's for ffhnet evaluation.
-        grasp_client.remove_ground_plane_and_robot()
-
         grasp_client.segment_object_as_point_cloud(ROI) # outputs segmented object to self.object_pcd_save_path
         grasp_client.post_process_object_point_cloud() # goes through the origional segmentation process to get object frame published
 
@@ -134,12 +130,16 @@ for obj_full in obj_list:
 
         # Sample N latent variables and get the poses
         palm_poses_obj_frame, joint_confs = grasp_client.infer_grasp_poses(n_poses=N_POSES, visualize_poses=True)
-
+        prune_idxs, no_ik_idxs, collision_idxs = grasp_client.filter_palm_goal_poses_client(palm_poses_obj_frame)
         # Evaluate the generated poses according to the FFHEvaluator
         palm_poses_obj_frame, joint_confs = grasp_client.evaluate_and_remove_grasps(
             palm_poses_obj_frame, joint_confs, thresh=FILTER_THRESH, visualize_poses=True)
+        prune_idxs, no_ik_idxs, collision_idxs = grasp_client.filter_palm_goal_poses_client(palm_poses_obj_frame)
+
+        # Choose top FILTER_NUM_GRASPS grasps.
         palm_poses_obj_frame = palm_poses_obj_frame[:FILTER_NUM_GRASPS]
         joint_confs = joint_confs[:FILTER_NUM_GRASPS]
+
 
         # Execute the grasps and record results
         for i in range(FILTER_NUM_GRASPS):

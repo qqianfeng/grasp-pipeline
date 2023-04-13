@@ -52,7 +52,7 @@ class ObjectSegmenter():
         r = self.transform_world_camera.transform.translation
         self.camera_T_world = tft.quaternion_matrix([q.x, q.y, q.z, q.w])
         self.camera_T_world[:, 3] = [r.x, r.y, r.z, 1]
-
+        print('self.camera_T_world',self.camera_T_world)
         self.bounding_box_corner_pub = rospy.Publisher(
             '/segmented_object_bounding_box_corner_points',
             Float64MultiArray,
@@ -315,7 +315,7 @@ class ObjectSegmenter():
 
         if not req.down_sample_pcd:  # if req.down_sample is false, we assume this should be stored in VAE format, therefore transform the cloud back to camera frame
             self.object_centroid = object_pcd.get_center()
-            if not req.pcd_in_world_frame:
+            if not req.need_to_transfer_pcd_to_world_frame:
                 object_pcd.transform(self.camera_T_world)
                 object_pcd.translate((-1) * object_pcd.get_center())
             print("pcd in world frame")
