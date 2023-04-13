@@ -1102,6 +1102,7 @@ class GraspClient():
             update_gazebo_hand = rospy.ServiceProxy('update_gazebo_hand', UpdateHandGazebo)
             req = UpdateHandGazeboRequest()
             req.object_name = 'hand'
+            # TODO remove hardcoded path
             req.object_model_file = '/home/vm/hand_ws/src/hithand-ros/hithand_description/urdf/hithand.urdf'
             req.object_pose_array = pose_arr
             req.model_type = 'urdf'
@@ -1120,6 +1121,31 @@ class GraspClient():
             rospy.logerr('Service delete_gazebo_hand call failed: %s' % e)
         rospy.logdebug('Service delete_gazebo_hand is executed %s.' % str(res.success))
         return res.success
+
+    def create_hand_moveit_scene_(self):
+        # todo add multi objects
+        wait_for_service('create_moveit_scene')
+        try:
+            req = ManageMoveitSceneRequest()
+            create_moveit_scene = rospy.ServiceProxy('create_moveit_scene', ManageMoveitScene)
+            req.object_names = ['hand']
+            req.object_mesh_paths = [self.object_metadata["collision_mesh_path"]]
+            req.object_pose_worlds = [self.object_metadata["mesh_frame_pose"]]
+            create_scene_response = create_moveit_scene(req)
+        except rospy.ServiceException, e:
+            rospy.logerr('Service create_moveit_scene call failed: %s' % e)
+        rospy.logdebug('Service create_moveit_scene is executed.')
+
+    def clean_moveit_scene_client(self):
+        wait_for_service('clean_moveit_scene')
+        # TODO: you need to specify the path for req: req.object_mesh_paths in order to remove the model in moveit scene.
+        try:
+            req = ManageMoveitSceneRequest()
+            clean_moveit_scene = rospy.ServiceProxy('clean_moveit_scene', ManageMoveitScene)
+            create_scene_response = clean_moveit_scene(req)
+        except rospy.ServiceException, e:
+            rospy.logerr('Service clean_moveit_scene call failed: %s' % e)
+        rospy.logdebug('Service clean_moveit_scene is executed.')
 
     #####################################################
     ## below are codes for multiple objects generation ##
@@ -1738,13 +1764,19 @@ class GraspClient():
 
     def filter_preshapes(self):
         total, no_ik, collision = self.filter_palm_goal_poses_client()
+
         self.prune_idxs = list(total)
         self.no_ik_idxs = list(no_ik)
         self.collision_idxs = list(collision)
 
+        # Modify to choose what pose to prune
         self.top_idxs = [x for x in self.top_idxs if x not in self.prune_idxs]
         self.side1_idxs = [x for x in self.side1_idxs if x not in self.prune_idxs]
         self.side2_idxs = [x for x in self.side2_idxs if x not in self.prune_idxs]
+        # self.top_idxs = [x for x in self.top_idxs if x in self.collision_idxs]
+        # self.side1_idxs = [x for x in self.side1_idxs if x in self.collision_idxs]
+        # self.side2_idxs = [x for x in self.side2_idxs if x in self.collision_idxs]
+
 
         if len(self.top_idxs) + len(self.side1_idxs) + len(self.side2_idxs) == 0:
             self.grasps_available = False
@@ -1856,6 +1888,7 @@ class GraspClient():
             are_obstacle_obj_moved = self.check_if_any_obstacle_object_moved(obstacle_obj_poses,obstacle_obj_poses_tmp)
             raw_input('hand ok?')
             self.delete_hand()
+
             # Now once it failed once, we remove this grasp pose.
             if is_target_obj_moved or are_obstacle_obj_moved:
                 rospy.logerr("target_object_moved: %s or obstacle_object_mmoved: %s" % (is_target_obj_moved, are_obstacle_obj_moved))

@@ -84,7 +84,6 @@ class GazeboSceneManager():
     ## Test to spawn hand directly without arm ##
     #############################################
 
-    # TODO  delete hand
     def spawn_hand(self, object_name, hand_model_file, object_pose_array, model_type):
         rospy.wait_for_service('/gazebo/spawn_' + model_type + '_model')
         try:
