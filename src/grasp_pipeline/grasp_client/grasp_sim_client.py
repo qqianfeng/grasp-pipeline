@@ -1102,8 +1102,8 @@ class GraspClient():
             update_gazebo_hand = rospy.ServiceProxy('update_gazebo_hand', UpdateHandGazebo)
             req = UpdateHandGazeboRequest()
             req.object_name = 'hand'
-            # TODO remove hardcoded path
-            req.object_model_file = '/home/vm/hand_ws/src/hithand-ros/hithand_description/urdf/hithand.urdf'
+
+            req.object_model_file = rospy.get_param('hand_urdf_path')
             req.object_pose_array = pose_arr
             req.model_type = 'urdf'
             res = update_gazebo_hand(req)

@@ -12,6 +12,8 @@
     <arg name="scene_pcd_topic"         default="/camera/depth/points"/>  <!-- /depth_registered/points -->
     <arg name="color_img_topic"         default="/camera/color/image_raw"/>
     <arg name="depth_img_topic"         default="/camera/depth/image_raw"/>
+    <arg name="hand_urdf_path"         default="/home/vm/hand_ws/src/hithand-ros/hithand_description/urdf/hithand.urdf"/>  
+
     <!-- +++++++++++++++++++ Set the params needed by the different nodes ++++++++++++++++++++++++++++++++ -->
     <param name="object_pcd_path"         value="$(arg object_pcd_path)"        type="string" />
     <param name="scene_pcd_path"          value="$(arg scene_pcd_path)"         type="string" />
@@ -24,6 +26,7 @@
     <param name="depth_img_topic"         value="$(arg depth_img_topic)"        type="string" />
     <param name="/use_sim_time"           value="true"/>
     <param name="visualize"               value="false"/>
+    <param name="hand_urdf_path"          value="$(arg hand_urdf_path)"        type="string" />     
 
     <!-- +++++++++++++++++++++++++++++++++++++++++++++++++++ -->
     <group if="$(arg sim)">
