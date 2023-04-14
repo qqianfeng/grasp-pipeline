@@ -457,9 +457,6 @@ class RecordGraspData():
         """ This records all the collision grasp data with multiple objects.
         """
         self.curr_object_name = req.object_name
-        self.obstacle1_name = req.obstacle1_name
-        self.obstacle2_name = req.obstacle2_name
-        self.obstacle3_name = req.obstacle3_name
 
         # r+ : Read/write, file must exist
         with h5py.File(self.grasp_data_file_name, 'r+') as grasp_file:
@@ -482,9 +479,9 @@ class RecordGraspData():
                                                                             req.preshape_hithand_joint_states):
                 # Convert poses to lists
                 obj_l = self.convert_pose_to_list(obj)
-                obstacle1_l = self.convert_pose_to_list(obstacle1_l)
-                obstacle2_l = self.convert_pose_to_list(obstacle2_l)
-                obstacle3_l = self.convert_pose_to_list(obstacle3_l)
+                obstacle1_l = self.convert_pose_to_list(obstacle1)
+                obstacle2_l = self.convert_pose_to_list(obstacle2)
+                obstacle3_l = self.convert_pose_to_list(obstacle3)
                 palm_l = self.convert_pose_to_list(palm)
 
                 # Increase collision id counter
@@ -495,6 +492,11 @@ class RecordGraspData():
                 grasp_gp = collision_gp.create_group(collision_id_str)
 
                 # Object in world
+                grasp_gp.create_dataset('object_name', data=req.object_name)
+                grasp_gp.create_dataset('obstacle1_name', data=req.obstacle1_name)
+                grasp_gp.create_dataset('obstacle2_name', data=req.obstacle2_name)
+                grasp_gp.create_dataset('obstacle3_name', data=req.obstacle3_name)   
+
                 grasp_gp.create_dataset('object_mesh_frame_world', data=obj_l)
                 grasp_gp.create_dataset('obstacle1_mesh_frame_world', data=obstacle1_l)
                 grasp_gp.create_dataset('obstacle2_mesh_frame_world', data=obstacle2_l)
@@ -506,7 +508,7 @@ class RecordGraspData():
                 grasp_gp.create_dataset('desired_joint_state', data=joints.position)
 
         # Return response
-        res = RecordCollisionDataResponse(success=True)
+        res = RecordCollisionMultiObjDataResponse(success=True)
         return res
 
     def create_record_grasp_trial_data_server(self):
@@ -527,6 +529,11 @@ class RecordGraspData():
         rospy.loginfo('Service record_collision_data:')
         rospy.loginfo('Ready to record your awesome collision data.')
 
+    def create_record_collision_multi_obj_data_server(self):
+        rospy.Service('record_collision_multi_obj_data', RecordCollisionMultiObjData,
+                      self.handle_record_collision_multi_obj_data)
+        rospy.loginfo('Service record_collision_multi_obj_data:')
+        rospy.loginfo('Ready to record your awesome collision data.')
 
 DEBUG = False
 
@@ -535,6 +542,8 @@ if __name__ == '__main__':
     rgd.create_record_grasp_trial_data_server()
     rgd.create_record_collision_data_server()
     rgd.create_record_grasp_trial_multi_obj_data_server()
+    rgd.create_record_collision_multi_obj_data_server()
+
     if DEBUG:
         req = RecordCollisionDataRequest(object_name='kit_baking')
         req.object_world_poses = [PoseStamped()]

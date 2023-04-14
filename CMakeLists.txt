@@ -50,6 +50,7 @@ add_service_files(
     PlanCartesianPathTrajectory.srv
     PlanResetTrajectory.srv
     RecordCollisionData.srv
+    RecordCollisionMultiObjData.srv
     RecordGraspDataSim.srv
     RecordGraspTrialData.srv
     RecordGraspTrialMultiObjData.srv

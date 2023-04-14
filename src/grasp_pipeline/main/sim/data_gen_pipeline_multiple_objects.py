@@ -120,7 +120,7 @@ if __name__ == '__main__':
 
             # Generate hithand preshape, this is crucial. Samples multiple heuristics-based hithand preshapes, stores it in an instance variable
             # Also one specific desired grasp preshape should be chosen. This preshape (characterized by the palm position, hithand joint states, and the is_top boolean gets stored in other instance variables)
-            grasp_client.get_valid_preshape_for_all_points()
+            grasp_client.get_valid_preshape_for_all_points(obstacle_objects)
 
             grasp_client.set_path_and_save_visual_data(grasp_phase="pre")
 
