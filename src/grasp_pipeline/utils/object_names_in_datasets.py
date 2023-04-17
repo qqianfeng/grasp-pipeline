@@ -56,8 +56,7 @@ BIGBIRD_OBJECTS = [
     'krylon_crystal_clear', 'krylon_short_cuts',
     'nature_valley_crunchy_oats_n_honey',
     'nutrigrain_apple_cinnamon', 'nutrigrain_fruit_crunch_apple_cobbler',
-    'pepto_bismol', 'pop_secret_butter'
-    # Below are deleted before by mistake and try it out next data generation
+    'pepto_bismol', 'pop_secret_butter',
     'red_bull', 'softsoap_gold', 'spam', 'spongebob_squarepants_fruit_snaks',
     'sunkist_fruit_snacks_mixed_fruit', 'tapatio_hot_sauce', 'v8_fusion_peach_mango',
     'vo5_extra_body_volumizing_shampoo', 'white_rain_sensations_apple_blossom_hydrating_body_wash'
