@@ -89,42 +89,43 @@ if __name__ == '__main__':
 
     path_to_store = "/home/yb/Documents/obstacle_data.h5"
     
-    test_list = []
     with h5py.File(path_to_store, 'a') as file:
         for i in range(metadata_handler.get_total_num_objects()):
             # Specify the object to be grasped, its pose, dataset, type, name etc.
             object_metadata = metadata_handler.choose_next_grasp_object(case="generation")
-            # target_obj_group = file.create_group(object_metadata["name"])
+            target_obj_group = file.create_group(object_metadata["name"])
 
-            # grasp_client.update_object_metadata(object_metadata)
+            grasp_client.update_object_metadata(object_metadata)
 
-            # object_cycle_start = time.time()
-            # start = object_cycle_start
+            obstacle_objects = get_obstacle_objects(gazebo_objects_path, grasp_client.object_metadata)
+            obstacle_objects = distribute_obstacle_objects_randomly(target_obj_pose, obstacle_objects)
 
-            # obstacle_objects = get_obstacle_objects(gazebo_objects_path, grasp_client.object_metadata)
-            # obstacle_objects = distribute_obstacle_objects_randomly(target_obj_pose, obstacle_objects)
-
-            test_list.append(object_metadata["name"])
             # Data to store
-            # for idx in range(len(obstacle_objects)):
-            #     obstacle_obj_group = target_obj_group.create_group("obstacle_"+str(idx))
-            #     obstacle_obj_group.create_dataset('name',
-            #                         data=obstacle_objects[idx]["name"])
-            #     pose_list = [obstacle_objects[idx]['mesh_frame_pose'].pose.position.x,
-            #                 obstacle_objects[idx]['mesh_frame_pose'].pose.position.y,
-            #                 obstacle_objects[idx]['mesh_frame_pose'].pose.position.z,
-            #                 obstacle_objects[idx]['mesh_frame_pose'].pose.orientation.x, 
-            #                 obstacle_objects[idx]['mesh_frame_pose'].pose.orientation.y, 
-            #                 obstacle_objects[idx]['mesh_frame_pose'].pose.orientation.z,
-            #                 obstacle_objects[idx]['mesh_frame_pose'].pose.orientation.w]
-            #     # Convert xya+quat pose into tranf matrix
-            #     obs_obj_pose_mat = utils.hom_matrix_from_pos_quat_list(pose_list)
-            #     tar_obj_pose_mat = utils.hom_matrix_from_pos_quat_list(target_obj_pose)
-            #     # world_T_obs_obj_pose = world_T_tar_obj_pose x target_obj_T_obs_obj
-            #     # inv(world_T_tar_obj_pose) x world_T_obs_obj_pose = target_obj_T_obs_obj
-            #     target_obj_T_obs_obj = np.matmul(np.linalg.inv(tar_obj_pose_mat),obs_obj_pose_mat)
-            #     # calculate the relation pose of obstacle obj cooresponding to target object
-            #     obstacle_obj_group.create_dataset('obstacle_pose_in_target_frame',
-            #                         data=target_obj_T_obs_obj)
+            for idx in range(len(obstacle_objects)):
+                obstacle_obj_group = target_obj_group.create_group("obstacle_"+str(idx))
+                obstacle_obj_group.create_dataset('name',
+                                    data=obstacle_objects[idx]["name"])
+                pose_list = [obstacle_objects[idx]['mesh_frame_pose'].pose.position.x,
+                            obstacle_objects[idx]['mesh_frame_pose'].pose.position.y,
+                            obstacle_objects[idx]['mesh_frame_pose'].pose.position.z,
+                            obstacle_objects[idx]['mesh_frame_pose'].pose.orientation.x, 
+                            obstacle_objects[idx]['mesh_frame_pose'].pose.orientation.y, 
+                            obstacle_objects[idx]['mesh_frame_pose'].pose.orientation.z,
+                            obstacle_objects[idx]['mesh_frame_pose'].pose.orientation.w]
+                # Convert xya+quat pose into tranf matrix
+                obs_obj_pose_mat = utils.hom_matrix_from_pos_quat_list(pose_list)
+                target_obj_quat_pose = utils.get_rot_quat_list_from_array(target_obj_pose)
+                tar_obj_pose_mat = utils.hom_matrix_from_pos_quat_list(target_obj_quat_pose)
+                # world_T_obs_obj_pose = world_T_tar_obj_pose x target_obj_T_obs_obj
+                # inv(world_T_tar_obj_pose) x world_T_obs_obj_pose = target_obj_T_obs_obj
+                target_obj_T_obs_obj = np.matmul(np.linalg.inv(tar_obj_pose_mat),obs_obj_pose_mat)
+                # Test if calculation is correct
+                np.testing.assert_allclose(obs_obj_pose_mat, np.matmul(tar_obj_pose_mat,target_obj_T_obs_obj),rtol=1e-10, atol=0)
 
-    print(test_list)
+                pose_stamped = utils.pose_stamped_from_hom_matrix(target_obj_T_obs_obj,'world')
+                rot_trans_list = utils.get_rot_trans_list_from_pose_stamp(pose_stamped)
+                # calculate the relation pose of obstacle obj cooresponding to target object
+                # Data saved in a format of [x,y,z,quaternions]
+                obstacle_obj_group.create_dataset('obstacle_pose_in_target_frame',
+                                    data=rot_trans_list)
+

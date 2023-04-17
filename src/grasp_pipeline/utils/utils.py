@@ -73,6 +73,11 @@ def get_pose_stamped_from_array(pose_array, frame_id='/world'):
 
     return pose_stamped
 
+def get_rot_quat_list_from_array(pose_array):
+    pose_quaternion = tft.quaternion_from_euler(pose_array[3], pose_array[4], pose_array[5])
+    rot_quat_list = pose_array[:3]
+    rot_quat_list += pose_quaternion.tolist()
+    return rot_quat_list
 
 def get_pose_stamped_from_rot_quat_list(pose_list, frame_id="world"):
     """ Transform a list of 3 position and 4 orientation/quaternion elements to a stamped pose
@@ -114,6 +119,11 @@ def get_pose_array_from_stamped(pose_stamped):
     pose_array = [x_p, y_p, z_p, r, p, y]
     return pose_array
 
+def get_rot_trans_list_from_pose_stamp(pose_stamped):
+    return [pose_stamped.pose.position.x, pose_stamped.pose.position.y, pose_stamped.pose.position.z,
+            pose_stamped.pose.orientation.x, pose_stamped.pose.orientation.y,
+            pose_stamped.pose.orientation.z, pose_stamped.pose.orientation.w,
+        ]
 
 def get_utah_grasp_config_from_pose_and_joints(palm_pose, joint_pos):
     # Get pos and quat

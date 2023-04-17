@@ -69,6 +69,13 @@ class MetadataHandler():
         return object_metadata
 
     def get_object_metadata(self, dset_name, obj_name):
+        if dset_name is False:
+            if obj_name in BIGBIRD_OBJECTS:
+                dset_name = 'bigbird'
+            elif obj_name in KIT_OBJECTS:
+                dset_name = 'kit'
+            else:
+                raise ValueError('object name not found',obj_name)
         object_path = os.path.join(self.gazebo_objects_path, dset_name, obj_name)
         files = os.listdir(object_path)
         collision_mesh = [s for s in files if "collision" in s][0]
