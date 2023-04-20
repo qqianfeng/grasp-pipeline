@@ -15,9 +15,8 @@ import sys
 
 
 class GazeboSceneManager():
-
     def __init__(self):
-        rospy.init_node('manage_gazebo_scene_server')
+        rospy.init_node('manage_gazebo_scene_server', log_level=rospy.DEBUG)
         rospy.loginfo('Node: manage_gazebo_scene_server')
         self.prev_object_model_name = None
         self.objects_in_scene = set()
@@ -115,7 +114,7 @@ class GazeboSceneManager():
         print("update_gazebo_hand: RECEIVED REQUEST")
         print(req)
         self.spawn_hand(req.object_name, req.object_model_file, req.object_pose_array,
-                          req.model_type)
+                        req.model_type)
 
         response = UpdateHandGazeboResponse()
         response.success = True
@@ -141,7 +140,8 @@ class GazeboSceneManager():
     ## below are codes for multiple objects generation ##
     #####################################################
 
-    def spawn_object_do_not_modify_prev_object(self, object_name, object_model_file, object_pose_array, model_type):
+    def spawn_object_do_not_modify_prev_object(self, object_name, object_model_file,
+                                               object_pose_array, model_type):
         rospy.wait_for_service('/gazebo/spawn_' + model_type + '_model')
         try:
             with open(object_model_file, 'r') as f:
@@ -188,6 +188,7 @@ class GazeboSceneManager():
             response.success = False
             return response
         self.scene_snapshot.attach_spawning_info(req.objects_in_new_scene)
+        rospy.logdebug("handle_create_new_scene::self.scene_snapshot is %s" % self.scene_snapshot)
         response.success = True
         return response
 
@@ -228,8 +229,9 @@ class GazeboSceneManager():
 
     def spawn_multiple_objects(self, object_list):
         for object in object_list:
-            if self.spawn_object_do_not_modify_prev_object(object.object_name, object.object_model_file,
-                            object.object_pose_array, object.model_type):
+            if self.spawn_object_do_not_modify_prev_object(
+                    object.object_name, object.object_model_file, object.object_pose_array,
+                    object.model_type):
                 self.objects_in_scene.add(object)
 
     def clear_scene(self):
@@ -238,6 +240,7 @@ class GazeboSceneManager():
             self.objects_in_scene.discard(object)
 
     def take_scene_snapshot(self):
+        """Snapshot contains everything in the gazebo"""
         scene = _get_stationary_scene()
         if scene:
             self.scene_snapshot = scene
@@ -247,6 +250,7 @@ class GazeboSceneManager():
 
     def recover_scene_to_snapshot(self):
         if not self.scene_snapshot:
+            rospy.logerr("self.scene_snapshot is false: %s" % str(self.scene_snapshot))
             raise RuntimeError("snapshot not found")
         for model_state in self.scene_snapshot.model_states:
             self.set_model_state(model_state)
@@ -264,7 +268,8 @@ class GazeboSceneManager():
             print "Service call failed: %s" % e
 
     def create_server_change_model_visibility(self):
-        rospy.Service('change_model_visibility', ChangeModelVisibility, self.handle_change_model_visibility)
+        rospy.Service('change_model_visibility', ChangeModelVisibility,
+                      self.handle_change_model_visibility)
         rospy.loginfo('Service change_model_visibility:')
         rospy.loginfo('Ready to change model visibility')
 
@@ -279,6 +284,7 @@ class GazeboSceneManager():
 
     def make_invisible(self, model_name):
         model_state = self.scene_snapshot.get_model_state_by_name(model_name)
+        rospy.loginfo("model_name %s, get the model_state of %s" % (model_name, str(model_state)))
         if model_state:
             self.scene_snapshot.model_states.discard(model_state)
             self.scene_snapshot.model_states_invisible_objects.add(model_state)
@@ -296,8 +302,7 @@ class GazeboSceneManager():
                     self.cache_grasp_object_spawn_info.object_name,
                     self.cache_grasp_object_spawn_info.object_model_file,
                     self.cache_grasp_object_spawn_info.object_pose_array,
-                    self.cache_grasp_object_spawn_info.model_type
-                )
+                    self.cache_grasp_object_spawn_info.model_type)
             else:
                 # spawned with create_new_scene
                 spawn_info = None
@@ -306,12 +311,10 @@ class GazeboSceneManager():
                         spawn_info = info
 
                 self.spawn_object_do_not_modify_prev_object(
-                    spawn_info.object_name,
-                    spawn_info.object_model_file,
-                    spawn_info.object_pose_array,
-                    spawn_info.model_type
-                )
+                    spawn_info.object_name, spawn_info.object_model_file,
+                    spawn_info.object_pose_array, spawn_info.model_type)
             self.set_model_state(model_state)
+
 
 def _get_stationary_scene():
     num_retries_allowed = 5
@@ -322,6 +325,9 @@ def _get_stationary_scene():
             return Scene(model_states)
         else:
             num_retries_allowed -= 1
+            if num_retries_allowed == 0:
+                rospy.logerr(model_states)
+                raise ValueError("maximum trials attemped. Failed to get stationary scene")
             rospy.sleep(waiting_time_between_retries_in_seconds)
 
 
@@ -339,8 +345,8 @@ def _check_is_stationary(twist):
     return np.linalg.norm(np.array([twist.linear.x, twist.linear.y, twist.linear.z]), ord=2) < epsilon and \
            np.linalg.norm(np.array([twist.angular.x, twist.angular.y, twist.angular.z]), ord=2) < epsilon
 
-class ObjectForSpawn():
 
+class ObjectForSpawn():
     def __init__(self, object_name, object_model_file, object_pose_array, model_type):
         self.object_name = object_name
         self.object_model_file = object_model_file
@@ -349,7 +355,6 @@ class ObjectForSpawn():
 
 
 class Scene():
-
     def __init__(self, model_states):
         self.model_states = set()
         self.model_states_invisible_objects = set()
@@ -375,7 +380,6 @@ class Scene():
             if model_state.model_name == name:
                 return model_state
         return None
-
 
     #####################################################
     ## above are codes for multiple objects generation ##
