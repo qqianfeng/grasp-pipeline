@@ -20,22 +20,22 @@ all_grasp_objects = []
 
 def get_obstacle_objects(metadata_handler, grasp_object, obstacle_data, target_pose):
 
-
     objects = []
     obstacle_group = obstacle_data[grasp_object['name']]
     for obj_idx in obstacle_group.keys():
         name = obstacle_group[obj_idx]['name'][()]
-        obj = metadata_handler.get_object_metadata(False,name)
+        obj = metadata_handler.get_object_metadata(False, name)
         obstacle_pose = obstacle_group[obj_idx]['obstacle_pose_in_target_frame'][()]
-        
+
         ##############
         # Calculations
         target_T_obstacle_pose = utils.hom_matrix_from_pos_quat_list(obstacle_pose)
         target_pose_quat = utils.get_rot_quat_list_from_array(target_pose)
         world_T_target_pose = utils.hom_matrix_from_pos_quat_list(target_pose_quat)
         # world_Obstacle_pose = world_T_target x target_T_obstacle_pose
-        obstacle_pose = np.matmul(world_T_target_pose,target_T_obstacle_pose)
-        obstacle_pose_stamped = utils.pose_stamped_from_hom_matrix(obstacle_pose,'world')
+        obstacle_pose = np.matmul(world_T_target_pose, target_T_obstacle_pose)
+        obstacle_pose_stamped = utils.pose_stamped_from_hom_matrix(obstacle_pose, 'world')
+        obstacle_pose_stamped.pose.position.z = obj["spawn_height_z"]
         ###############
 
         obj["mesh_frame_pose"] = obstacle_pose_stamped
@@ -52,7 +52,7 @@ if __name__ == '__main__':
     # Create grasp client and metadata handler
     grasp_client = GraspClient(is_rec_sess=True, grasp_data_recording_path=data_recording_path)
     metadata_handler = MetadataHandler(gazebo_objects_path=gazebo_objects_path)
-    obstacle_data = h5py.File("/home/yb/Documents/obstacle_data.h5",'r')
+    obstacle_data = h5py.File("/home/yb/Documents/obstacle_data.h5", 'r')
 
     # This loop runs for all objects, 4 poses, and evaluates N grasps per pose
     for i in range(metadata_handler.get_total_num_objects()):
@@ -63,10 +63,12 @@ if __name__ == '__main__':
             object_cycle_start = time.time()
             start = object_cycle_start
 
-            obstacle_objects = get_obstacle_objects(metadata_handler, grasp_client.object_metadata, obstacle_data, pose)
+            obstacle_objects = get_obstacle_objects(metadata_handler, grasp_client.object_metadata,
+                                                    obstacle_data, pose)
 
             # Create dirs
-            grasp_client.create_dirs_new_grasp_trial_multi_obj(pose_idx, is_new_pose_or_object=True) # TODO: here True is not always true?
+            grasp_client.create_dirs_new_grasp_trial_multi_obj(
+                pose_idx, is_new_pose_or_object=True)  # TODO: here True is not always true?
 
             # Reset panda and hithand
             grasp_client.reset_hithand_and_panda()
@@ -100,7 +102,8 @@ if __name__ == '__main__':
                     start = time.time()
 
                     # Create dirs
-                    grasp_client.create_dirs_new_grasp_trial_multi_obj(pose_idx, is_new_pose_or_object=False)
+                    grasp_client.create_dirs_new_grasp_trial_multi_obj(
+                        pose_idx, is_new_pose_or_object=False)
 
                     # Reset panda and hithand
                     grasp_client.reset_hithand_and_panda()
@@ -123,7 +126,12 @@ if __name__ == '__main__':
                 if execution_success:
                     j += 1
 
+                # for temp. test
+                break
             # Finally write the time to file it took to test all poses
             grasp_client.log_object_cycle_time(time.time() - object_cycle_start)
 
             grasp_client.remove_obstacle_objects_from_moveit_scene()
+
+        grasp_client.remove_target_object_from_moveit_scene(object_metadata["name"])
+        # TODO remove target object from gazebo scene???
