@@ -44,12 +44,14 @@ def get_obstacle_objects(gazebo_objects_path, grasp_object, amount=3):
         raise ValueError('There should be more than 20 objects in the dataset, however only '
                          + str(num_total) + ' is found.')
     amount = min(amount, num_total)
+    chosen_object_name = []
     for _ in range(amount):
         obj = random.choice(all_grasp_objects)
-        while obj['name'] == grasp_object['name']:
+        while obj['name'] == grasp_object['name'] or obj['name'] in chosen_object_name:
             obj = random.choice(all_grasp_objects)
         rospy.loginfo("obstacle object: %s"% obj['name'])
         objects.append(obj)
+        chosen_object_name.append(obj['name'])
     return objects
 
 
@@ -87,8 +89,8 @@ if __name__ == '__main__':
     grasp_client = GraspClient(is_rec_sess=True, grasp_data_recording_path=data_recording_path)
     metadata_handler = MetadataHandler(gazebo_objects_path=gazebo_objects_path)
 
-    path_to_store = "/home/yb/Documents/obstacle_data.h5"
-    
+    path_to_store = "/home/vm/Documents/obstacle_data.h5"
+
     with h5py.File(path_to_store, 'a') as file:
         for i in range(metadata_handler.get_total_num_objects()):
             # Specify the object to be grasped, its pose, dataset, type, name etc.
@@ -108,8 +110,8 @@ if __name__ == '__main__':
                 pose_list = [obstacle_objects[idx]['mesh_frame_pose'].pose.position.x,
                             obstacle_objects[idx]['mesh_frame_pose'].pose.position.y,
                             obstacle_objects[idx]['mesh_frame_pose'].pose.position.z,
-                            obstacle_objects[idx]['mesh_frame_pose'].pose.orientation.x, 
-                            obstacle_objects[idx]['mesh_frame_pose'].pose.orientation.y, 
+                            obstacle_objects[idx]['mesh_frame_pose'].pose.orientation.x,
+                            obstacle_objects[idx]['mesh_frame_pose'].pose.orientation.y,
                             obstacle_objects[idx]['mesh_frame_pose'].pose.orientation.z,
                             obstacle_objects[idx]['mesh_frame_pose'].pose.orientation.w]
                 # Convert xya+quat pose into tranf matrix
@@ -128,4 +130,3 @@ if __name__ == '__main__':
                 # Data saved in a format of [x,y,z,quaternions]
                 obstacle_obj_group.create_dataset('obstacle_pose_in_target_frame',
                                     data=rot_trans_list)
-
