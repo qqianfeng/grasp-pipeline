@@ -48,6 +48,7 @@ world_T_camera_buffer = None
 class GraspClient():
     """ This class is a wrapper around all the individual functionality involved in grasping experiments.
     """
+
     def __init__(self, is_rec_sess, grasp_data_recording_path='', is_eval_sess=False):
         rospy.init_node('grasp_client', log_level=rospy.INFO)
         self.grasp_data_recording_path = grasp_data_recording_path
@@ -121,8 +122,8 @@ class GraspClient():
     def log_object_cycle_time(self, cycle_time):
         file_path = os.path.join(self.base_path, 'grasp_timing.txt')
         with open(file_path, 'a') as timing_file:
-            timing_file.writelines(self.object_metadata["name_rec_path"] + ': ' + str(cycle_time) +
-                                   '\n')
+            timing_file.writelines(
+                self.object_metadata["name_rec_path"] + ': ' + str(cycle_time) + '\n')
 
     def log_num_grasps_removed(self, n_grasps_before, n_grasps_after, thresh):
         file_path = os.path.join(self.base_path, 'num_grasps_removed.txt')
@@ -212,8 +213,9 @@ class GraspClient():
         """
         # Check if directory for object name exists
         if not is_new_pose_or_object:
-            object_rec_path = os.path.join(self.curr_rec_sess_path,
-                                            self.object_metadata["name_rec_path"]+ '_pose_' + str(pose_idx))
+            object_rec_path = os.path.join(
+                self.curr_rec_sess_path,
+                self.object_metadata["name_rec_path"] + '_pose_' + str(pose_idx))
             assert os.path.exists(object_rec_path)
 
             self.grasp_id_num += 1
@@ -228,8 +230,9 @@ class GraspClient():
             os.mkdir(self.curr_grasp_trial_path + '/during_grasp')
             os.mkdir(self.curr_grasp_trial_path + '/post_grasp')
         else:
-            object_rec_path = os.path.join(self.curr_rec_sess_path,
-                                            self.object_metadata["name_rec_path"]+ '_pose_' + str(pose_idx))
+            object_rec_path = os.path.join(
+                self.curr_rec_sess_path,
+                self.object_metadata["name_rec_path"] + '_pose_' + str(pose_idx))
             assert not os.path.exists(object_rec_path)
             os.mkdir(object_rec_path)
 
@@ -461,7 +464,7 @@ class GraspClient():
             rospy.logerr('Service execute_joint_trajectory call failed: %s' % e)
         rospy.logdebug('Service execute_joint_trajectory is executed.')
 
-    def filter_palm_goal_poses_client(self,palm_poses=False):
+    def filter_palm_goal_poses_client(self, palm_poses=False):
         wait_for_service('filter_palm_goal_poses')
         try:
             filter_palm_goal_poses = rospy.ServiceProxy('filter_palm_goal_poses', FilterPalmPoses)
@@ -474,7 +477,7 @@ class GraspClient():
         except rospy.ServiceException, e:
             rospy.logerr('Service filter_palm_goal_poses call failed: %s' % e)
         rospy.logdebug('Service filter_palm_goal_poses is executed.')
-        print("filtered so many:", len(res.prune_idxs)/len(req.palm_goal_poses_world))
+        print("filtered so many:", len(res.prune_idxs) / len(req.palm_goal_poses_world))
         return res.prune_idxs, res.no_ik_idxs, res.collision_idxs
 
     def generate_hithand_preshape_client(self):
@@ -547,10 +550,8 @@ class GraspClient():
             1. palm pose
             2. hithand joint state
         """
-        trans = self.tf_buffer.lookup_transform('world',
-                                                'palm_link_hithand',
-                                                rospy.Time(0),
-                                                timeout=rospy.Duration(10))
+        trans = self.tf_buffer.lookup_transform(
+            'world', 'palm_link_hithand', rospy.Time(0), timeout=rospy.Duration(10))
 
         palm_pose = PoseStamped()
         palm_pose.header.frame_id = 'world'
@@ -634,8 +635,8 @@ class GraspClient():
         return res.palm_poses, res.joint_confs
 
     def plan_arm_trajectory_client(
-        self,
-        place_goal_pose=None,
+            self,
+            place_goal_pose=None,
     ):
         wait_for_service('plan_arm_trajectory')
         try:
@@ -763,7 +764,7 @@ class GraspClient():
             rospy.logerr('Service record_collision_data call failed: %s' % e)
         rospy.logdebug('Service record_collision_data is executed.')
 
-    def record_collision_data_multi_obj_client(self,objects=False):
+    def record_collision_data_multi_obj_client(self, objects=False):
         """ self.heuristic_preshapes stores all grasp poses. Self.prune_idxs contains idxs of poses in collision. Store
         these poses too, but convert to true object mesh frame first
         """
@@ -785,24 +786,24 @@ class GraspClient():
 
             # Get service proxy
             record_collision_multi_obj_data = rospy.ServiceProxy('record_collision_multi_obj_data',
-                                                       RecordCollisionMultiObjData)
+                                                                 RecordCollisionMultiObjData)
 
             # Build request only send the joint states and palm goal poses which are in collision
             req = RecordCollisionMultiObjDataRequest()
             req.failure_type = 'no_ik'
             if objects is not False:
-                print("objects[0]['name']:",objects[0]['name'])
-                print("objects[1]['name']:",objects[1]['name'])
-                print("objects[2]['name']:",objects[2]['name'])
+                print("objects[0]['name']:", objects[0]['name'])
+                print("objects[1]['name']:", objects[1]['name'])
+                print("objects[2]['name']:", objects[2]['name'])
                 req.obstacle1_name = objects[0]['name']
                 req.obstacle2_name = objects[1]['name']
                 req.obstacle3_name = objects[2]['name']
                 req.obstacle1_mesh_frame_world = len(
-                self.no_ik_idxs) * [objects[0]['mesh_frame_pose']]
+                    self.no_ik_idxs) * [objects[0]['mesh_frame_pose']]
                 req.obstacle2_mesh_frame_world = len(
-                self.no_ik_idxs) * [objects[1]['mesh_frame_pose']]
+                    self.no_ik_idxs) * [objects[1]['mesh_frame_pose']]
                 req.obstacle3_mesh_frame_world = len(
-                self.no_ik_idxs) * [objects[2]['mesh_frame_pose']]
+                    self.no_ik_idxs) * [objects[2]['mesh_frame_pose']]
 
             req.object_name = self.object_metadata["name_rec_path"]
             req.object_world_poses = len(
@@ -834,24 +835,24 @@ class GraspClient():
 
             # Get service proxy
             record_collision_multi_obj_data = rospy.ServiceProxy('record_collision_multi_obj_data',
-                                                       RecordCollisionMultiObjData)
+                                                                 RecordCollisionMultiObjData)
 
             # Build request only send the joint states and palm goal poses which are in collision
             req = RecordCollisionMultiObjDataRequest()
             req.failure_type = 'collision'
             if objects is not False:
-                print("objects[0]['name']:",objects[0]['name'])
-                print("objects[1]['name']:",objects[1]['name'])
-                print("objects[2]['name']:",objects[2]['name'])
+                print("objects[0]['name']:", objects[0]['name'])
+                print("objects[1]['name']:", objects[1]['name'])
+                print("objects[2]['name']:", objects[2]['name'])
                 req.obstacle1_name = objects[0]['name']
                 req.obstacle2_name = objects[1]['name']
                 req.obstacle3_name = objects[2]['name']
                 req.obstacle1_mesh_frame_world = len(
-                        self.collision_idxs) * [objects[0]['mesh_frame_pose']]
+                    self.collision_idxs) * [objects[0]['mesh_frame_pose']]
                 req.obstacle2_mesh_frame_world = len(
-                        self.collision_idxs) * [objects[1]['mesh_frame_pose']]
+                    self.collision_idxs) * [objects[1]['mesh_frame_pose']]
                 req.obstacle3_mesh_frame_world = len(
-                        self.collision_idxs) * [objects[2]['mesh_frame_pose']]
+                    self.collision_idxs) * [objects[2]['mesh_frame_pose']]
 
             req.object_name = self.object_metadata["name_rec_path"]
             req.object_world_poses = len(
@@ -864,7 +865,6 @@ class GraspClient():
         except rospy.ServiceException, e:
             rospy.logerr('Service record_collision_multi_obj_data call failed: %s' % e)
         rospy.logdebug('Service record_collision_multi_obj_data is executed.')
-
 
     def record_grasp_trial_data_client(self):
         """ self.heuristic_preshapes stores all grasp poses. Self.prune_idxs contains idxs of poses in collision. Store
@@ -905,7 +905,7 @@ class GraspClient():
             rospy.logerr('Service record_grasp_trial_data call failed: %s' % e)
         rospy.logdebug('Service record_grasp_trial_data is executed.')
 
-    def record_grasp_trial_data_multi_obj_client(self,objects=False):
+    def record_grasp_trial_data_multi_obj_client(self, objects=False):
         """ self.heuristic_preshapes stores all grasp poses. Self.prune_idxs contains idxs of poses in collision. Store
         these poses too, but convert to true object mesh frame first
 
@@ -927,16 +927,16 @@ class GraspClient():
             true_pose_mesh_frame = self.transform_pose(self.palm_poses["true_pre"], 'world',
                                                        'object_mesh_frame')
             # Get service proxy
-            record_grasp_trial_multi_obj_data = rospy.ServiceProxy('record_grasp_trial_multi_obj_data',
-                                                         RecordGraspTrialMultiObjData)
+            record_grasp_trial_multi_obj_data = rospy.ServiceProxy(
+                'record_grasp_trial_multi_obj_data', RecordGraspTrialMultiObjData)
 
             # Build request
             req = RecordGraspTrialMultiObjDataRequest()
             req.object_name = self.object_metadata["name_rec_path"]
             if objects is not False:
-                print("objects[0]['name']:",objects[0]['name'])
-                print("objects[1]['name']:",objects[1]['name'])
-                print("objects[2]['name']:",objects[2]['name'])
+                print("objects[0]['name']:", objects[0]['name'])
+                print("objects[1]['name']:", objects[1]['name'])
+                print("objects[2]['name']:", objects[2]['name'])
                 req.obstacle1_name = objects[0]['name']
                 req.obstacle2_name = objects[1]['name']
                 req.obstacle3_name = objects[2]['name']
@@ -1051,7 +1051,10 @@ class GraspClient():
             rospy.logerr('Service save_visual_data call failed: %s' % e)
         rospy.logdebug('Service save_visual_data is executed %s' % res.success)
 
-    def segment_object_client(self, align_object_world=True, down_sample_pcd=True, need_to_transfer_pcd_to_world_frame=False):
+    def segment_object_client(self,
+                              align_object_world=True,
+                              down_sample_pcd=True,
+                              need_to_transfer_pcd_to_world_frame=False):
         wait_for_service('segment_object')
         try:
             segment_object = rospy.ServiceProxy('segment_object', SegmentGraspObject)
@@ -1093,10 +1096,8 @@ class GraspClient():
                     rospy.sleep(2)
                 bb_extent = np.ones(4)
                 bb_extent[:3] = np.array(self.object_metadata["seg_dim_whd"])
-                trans = self.tf_buffer.lookup_transform('object_pose_aligned',
-                                                        'object_pose',
-                                                        rospy.Time(0),
-                                                        timeout=rospy.Duration(5))
+                trans = self.tf_buffer.lookup_transform(
+                    'object_pose_aligned', 'object_pose', rospy.Time(0), timeout=rospy.Duration(5))
                 quat = trans.transform.rotation
                 aligned_T_pose = tft.quaternion_matrix([quat.x, quat.y, quat.z, quat.w])
                 bb_extent_aligned = np.abs(aligned_T_pose.dot(bb_extent))
@@ -1152,10 +1153,8 @@ class GraspClient():
     ## Test spawn hand ##
     #####################
     def get_base_link_hithand_pose(self):
-        trans = self.tf_buffer.lookup_transform('world',
-                                                'base_link_hithand',
-                                                rospy.Time(0),
-                                                timeout=rospy.Duration(10))
+        trans = self.tf_buffer.lookup_transform(
+            'world', 'base_link_hithand', rospy.Time(0), timeout=rospy.Duration(10))
         palm_pose = PoseStamped()
         palm_pose.header.frame_id = 'world'
         palm_pose.pose.position.x = trans.transform.translation.x
@@ -1176,14 +1175,13 @@ class GraspClient():
         """
         wait_for_service('update_gazebo_hand')
         # TODO: Clean up
-        palm_pose_in_flange = np.array([[ 2.68490602e-01,  1.43867476e-01, -9.52478318e-01,  2.00000000e-02],
-                                        [ 9.00297098e-04,  9.88746286e-01,  1.49599368e-01,  0.00000000e+00],
-                                        [ 9.63281883e-01, -4.10235378e-02,  2.65339562e-01,  6.00000000e-02],
-                                        [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  1.00000000e+00]])
-        trans = self.tf_buffer.lookup_transform('base_link_hithand',
-                                                'palm_link_hithand',
-                                                rospy.Time(0),
-                                                timeout=rospy.Duration(10))
+        palm_pose_in_flange = np.array([[
+            2.68490602e-01, 1.43867476e-01, -9.52478318e-01, 2.00000000e-02
+        ], [9.00297098e-04, 9.88746286e-01, 1.49599368e-01, 0.00000000e+00], [
+            9.63281883e-01, -4.10235378e-02, 2.65339562e-01, 6.00000000e-02
+        ], [0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.00000000e+00]])
+        trans = self.tf_buffer.lookup_transform(
+            'base_link_hithand', 'palm_link_hithand', rospy.Time(0), timeout=rospy.Duration(10))
         palm_pose = PoseStamped()
         palm_pose.header.frame_id = 'world'
         palm_pose.pose.position.x = trans.transform.translation.x
@@ -1193,11 +1191,11 @@ class GraspClient():
         palm_pose.pose.orientation.y = trans.transform.rotation.y
         palm_pose.pose.orientation.z = trans.transform.rotation.z
         palm_pose.pose.orientation.w = trans.transform.rotation.w
-        hand_palm_pose_world = utils.hom_matrix_from_6D_pose(pose_arr[:3],pose_arr[3:])
+        hand_palm_pose_world = utils.hom_matrix_from_6D_pose(pose_arr[:3], pose_arr[3:])
         palm_pose_in_flange2 = utils.hom_matrix_from_pose_stamped(palm_pose)
 
         pose_arr_palm_hand = np.matmul(hand_palm_pose_world, np.linalg.inv(palm_pose_in_flange2))
-        pose_stamped_palm_hand = utils.pose_stamped_from_hom_matrix(pose_arr_palm_hand,'world')
+        pose_stamped_palm_hand = utils.pose_stamped_from_hom_matrix(pose_arr_palm_hand, 'world')
         pose_arr = utils.get_pose_array_from_stamped(pose_stamped_palm_hand)
         print("spawn hand at", pose_arr)
 
@@ -1265,11 +1263,13 @@ class GraspClient():
             single_object.object_model_file = grasp_object["model_file"]
             single_object.object_pose_array = object_pose_array
             single_object.model_type = 'sdf'
+            rospy.loginfo("spawn %s at pose %s" % (grasp_object["name"], str(object_pose_array)))
             req.objects_in_new_scene.append(single_object)
         try:
             res = create_new_scene(req)
         except rospy.ServiceException, e:
             rospy.loginfo('Service create_new_scene call failed %s' % e)
+            raise ValueError("Service create_new_scene call failed")
             return False
         rospy.loginfo('Service create_new_scene is executed %s.' % str(res.success))
 
@@ -1277,8 +1277,8 @@ class GraspClient():
             pose = self.get_object_pose(grasp_object)
             if pose:
                 # Update the sim_pose with the actual pose of the object after it came to rest
-                grasp_object["mesh_frame_pose"] = PoseStamped(header=Header(frame_id='world'),
-                                                                    pose=pose)
+                grasp_object["mesh_frame_pose"] = PoseStamped(
+                    header=Header(frame_id='world'), pose=pose)
                 if moveit:
                     uuid_str = str(uuid4())
                     self.add_to_moveit_scene(uuid_str, grasp_object)
@@ -1286,7 +1286,7 @@ class GraspClient():
 
         return res.success
 
-    def remove_obstacle_objects(self, objects,moveit=True):
+    def remove_obstacle_objects(self, objects, moveit=True):
         if moveit:
             self.remove_obstacle_objects_from_moveit_scene()
         wait_for_service('clear_scene')
@@ -1303,7 +1303,7 @@ class GraspClient():
 
     def reset_obstacle_objects(self, objects):
         if not self.reset_scene(len(objects) > 0):
-            print 'reset_obstacle_objects failed'
+            print('reset_obstacle_objects failed')
             exit()
 
     def get_object_pose(self, object_metadata):
@@ -1324,7 +1324,8 @@ class GraspClient():
     def add_to_moveit_scene(self, name, object_metadata):
         scene = PlanningSceneInterface()
         rospy.sleep(0.5)
-        scene.add_mesh(name, object_metadata['mesh_frame_pose'], object_metadata["collision_mesh_path"])
+        scene.add_mesh(name, object_metadata['mesh_frame_pose'],
+                       object_metadata["collision_mesh_path"])
         rospy.sleep(0.5)
         self.name_of_obstacle_objects_in_moveit_scene.add(name)
 
@@ -1333,20 +1334,17 @@ class GraspClient():
         rospy.sleep(0.5)
         # TODO: for first time, nothing to remove but there are stuff in the moveit scene.
         for name in self.name_of_obstacle_objects_in_moveit_scene:
+            rospy.loginfo("removed from move it: %s" % name)
             scene.remove_world_object(name)
             rospy.sleep(0.5)
         self.name_of_obstacle_objects_in_moveit_scene.clear()
 
-    def remove_from_moveit_scene(self, object_name):
+    def remove_target_object_from_moveit_scene(self, name):
         scene = PlanningSceneInterface()
         rospy.sleep(0.5)
-        name = self.object_name_to_moveit_name.pop(object_name, object_name)
-        time1 = time.time()
+        rospy.loginfo("removed from move it: %s" % name)
         scene.remove_world_object(name)
-        print('MOVEIT remove:',name,'time:',time.time()-time1)
         rospy.sleep(0.5)
-        if name in self.name_of_obstacle_objects_in_moveit_scene:
-            self.name_of_obstacle_objects_in_moveit_scene.discard(name)
 
     def reset_scene(self, confirm):
         """Reset all object poses to original pose which is saved in snapshot.
@@ -1487,8 +1485,8 @@ class GraspClient():
     def infer_grasp_poses(self, n_poses, visualize_poses=False, bps_object=None):
         if bps_object == None:
             bps_object = np.load(self.bps_object_path)
-        palm_poses, joint_confs = self.infer_grasp_poses_client(n_poses=n_poses,
-                                                                bps_object=bps_object)
+        palm_poses, joint_confs = self.infer_grasp_poses_client(
+            n_poses=n_poses, bps_object=bps_object)
         # TODO why this visualization is not working
         if visualize_poses:
             self.visualize_grasp_pose_list_client(palm_poses)
@@ -1496,8 +1494,8 @@ class GraspClient():
 
     def label_grasp(self):
         object_pose = self.get_grasp_object_pose_client()
-        object_pos_delta_z = np.abs(object_pose.position.z -
-                                    self.object_metadata["mesh_frame_pose"].pose.position.z)
+        object_pos_delta_z = np.abs(
+            object_pose.position.z - self.object_metadata["mesh_frame_pose"].pose.position.z)
         if object_pos_delta_z > (self.object_lift_height - self.success_tolerance_lift_height):
             self.grasp_label = 1
         else:
@@ -1527,6 +1525,13 @@ class GraspClient():
         self.delete_hand()
 
     def spawn_object(self, pose_type, pose_arr=None):
+        """ delete and spawn the target object. Update moveit scene according to generation or evaluation.
+        Update object pose after spawn because object pose might change.
+
+        Args:
+            pose_type (_type_): _description_
+            pose_arr (_type_, optional): _description_. Defaults to None.
+        """
         # Generate a random valid object pose
         if pose_type == "random":
             self.generate_random_object_pose_for_experiment()
@@ -1550,8 +1555,8 @@ class GraspClient():
             object_pose = self.get_grasp_object_pose_client()
 
             # Update the sim_pose with the actual pose of the object after it came to rest
-            self.object_metadata["mesh_frame_pose"] = PoseStamped(header=Header(frame_id='world'),
-                                                                  pose=object_pose)
+            self.object_metadata["mesh_frame_pose"] = PoseStamped(
+                header=Header(frame_id='world'), pose=object_pose)
 
         # Update moveit scene object
         if not self.is_eval_sess:
@@ -1579,7 +1584,6 @@ class GraspClient():
         object_pose_stamped = get_pose_stamped_from_array(object_pose)
         object_metadata["mesh_frame_pose"] = object_pose_stamped
         return object_metadata
-
 
     def save_visual_data(self, down_sample_pcd=True, object_pcd_record_path=''):
         """Does what it says.
@@ -1636,7 +1640,8 @@ class GraspClient():
 
         # Generate point cloud from depth image
         pinhole_camera_intrinsic = _get_camera_intrinsics()
-        object_pcd = o3d.geometry.PointCloud.create_from_depth_image(depth_image_o3d, pinhole_camera_intrinsic)
+        object_pcd = o3d.geometry.PointCloud.create_from_depth_image(depth_image_o3d,
+                                                                     pinhole_camera_intrinsic)
 
         # We keep single object pcd in center and camera orientation for FFHGenerator
         # object_pcd.transform(world_T_camera)
@@ -1679,12 +1684,11 @@ class GraspClient():
         for obj in obstacle_objects:
             self.change_model_visibility(obj['name'], True)
 
-
     def change_model_visibility(self, model_name, visible):
         wait_for_service("update_object_mesh_frame_pose")
         try:
             service_change_model_visibility = rospy.ServiceProxy('change_model_visibility',
-                                                               ChangeModelVisibility)
+                                                                 ChangeModelVisibility)
             req = ChangeModelVisibilityRequest()
             req.model_name = model_name
             req.visible = visible
@@ -1708,12 +1712,9 @@ class GraspClient():
             if np.allclose(pose_numpy, np.zeros_like(pose_numpy)):
                 continue
             object_positions[name] = pose_numpy
-            x, y = _project_point_in_world_onto_image_plane(
-                pose.position.x,
-                pose.position.y,
-                pose.position.z,
-                _get_camera_intrinsics()
-            )
+            x, y = _project_point_in_world_onto_image_plane(pose.position.x, pose.position.y,
+                                                            pose.position.z,
+                                                            _get_camera_intrinsics())
             if _is_point_inside_ROI(ROI, x, y):
                 objects_inside_ROI.append(name)
 
@@ -1751,13 +1752,14 @@ class GraspClient():
         # currently the mask cropping is removed
         mask1 = points[:, 0] > 0.1
         mask2 = points[:, 2] < 10
-        mask = np.logical_and(mask1,mask2)
+        mask = np.logical_and(mask1, mask2)
         del scene_pcd
         scene_pcd = o3d.geometry.PointCloud()
         scene_pcd.points = o3d.utility.Vector3dVector(points[mask])
         scene_pcd.colors = o3d.utility.Vector3dVector(colors[mask])
 
-        _, inliers = scene_pcd.segment_plane(distance_threshold=0.01, ransac_n=3, num_iterations=30)
+        _, inliers = scene_pcd.segment_plane(
+            distance_threshold=0.01, ransac_n=3, num_iterations=30)
         plane_removed_pcd = scene_pcd.select_down_sample(inliers, invert=True)
         o3d.io.write_point_cloud(rospy.get_param('multi_object_pcd_path'), plane_removed_pcd)
 
@@ -1766,7 +1768,8 @@ class GraspClient():
             scene_pcd_path = self.scene_pcd_save_path
         scene_pcd = o3d.io.read_point_cloud(scene_pcd_path)
 
-        _, inliers = scene_pcd.segment_plane(distance_threshold=0.01, ransac_n=3, num_iterations=30)
+        _, inliers = scene_pcd.segment_plane(
+            distance_threshold=0.01, ransac_n=3, num_iterations=30)
         plane_removed_pcd = scene_pcd.select_down_sample(inliers, invert=True)
         o3d.io.write_point_cloud(rospy.get_param('multi_object_pcd_path'), plane_removed_pcd)
 
@@ -1774,26 +1777,25 @@ class GraspClient():
     ## above are codes for multiple objects generation ##
     #####################################################
 
-    def transform_pcd_from_world_to_grasp(self, grasp,vis=False):
+    def transform_pcd_from_world_to_grasp(self, grasp, vis=False):
         world_multi_obj_pcd = o3d.io.read_point_cloud(rospy.get_param('multi_object_pcd_path'))
         world_T_grasp_pose = self.transform_pose(grasp, 'object_centroid_vae', 'world')
         grasp_pose_T_world = np.linalg.inv(world_T_grasp_pose)
         world_multi_obj_pcd.transform(grasp_pose_T_world)
         if vis:
-            origin = o3d.geometry.TriangleMesh.create_coordinate_frame(
-                    size=0.1)
+            origin = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1)
             print("original pcd")
             o3d.visualization.draw_geometries([pcd, origin])
             # TODO: wrong world_T_mesh in visualization
             origin.transform(world_T_grasp_pose)
             o3d.visualization.draw_geometries([pcd, origin])
-            visualization.show_dataloader_grasp_with_pcd_in_world_frame(bps_path, obj_name, world_T_mesh, world_T_grasp_pose, palm_pose_hom
-                        , pcd)
+            visualization.show_dataloader_grasp_with_pcd_in_world_frame(
+                bps_path, obj_name, world_T_mesh, world_T_grasp_pose, palm_pose_hom, pcd)
         o3d.io.write_point_cloud(rospy.get_param('multi_object_pcd_path'))
 
     def set_visual_data_save_paths(self, grasp_phase):
         if self.is_rec_sess:
-            if grasp_phase not in ['single','pre', 'during', 'post']:
+            if grasp_phase not in ['single', 'pre', 'during', 'post']:
                 rospy.logerr('Given grasp_phase is not valid. Must be pre, during or post.')
 
             self.depth_img_save_path = os.path.join(self.curr_grasp_trial_path,
@@ -1806,7 +1808,7 @@ class GraspClient():
             self.depth_img_save_path = os.path.join(self.base_path, 'depth.png')
             self.color_img_save_path = os.path.join(self.base_path, 'color.jpg')
 
-    def save_visual_data_and_record_grasp(self,objects=False):
+    def save_visual_data_and_record_grasp(self, objects=False):
         """
         Args:
             objects (bool, optional): Obstacle objects
@@ -1851,7 +1853,7 @@ class GraspClient():
         self.save_visual_data_client()
         self.segment_object_client(down_sample_pcd=down_sample_pcd)
 
-    def set_path_and_save_visual_data(self,grasp_phase,object_pcd_record_path=''):
+    def set_path_and_save_visual_data(self, grasp_phase, object_pcd_record_path=''):
         """ only for data generation with multiple objects.
         grasp_phase: single, pre, during, post.
         single: only with target object in the scene, for generating mask.
@@ -1878,7 +1880,6 @@ class GraspClient():
         # self.side1_idxs = [x for x in self.side1_idxs if x in self.collision_idxs]
         # self.side2_idxs = [x for x in self.side2_idxs if x in self.collision_idxs]
 
-
         if len(self.top_idxs) + len(self.side1_idxs) + len(self.side2_idxs) == 0:
             self.grasps_available = False
 
@@ -1893,7 +1894,7 @@ class GraspClient():
         self.generate_hithand_preshape_client()
         self.filter_preshapes()
 
-    def get_valid_preshape_for_all_points(self,objects=False):
+    def get_valid_preshape_for_all_points(self, objects=False):
         """ First generates preshpes from the hithand preshape server and then prunes out all preshapes which are either in collision or have no IK solution.
         """
         # Only record ones which
@@ -1917,7 +1918,8 @@ class GraspClient():
         """
         obstacle_obj_poses = {}
         for idx, _ in enumerate(obstacle_objects):
-            current_pose = self.get_grasp_object_pose_client(obj_name=obstacle_objects[idx]['name'])
+            current_pose = self.get_grasp_object_pose_client(
+                obj_name=obstacle_objects[idx]['name'])
             obstacle_obj_poses[obstacle_objects[idx]['name']] = current_pose
         return obstacle_obj_poses
 
@@ -1943,7 +1945,8 @@ class GraspClient():
         """True if any of object is moved. False if all objects are not moved.
         """
         for key in obstacle_obj_poses_1:
-            is_moved = self.check_if_object_moved(obstacle_obj_poses_1[key],obstacle_obj_poses_2[key])
+            is_moved = self.check_if_object_moved(obstacle_obj_poses_1[key],
+                                                  obstacle_obj_poses_2[key])
             if is_moved:
                 return True
         return False
@@ -1958,7 +1961,7 @@ class GraspClient():
 
     ################################################
 
-    def grasp_and_lift_object(self, obstacle_objects,check_hand=False):
+    def grasp_and_lift_object(self, obstacle_objects, check_hand=False):
         """ Used in data generation. For multi object generation.
         """
         # Record all object poses before grasp experiments
@@ -1982,6 +1985,7 @@ class GraspClient():
 
             if not self.grasps_available:
                 break
+
             if check_hand:
                 # Step 1.5 spawn hand to check collision
                 palm_pose_world_arr = get_pose_array_from_stamped(self.palm_poses["desired_pre"])
@@ -1989,14 +1993,17 @@ class GraspClient():
                 # Check if any object is being moved, if so, skip this experiment
                 is_target_obj_moved = self.check_if_target_object_moved(target_obj_pose)
                 obstacle_obj_poses_tmp = self.get_obstacle_objects_poses(obstacle_objects)
-                are_obstacle_obj_moved = self.check_if_any_obstacle_object_moved(obstacle_obj_poses,obstacle_obj_poses_tmp)
+                are_obstacle_obj_moved = self.check_if_any_obstacle_object_moved(
+                    obstacle_obj_poses, obstacle_obj_poses_tmp)
                 raw_input('hand ok?')
                 self.delete_hand()
                 # Now once it failed once, we remove this grasp pose.
                 if is_target_obj_moved or are_obstacle_obj_moved:
-                    rospy.logerr("target_object_moved: %s or obstacle_object_mmoved: %s" % (is_target_obj_moved, are_obstacle_obj_moved))
+                    rospy.logerr("target_object_moved: %s or obstacle_object_mmoved: %s" %
+                                 (is_target_obj_moved, are_obstacle_obj_moved))
                     self.remove_grasp_pose()
-
+                # if check hand, no further execution of the grasps.
+                return True
 
             # Step 2, if the previous grasp type is not same as current grasp type move to approach pose
             if self.previous_grasp_type != self.chosen_grasp_type or i == 1:
@@ -2008,11 +2015,13 @@ class GraspClient():
             # Check if any object is being moved, if so, skip this experiment
             is_target_obj_moved = self.check_if_target_object_moved(target_obj_pose)
             obstacle_obj_poses_tmp = self.get_obstacle_objects_poses(obstacle_objects)
-            are_obstacle_obj_moved = self.check_if_any_obstacle_object_moved(obstacle_obj_poses,obstacle_obj_poses_tmp)
+            are_obstacle_obj_moved = self.check_if_any_obstacle_object_moved(
+                obstacle_obj_poses, obstacle_obj_poses_tmp)
             # TODO: it's better for each grasp pose, try more times with diff. approach pose to avoid wired trajectory.
             # Now once it failed once, we remove this grasp pose.
             if is_target_obj_moved or are_obstacle_obj_moved:
-                rospy.logerr("target_object_moved: %s or obstacle_object_mmoved: %s" % (is_target_obj_moved, are_obstacle_obj_moved))
+                rospy.logerr("target_object_moved: %s or obstacle_object_mmoved: %s" %
+                             (is_target_obj_moved, are_obstacle_obj_moved))
                 self.remove_grasp_pose()
 
             # Step 3, try to move to the desired palm position
@@ -2028,11 +2037,14 @@ class GraspClient():
         # Check if any object is being moved
         is_target_obj_moved = self.check_if_target_object_moved(target_obj_pose)
         obstacle_obj_poses_tmp = self.get_obstacle_objects_poses(obstacle_objects)
-        are_obstacle_obj_moved = self.check_if_any_obstacle_object_moved(obstacle_obj_poses,obstacle_obj_poses_tmp)
+        are_obstacle_obj_moved = self.check_if_any_obstacle_object_moved(
+            obstacle_obj_poses, obstacle_obj_poses_tmp)
         self.grasp_pose_collide_target_object = 1 if is_target_obj_moved else 0
         self.grasp_pose_collide_obstacle_objects = 1 if are_obstacle_obj_moved else 0
-        rospy.loginfo("The grasp_pose_collide_target_object label: %s" % self.grasp_pose_collide_target_object)
-        rospy.loginfo("The grasp_pose_collide_obstacle_objects label: %s" % self.grasp_pose_collide_obstacle_objects)
+        rospy.loginfo("The grasp_pose_collide_target_object label: %s" %
+                      self.grasp_pose_collide_target_object)
+        rospy.loginfo("The grasp_pose_collide_obstacle_objects label: %s" %
+                      self.grasp_pose_collide_obstacle_objects)
 
         # Get the current actual joint position and palm pose
         self.palm_poses["true_pre"], self.hand_joint_states[
@@ -2049,16 +2061,19 @@ class GraspClient():
 
         # Check if any obstacle obj being moved during finger close
         obstacle_obj_poses_tmp = self.get_obstacle_objects_poses(obstacle_objects)
-        are_obstacle_obj_moved = self.check_if_any_obstacle_object_moved(obstacle_obj_poses,obstacle_obj_poses_tmp)
+        are_obstacle_obj_moved = self.check_if_any_obstacle_object_moved(
+            obstacle_obj_poses, obstacle_obj_poses_tmp)
         self.close_finger_collide_obstacle_objects = 1 if are_obstacle_obj_moved else 0
-        rospy.loginfo("The close_finger_collide_obstacle_objects label: %s" % self.close_finger_collide_obstacle_objects)
+        rospy.loginfo("The close_finger_collide_obstacle_objects label: %s" %
+                      self.close_finger_collide_obstacle_objects)
 
         # Get the current actual joint position and palm pose
         self.palm_poses["closed"], self.hand_joint_states[
             "closed"] = self.get_hand_palm_pose_and_joint_state()
 
         # Check if robot reach the target grasp pose.
-        pos_error = self.get_poses_distance(self.palm_poses["desired_pre"],self.palm_poses["true_pre"])
+        pos_error = self.get_poses_distance(self.palm_poses["desired_pre"],
+                                            self.palm_poses["true_pre"])
         if pos_error > 0.01:
             rospy.logerr("Cannot reach goal pose with error: %f m" % pos_error)
         else:
@@ -2086,9 +2101,11 @@ class GraspClient():
 
         # Check if any obj moved during lift
         obstacle_obj_poses_tmp = self.get_obstacle_objects_poses(obstacle_objects)
-        are_obstacle_obj_moved = self.check_if_any_obstacle_object_moved(obstacle_obj_poses,obstacle_obj_poses_tmp)
+        are_obstacle_obj_moved = self.check_if_any_obstacle_object_moved(
+            obstacle_obj_poses, obstacle_obj_poses_tmp)
         self.lift_motion_moved_obstacle_objects = 1 if are_obstacle_obj_moved else 0
-        rospy.loginfo("The lift_motion_moved_obstacle_objects label: %s" % self.lift_motion_moved_obstacle_objects)
+        rospy.loginfo("The lift_motion_moved_obstacle_objects label: %s" %
+                      self.lift_motion_moved_obstacle_objects)
 
         # Get the joint position and palm pose after lifting
         self.palm_poses["lifted"], self.hand_joint_states[
@@ -2180,7 +2197,8 @@ class GraspClient():
             "true_pre"] = self.get_hand_palm_pose_and_joint_state()
 
         # Check if robot reach the target grasp pose.
-        pos_error = self.get_poses_distance(self.palm_poses["desired_pre"],self.palm_poses["true_pre"])
+        pos_error = self.get_poses_distance(self.palm_poses["desired_pre"],
+                                            self.palm_poses["true_pre"])
         if pos_error > 0.01:
             rospy.logerr("Cannot reach goal pose with error: %f m" % pos_error)
         else:
@@ -2267,11 +2285,14 @@ class GraspClient():
         # Check if any object is being moved, if so, skip this experiment
         is_target_obj_moved = self.check_if_target_object_moved(target_obj_pose)
         obstacle_obj_poses_tmp = self.get_obstacle_objects_poses(obstacle_objects)
-        are_obstacle_obj_moved = self.check_if_any_obstacle_object_moved(obstacle_obj_poses,obstacle_obj_poses_tmp)
+        are_obstacle_obj_moved = self.check_if_any_obstacle_object_moved(
+            obstacle_obj_poses, obstacle_obj_poses_tmp)
         # TODO: it's better for each grasp pose, try more times with diff. approach pose to avoid wired trajectory.
         # Now once it failed once, we remove this grasp pose.
         if is_target_obj_moved or are_obstacle_obj_moved:
-            rospy.logerr("Way to approach pose, target_object_moved: %s or obstacle_object_mmoved: %s" % (is_target_obj_moved, are_obstacle_obj_moved))
+            rospy.logerr(
+                "Way to approach pose, target_object_moved: %s or obstacle_object_mmoved: %s" %
+                (is_target_obj_moved, are_obstacle_obj_moved))
             return False
 
         # Try to find a plan to the final destination
@@ -2294,18 +2315,22 @@ class GraspClient():
         # Check if any object is being moved
         is_target_obj_moved = self.check_if_target_object_moved(target_obj_pose)
         obstacle_obj_poses_tmp = self.get_obstacle_objects_poses(obstacle_objects)
-        are_obstacle_obj_moved = self.check_if_any_obstacle_object_moved(obstacle_obj_poses,obstacle_obj_poses_tmp)
+        are_obstacle_obj_moved = self.check_if_any_obstacle_object_moved(
+            obstacle_obj_poses, obstacle_obj_poses_tmp)
         self.grasp_pose_collide_target_object = 1 if is_target_obj_moved else 0
         self.grasp_pose_collide_obstacle_objects = 1 if are_obstacle_obj_moved else 0
-        rospy.loginfo("The grasp_pose_collide_target_object label: %s" % self.grasp_pose_collide_target_object)
-        rospy.loginfo("The grasp_pose_collide_obstacle_objects label: %s" % self.grasp_pose_collide_obstacle_objects)
+        rospy.loginfo("The grasp_pose_collide_target_object label: %s" %
+                      self.grasp_pose_collide_target_object)
+        rospy.loginfo("The grasp_pose_collide_obstacle_objects label: %s" %
+                      self.grasp_pose_collide_obstacle_objects)
 
         # Get the current actual joint position and palm pose
         self.palm_poses["true_pre"], self.hand_joint_states[
             "true_pre"] = self.get_hand_palm_pose_and_joint_state()
 
         # Check if robot reach the target grasp pose.
-        pos_error = self.get_poses_distance(self.palm_poses["desired_pre"],self.palm_poses["true_pre"])
+        pos_error = self.get_poses_distance(self.palm_poses["desired_pre"],
+                                            self.palm_poses["true_pre"])
         if pos_error > 0.01:
             rospy.logerr("Cannot reach goal pose with error: %f m" % pos_error)
         else:
@@ -2316,9 +2341,11 @@ class GraspClient():
 
         # Check if any obstacle obj being moved during finger close
         obstacle_obj_poses_tmp = self.get_obstacle_objects_poses(obstacle_objects)
-        are_obstacle_obj_moved = self.check_if_any_obstacle_object_moved(obstacle_obj_poses,obstacle_obj_poses_tmp)
+        are_obstacle_obj_moved = self.check_if_any_obstacle_object_moved(
+            obstacle_obj_poses, obstacle_obj_poses_tmp)
         self.close_finger_collide_obstacle_objects = 1 if are_obstacle_obj_moved else 0
-        rospy.loginfo("The close_finger_collide_obstacle_objects label: %s" % self.close_finger_collide_obstacle_objects)
+        rospy.loginfo("The close_finger_collide_obstacle_objects label: %s" %
+                      self.close_finger_collide_obstacle_objects)
 
         # Possibly apply some more control to apply more force
 
@@ -2344,9 +2371,11 @@ class GraspClient():
 
         # Check if any obj moved during lift
         obstacle_obj_poses_tmp = self.get_obstacle_objects_poses(obstacle_objects)
-        are_obstacle_obj_moved = self.check_if_any_obstacle_object_moved(obstacle_obj_poses,obstacle_obj_poses_tmp)
+        are_obstacle_obj_moved = self.check_if_any_obstacle_object_moved(
+            obstacle_obj_poses, obstacle_obj_poses_tmp)
         self.lift_motion_moved_obstacle_objects = 1 if are_obstacle_obj_moved else 0
-        rospy.loginfo("The lift_motion_moved_obstacle_objects label: %s" % self.lift_motion_moved_obstacle_objects)
+        rospy.loginfo("The lift_motion_moved_obstacle_objects label: %s" %
+                      self.lift_motion_moved_obstacle_objects)
 
         # Get the joint position and palm pose after lifting
         self.palm_poses["lifted"], self.hand_joint_states[
@@ -2357,9 +2386,12 @@ class GraspClient():
 
         # raw_input('Continue?')
         return True
+
+
 #####################################################
 ## below are codes for multiple objects generation ##
 #####################################################
+
 
 def _select_ROI(image, close_window=True):
     while True:
@@ -2384,15 +2416,17 @@ def _select_ROI(image, close_window=True):
 def _project_point_in_world_onto_image_plane(x, y, z, camera_intrinsics):
     intrinsic_matrix = camera_intrinsics.intrinsic_matrix
     camera_T_world = _get_world_to_camera_transformation()
-    P = np.matmul(intrinsic_matrix, camera_T_world[:3,:])
+    P = np.matmul(intrinsic_matrix, camera_T_world[:3, :])
     point_coordinate = np.matmul(P, np.array([x, y, z, 1]).reshape(-1, 1))
     x = int(point_coordinate[0] / point_coordinate[2])
     y = int(point_coordinate[1] / point_coordinate[2])
 
     return x, y
 
+
 def _is_point_inside_ROI(ROI, x, y):
     return (ROI[0] < x < ROI[0] + ROI[2]) and (ROI[1] < y < ROI[1] + ROI[3])
+
 
 def _get_camera_intrinsics():
     image_width = 1280
@@ -2403,10 +2437,10 @@ def _get_camera_intrinsics():
     cx = image_width * 0.5
     cy = image_height * 0.5
 
-    pinhole_camera_intrinsic = o3d.camera.PinholeCameraIntrinsic(
-        image_width, image_height, fx, fy, cx, cy
-    )
+    pinhole_camera_intrinsic = o3d.camera.PinholeCameraIntrinsic(image_width, image_height, fx, fy,
+                                                                 cx, cy)
     return pinhole_camera_intrinsic
+
 
 def _get_camera_to_world_transformation():
     global world_T_camera_buffer
@@ -2422,17 +2456,16 @@ def _get_camera_to_world_transformation():
     elif scene_pcd_topic == '/depth_registered_points':
         pcd_frame = 'camera_color_optical_frame'
     else:
-        rospy.logerr(
-            'Wrong parameter set for scene_pcd_topic in grasp_pipeline_servers.launch')
+        rospy.logerr('Wrong parameter set for scene_pcd_topic in grasp_pipeline_servers.launch')
 
-    transform_camera_world = tf_buffer.lookup_transform(
-        'world', pcd_frame, rospy.Time())
+    transform_camera_world = tf_buffer.lookup_transform('world', pcd_frame, rospy.Time())
     q = transform_camera_world.transform.rotation
     r = transform_camera_world.transform.translation
     world_T_camera = tft.quaternion_matrix([q.x, q.y, q.z, q.w])
     world_T_camera[:, 3] = [r.x, r.y, r.z, 1]
     world_T_camera_buffer = world_T_camera
     return world_T_camera
+
 
 def _get_world_to_camera_transformation():
     global camera_T_world_buffer
@@ -2448,11 +2481,9 @@ def _get_world_to_camera_transformation():
     elif scene_pcd_topic == '/depth_registered_points':
         pcd_frame = 'camera_color_optical_frame'
     else:
-        rospy.logerr(
-            'Wrong parameter set for scene_pcd_topic in grasp_pipeline_servers.launch')
+        rospy.logerr('Wrong parameter set for scene_pcd_topic in grasp_pipeline_servers.launch')
 
-    transform_world_camera = tf_buffer.lookup_transform(
-        pcd_frame, 'world', rospy.Time())
+    transform_world_camera = tf_buffer.lookup_transform(pcd_frame, 'world', rospy.Time())
     q = transform_world_camera.transform.rotation
     r = transform_world_camera.transform.translation
     camera_T_world = tft.quaternion_matrix([q.x, q.y, q.z, q.w])

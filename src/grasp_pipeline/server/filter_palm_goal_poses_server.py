@@ -23,11 +23,12 @@ class PalmGoalPosesFilter():
         ]
         self.home_joint_states = [0, 0, 0, -1, 0, 1.9884, -1.57]
 
-        self.ik_solver = IK("panda_link0",
-                            "palm_link_hithand",
-                            timeout=0.01,
-                            epsilon=1e-4,
-                            solve_type="Manipulation1")
+        self.ik_solver = IK(
+            "panda_link0",
+            "palm_link_hithand",
+            timeout=0.01,
+            epsilon=1e-4,
+            solve_type="Manipulation1")
         self.seed_state = self.home_joint_states
         self.solver_margin_pos = 0.005
         self.solver_margin_ori = 0.01
@@ -69,12 +70,14 @@ class PalmGoalPosesFilter():
         """ Receives a list of all palm goal poses (grasp hypotheses) and returns a list of idxs of unfeasible grasps, either because
         no IK solution could be found or the pose is in collision
         """
+        # TODO: it hangs here once, after print "filtering palm goal poses", it hangs.
         print('Filtering palm goal poses.')
         prune_idxs = []
         no_ik_idxs = []
         collision_idxs = []
         self.pub_poses = []
         goal_poses = req.palm_goal_poses_world
+        print("will iterate through: ", len(goal_poses), "poses")
         for i, pose in enumerate(goal_poses):
             ik_js = self.get_ik_for_palm_pose(pose)
             if ik_js is not None:
@@ -87,7 +90,8 @@ class PalmGoalPosesFilter():
             else:
                 prune_idxs.append(i)
                 no_ik_idxs.append(i)
-        print(str(len(no_ik_idxs)) + ' poses have no ik solution, ' + str(len(collision_idxs))  + ' poses would cause collision.')
+        print(str(len(no_ik_idxs)) + ' poses have no ik solution, ' + str(len(collision_idxs)) +
+              ' poses would cause collision.')
         print(str(len(prune_idxs)) + ' out of ' + str(len(goal_poses)) + ' points filtered out.')
         self.service_is_called = True
         # Return the filtered poses which are not in collision
