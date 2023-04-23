@@ -18,8 +18,9 @@ poses = [[0.5, 0.0, 0.2, 0, 0, 0], [0.5, 0.0, 0.2, 0, 0, 1.571], [0.5, 0.0, 0.2,
 all_grasp_objects = []
 
 
-def get_obstacle_objects(metadata_handler, grasp_object, obstacle_data, target_pose):
+def get_obstacle_objects(metadata_handler, grasp_client, obstacle_data, target_pose):
 
+    grasp_object = grasp_client.object_metadata
     objects = []
     obstacle_group = obstacle_data[grasp_object['name']]
     for obj_idx in obstacle_group.keys():
@@ -28,6 +29,10 @@ def get_obstacle_objects(metadata_handler, grasp_object, obstacle_data, target_p
         obstacle_pose = obstacle_group[obj_idx]['obstacle_pose_in_target_frame'][()]
 
         ##############
+        # Update target pose according to dataset
+        target_pose[3] = grasp_object["spawn_angle_roll"]  # 0
+        target_pose[2] = grasp_object["spawn_height_z"]  # 0.05
+
         # Calculations
         target_T_obstacle_pose = utils.hom_matrix_from_pos_quat_list(obstacle_pose)
         target_pose_quat = utils.get_rot_quat_list_from_array(target_pose)
@@ -52,7 +57,8 @@ if __name__ == '__main__':
     # Create grasp client and metadata handler
     grasp_client = GraspClient(is_rec_sess=True, grasp_data_recording_path=data_recording_path)
     metadata_handler = MetadataHandler(gazebo_objects_path=gazebo_objects_path)
-    obstacle_data = h5py.File("/home/yb/Documents/obstacle_data.h5", 'r')
+    # TODO: remove hardcoded path
+    obstacle_data = h5py.File("/home/vm/Documents/obstacle_data.h5", 'r')
 
     # This loop runs for all objects, 4 poses, and evaluates N grasps per pose
     for i in range(metadata_handler.get_total_num_objects()):
@@ -63,7 +69,7 @@ if __name__ == '__main__':
             object_cycle_start = time.time()
             start = object_cycle_start
 
-            obstacle_objects = get_obstacle_objects(metadata_handler, grasp_client.object_metadata,
+            obstacle_objects = get_obstacle_objects(metadata_handler, grasp_client,
                                                     obstacle_data, pose)
 
             # Create dirs
@@ -72,13 +78,16 @@ if __name__ == '__main__':
 
             # Reset panda and hithand
             grasp_client.reset_hithand_and_panda()
-            grasp_client.remove_obstacle_objects(obstacle_objects)
-            grasp_client.clean_moveit_scene_client()
+            if pose_idx != 0:
+                grasp_client.remove_obstacle_objects(obstacle_objects)
 
-            # Spawn a new object in Gazebo and moveit in a random valid pose and delete the old object
-            grasp_client.spawn_object(pose_type="init", pose_arr=pose)
+            # grasp_client.clean_moveit_scene_client()
+
+            # Delede old target object, Spawn a new target object in Gazebo and moveit in a random valid pose and delete the old object
+            pose_arr = grasp_client.spawn_object(pose_type="init", pose_arr=pose)
 
             grasp_client.set_path_and_save_visual_data(grasp_phase="single")
+
             # First take a shot of the scene and store RGB, depth and point cloud to disk
             # Then segment the object point cloud from the rest of the scene
             grasp_client.segment_object_client(down_sample_pcd=True)
@@ -133,5 +142,10 @@ if __name__ == '__main__':
 
             grasp_client.remove_obstacle_objects_from_moveit_scene()
 
+        # End of this target object grasping experiment
+
+        # Clean up the environment by removeing all obstacle objects in gazebo and moveit
+        grasp_client.remove_obstacle_objects(obstacle_objects)
+
+        # Remove target object from moveit scene. (maybe not necessry). The target object in gazebo will be removed in spawn_object function.
         grasp_client.remove_target_object_from_moveit_scene(object_metadata["name"])
-        # TODO remove target object from gazebo scene???

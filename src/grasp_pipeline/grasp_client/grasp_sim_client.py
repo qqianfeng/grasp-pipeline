@@ -477,7 +477,10 @@ class GraspClient():
         except rospy.ServiceException, e:
             rospy.logerr('Service filter_palm_goal_poses call failed: %s' % e)
         rospy.logdebug('Service filter_palm_goal_poses is executed.')
-        print("filtered so many:", len(res.prune_idxs) / len(req.palm_goal_poses_world))
+        if len(req.palm_goal_poses_world) == 0:
+            print("no pose found from self.heuristic_preshapes.palm_goal_poses_world")
+        else:
+            print("filtered so many:", len(res.prune_idxs) / len(req.palm_goal_poses_world))
         return res.prune_idxs, res.no_ik_idxs, res.collision_idxs
 
     def generate_hithand_preshape_client(self):

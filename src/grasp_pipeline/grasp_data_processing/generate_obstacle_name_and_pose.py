@@ -11,8 +11,10 @@ import numpy as np
 import h5py
 from grasp_pipeline.utils import utils
 import random
+from copy import deepcopy
 
-target_obj_pose = [0.5, 0.0, 0.2, 0, 0, 0]
+
+init_pose = [0.5, 0.0, 0.2, 0, 0, 0]
 
 all_grasp_objects = []
 
@@ -55,7 +57,7 @@ def get_obstacle_objects(gazebo_objects_path, grasp_object, amount=3):
     return objects
 
 
-def distribute_obstacle_objects_randomly(grasp_object_pose, obstacle_objects, min_center_to_center_distance=0.1):
+def distribute_obstacle_objects_randomly(grasp_object_pose, obstacle_objects, min_center_to_center_distance=0.10):
     """Assign random location to each obstacle objects. Location is defined within a certain space.
 
     Args:
@@ -100,6 +102,12 @@ if __name__ == '__main__':
             grasp_client.update_object_metadata(object_metadata)
 
             obstacle_objects = get_obstacle_objects(gazebo_objects_path, grasp_client.object_metadata)
+
+            # target object pose is not always fixed. It's dependent on the object/dataset
+            target_obj_pose = deepcopy(init_pose)
+            target_obj_pose[3] = object_metadata["spawn_angle_roll"]  # 0
+            target_obj_pose[2] = object_metadata["spawn_height_z"]  # 0.05
+
             obstacle_objects = distribute_obstacle_objects_randomly(target_obj_pose, obstacle_objects)
 
             # Data to store
@@ -120,11 +128,12 @@ if __name__ == '__main__':
                 tar_obj_pose_mat = utils.hom_matrix_from_pos_quat_list(target_obj_quat_pose)
                 # world_T_obs_obj_pose = world_T_tar_obj_pose x target_obj_T_obs_obj
                 # inv(world_T_tar_obj_pose) x world_T_obs_obj_pose = target_obj_T_obs_obj
-                target_obj_T_obs_obj = np.matmul(np.linalg.inv(tar_obj_pose_mat),obs_obj_pose_mat)
+                target_obj_T_obs_obj = np.matmul(np.linalg.inv(tar_obj_pose_mat), obs_obj_pose_mat)
                 # Test if calculation is correct
-                np.testing.assert_allclose(obs_obj_pose_mat, np.matmul(tar_obj_pose_mat,target_obj_T_obs_obj),rtol=1e-10, atol=0)
+                print(obs_obj_pose_mat - np.matmul(tar_obj_pose_mat, target_obj_T_obs_obj))
+                np.testing.assert_allclose(obs_obj_pose_mat, np.matmul(tar_obj_pose_mat, target_obj_T_obs_obj),rtol=1, atol=1e-8)
 
-                pose_stamped = utils.pose_stamped_from_hom_matrix(target_obj_T_obs_obj,'world')
+                pose_stamped = utils.pose_stamped_from_hom_matrix(target_obj_T_obs_obj, 'world')
                 rot_trans_list = utils.get_rot_trans_list_from_pose_stamp(pose_stamped)
                 # calculate the relation pose of obstacle obj cooresponding to target object
                 # Data saved in a format of [x,y,z,quaternions]

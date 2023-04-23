@@ -266,6 +266,7 @@ class GazeboSceneManager():
             service_proxy(model_state)
         except rospy.ServiceException as e:
             print "Service call failed: %s" % e
+            raise ValueError("cannot set model state in gazebo")
 
     def create_server_change_model_visibility(self):
         rospy.Service('change_model_visibility', ChangeModelVisibility,
