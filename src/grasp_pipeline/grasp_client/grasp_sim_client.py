@@ -1965,6 +1965,39 @@ class GraspClient():
 
     ################################################
 
+    def visualize_hand(self, target_obj_pose, obstacle_objects, obstacle_obj_poses, hand_pose=False):
+        """Visualize the hand model given grasp pose
+
+        Args:
+            target_obj_pose (_type_): _description_
+            obstacle_objects (_type_): _description_
+            obstacle_obj_poses (_type_): _description_
+            hand_pose (bool, optional): _description_. Defaults to False.
+
+        Returns:
+            _type_: _description_
+        """
+        if hand_pose is False:
+            palm_pose_world_arr = get_pose_array_from_stamped(self.palm_poses["desired_pre"])
+        else:
+            palm_pose_world_arr = get_pose_array_from_stamped(hand_pose)
+        self.spawn_hand(palm_pose_world_arr)
+        # Check if any object is being moved, if so, skip this experiment
+        is_target_obj_moved = self.check_if_target_object_moved(target_obj_pose)
+        obstacle_obj_poses_tmp = self.get_obstacle_objects_poses(obstacle_objects)
+        are_obstacle_obj_moved = self.check_if_any_obstacle_object_moved(
+            obstacle_obj_poses, obstacle_obj_poses_tmp)
+        raw_input('hand ok?')
+        self.delete_hand()
+        # TODO: This can be used for collision checking for evaluation????
+        # Now once it failed once, we remove this grasp pose.
+        if is_target_obj_moved or are_obstacle_obj_moved:
+            rospy.logerr("target_object_moved: %s or obstacle_object_mmoved: %s" %
+                            (is_target_obj_moved, are_obstacle_obj_moved))
+            self.remove_grasp_pose()
+        # if check hand, no further execution of the grasps.
+        return True
+
     def grasp_and_lift_object(self, obstacle_objects, check_hand=False):
         """ Used in data generation. For multi object generation.
         """
@@ -1991,23 +2024,7 @@ class GraspClient():
                 break
 
             if check_hand:
-                # Step 1.5 spawn hand to check collision
-                palm_pose_world_arr = get_pose_array_from_stamped(self.palm_poses["desired_pre"])
-                self.spawn_hand(palm_pose_world_arr)
-                # Check if any object is being moved, if so, skip this experiment
-                is_target_obj_moved = self.check_if_target_object_moved(target_obj_pose)
-                obstacle_obj_poses_tmp = self.get_obstacle_objects_poses(obstacle_objects)
-                are_obstacle_obj_moved = self.check_if_any_obstacle_object_moved(
-                    obstacle_obj_poses, obstacle_obj_poses_tmp)
-                raw_input('hand ok?')
-                self.delete_hand()
-                # Now once it failed once, we remove this grasp pose.
-                if is_target_obj_moved or are_obstacle_obj_moved:
-                    rospy.logerr("target_object_moved: %s or obstacle_object_mmoved: %s" %
-                                 (is_target_obj_moved, are_obstacle_obj_moved))
-                    self.remove_grasp_pose()
-                # if check hand, no further execution of the grasps.
-                return True
+                self.visualize_hand(target_obj_pose, obstacle_objects, obstacle_obj_poses)
 
             # Step 2, if the previous grasp type is not same as current grasp type move to approach pose
             if self.previous_grasp_type != self.chosen_grasp_type or i == 1:

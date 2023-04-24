@@ -147,8 +147,11 @@ if __name__ == '__main__':
     # n_pcds_per_obj = 50
 
     # This h5 should be the file that is merged
-    input_grasp_data_file = '/data/hdd1/qf/hithand_data/clutter_data/grasp_data_all.h5'
-    gazebo_objects_path = '/home/yb/Projects/gazebo-objects/objects_gazebo/'  #'/home/vm/gazebo-objects/objects_gazebo/'
+    input_grasp_data_file = '/home/vm/Documents/grasp_data_all.h5'
+    # input_grasp_data_file = '/data/hdd1/qf/hithand_data/clutter_data/grasp_data_all.h5'
+    # gazebo_objects_path = '/home/yb/Projects/gazebo-objects/objects_gazebo/'
+    gazebo_objects_path = '/home/vm/gazebo-objects/objects_gazebo/'
+
     # Get all available objects and choose one
     with h5py.File(input_grasp_data_file, 'r') as hdf:
         objects = hdf.keys()
@@ -171,9 +174,24 @@ if __name__ == '__main__':
             collision_data = obj_data['collision']
 
             for grasp_id in collision_data.keys():
+                # Tested until 00039
+                # grasp_00006 and 00026 ,00029, 00036!!!!,seems no collision but hand is very close to the target object -> reason probably
+                # is the collision model is simplified and not same as visual model
+                if int(grasp_id.split('_')[1]) <= 6:
+                    continue
+                print("verify collision grasp of", grasp_id)
                 collision_grasp = collision_data[grasp_id]
 
                 object_mesh_frame_world = collision_grasp['object_mesh_frame_world'][()]
+
+                # get grasp palm pose in worl frame
+                palm_mesh_frame = collision_grasp['desired_preshape_palm_mesh_frame'][()]
+                object_mesh_frame_world_mat = utils.hom_matrix_from_pos_quat_list(object_mesh_frame_world)
+                palm_mesh_frame_mat = utils.hom_matrix_from_pos_quat_list(palm_mesh_frame)
+                palm_world_frame_mat = np.matmul(object_mesh_frame_world_mat, palm_mesh_frame_mat)
+                palm_world_frame_stamp = utils.pose_stamped_from_hom_matrix(palm_world_frame_mat,'world')
+
+                # Get obstacle names and poses
                 obstacle1_name = collision_grasp['obstacle1_name'][()]
                 obstacle2_name = collision_grasp['obstacle2_name'][()]
                 obstacle3_name = collision_grasp['obstacle3_name'][()]
@@ -192,8 +210,8 @@ if __name__ == '__main__':
                 object_metadata = metadata_handler.get_object_metadata(dset, obj_name)
                 grasp_client.update_object_metadata(object_metadata)
 
-                grasp_client.create_dirs_new_grasp_trial(
-                    is_new_pose_or_object=True)  # TODO: here True is not always true?
+                # grasp_client.create_dirs_new_grasp_trial(
+                #     is_new_pose_or_object=True)  # TODO: here True is not always true?
 
                 grasp_client.remove_obstacle_objects(obstacle_objects, moveit=False)
 
@@ -202,6 +220,12 @@ if __name__ == '__main__':
                     object_mesh_frame_world)
                 grasp_client.spawn_object(
                     pose_type='replicate', pose_arr=array_object_mesh_frame_world)
+
+                # grasp_client.set_path_and_save_visual_data(grasp_phase="single")
+
+                # First take a shot of the scene and store RGB, depth and point cloud to disk
+                # Then segment the object point cloud from the rest of the scene
+                grasp_client.segment_object_client(down_sample_pcd=True)
 
                 ###############################################
                 # Segment object and save visual data
@@ -233,7 +257,9 @@ if __name__ == '__main__':
 
                 grasp_client.spawn_obstacle_objects(obstacle_objects, moveit=False)
 
-                # TODO: get grasp pose from data
-                # TODO: extract show hand function from grasp_and_lift_object
-                execution_success = grasp_client.grasp_and_lift_object(
-                    obstacle_objects, check_hand=True)
+                # visualize the hand in the scene
+                target_obj_pose = grasp_client.get_grasp_object_pose_client()
+                obstacle_obj_poses = grasp_client.get_obstacle_objects_poses(obstacle_objects)
+
+                execution_success = grasp_client.visualize_hand(target_obj_pose, obstacle_objects,
+                                                                obstacle_obj_poses, hand_pose=palm_world_frame_stamp)
