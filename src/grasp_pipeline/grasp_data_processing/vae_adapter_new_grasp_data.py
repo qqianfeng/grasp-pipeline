@@ -166,6 +166,24 @@ def log_grasp(src_grasp_gp, dest_grasp_gp, is_coll=False):
         dest_grasp_gp.create_dataset("desired_preshape_palm_mesh_frame", data=des_palm_mesh_frame)
         dest_grasp_gp.create_dataset("object_mesh_frame_world", data=object_mesh_frame_world)
 
+        # New data to record with collision
+        object_name = src_grasp_gp["object_name"][()]
+        obstacle1_name = src_grasp_gp["obstacle1_name"][()]
+        obstacle2_name = src_grasp_gp["obstacle2_name"][()]
+        obstacle3_name = src_grasp_gp["obstacle3_name"][()]
+
+        obstacle1_mesh_frame_world = src_grasp_gp["obstacle1_mesh_frame_world"][()]
+        obstacle2_mesh_frame_world = src_grasp_gp["obstacle2_mesh_frame_world"][()]
+        obstacle3_mesh_frame_world = src_grasp_gp["obstacle3_mesh_frame_world"][()]
+
+        dest_grasp_gp.create_dataset("object_name", data=object_name)
+        dest_grasp_gp.create_dataset("obstacle1_name", data=obstacle1_name)
+        dest_grasp_gp.create_dataset("obstacle2_name", data=obstacle2_name)
+        dest_grasp_gp.create_dataset("obstacle3_name", data=obstacle3_name)
+        dest_grasp_gp.create_dataset("obstacle1_mesh_frame_world", data=obstacle1_mesh_frame_world)
+        dest_grasp_gp.create_dataset("obstacle2_mesh_frame_world", data=obstacle2_mesh_frame_world)
+        dest_grasp_gp.create_dataset("obstacle3_mesh_frame_world", data=obstacle3_mesh_frame_world)
+
 
 def create_grasp_group(group, idx):
     return group.create_group('grasp_' + str(idx).zfill(5))
@@ -188,10 +206,9 @@ def log_idxs(path, obj, pos, neg, coll):
 
 
 if __name__ == "__main__":
-
-    base_path = '/home/vm/new_data_full'
-    #dst_path = os.path.join(os.path.split(base_path)[0], 'vae-grasp', 'grasp_data_vae.h5')
-    dst_path = '/home/vm/new_data_full/grasp_data_all.h5'
+    # base_path contains all folders each contains a complete recording data.
+    base_path = '/data/hdd1/qf/hithand_data/clutter_data'
+    dst_path = '/data/hdd1/qf/hithand_data/clutter_data/grasp_data_all.h5'
     hdf_dst = h5py.File(dst_path, 'a')
 
     # go through all the dirs, each dir contains one grasp_data.h5
@@ -251,7 +268,7 @@ if __name__ == "__main__":
                     log_grasp(src_grasp_gp, dst_grasp_gp, is_coll=True)
 
                 # Finally log the pos, neg coll idx to a txt file
-                path = os.path.join(os.path.split(base_path)[0], 'new_data_full', 'obj_metadata.txt')
+                path = os.path.join(base_path, 'obj_metadata.txt')
                 log_idxs(path, obj, pos_idx, neg_idx, coll_idx)
 
     # Create pandas dataframe and log

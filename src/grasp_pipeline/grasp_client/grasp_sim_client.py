@@ -1532,7 +1532,7 @@ class GraspClient():
         Update object pose after spawn because object pose might change.
 
         Args:
-            pose_type (_type_): _description_
+            pose_type (_type_): trans + euler
             pose_arr (_type_, optional): _description_. Defaults to None.
         """
         # Generate a random valid object pose
@@ -1546,20 +1546,21 @@ class GraspClient():
 
             self.object_metadata["mesh_frame_pose"] = get_pose_stamped_from_array(pose_arr)
 
-        #print "Spawning object here:", pose_arr
+        # To directly spawn object according to pose_arr. For the case of replicate saved grasp data.
+        elif pose_type == "replicate":
+            self.object_metadata["mesh_frame_pose"] = get_pose_stamped_from_array(pose_arr)
 
         # Update gazebo object, delete old object and spawn new one
         self.update_gazebo_object_client()
 
         # Now wait for 2 seconds for object to rest and update actual object position
-        if pose_type == "init" or pose_type == "random":
-            if self.is_rec_sess:
-                rospy.sleep(3)
-            object_pose = self.get_grasp_object_pose_client()
+        if self.is_rec_sess:
+            rospy.sleep(3)
+        object_pose = self.get_grasp_object_pose_client()
 
-            # Update the sim_pose with the actual pose of the object after it came to rest
-            self.object_metadata["mesh_frame_pose"] = PoseStamped(
-                header=Header(frame_id='world'), pose=object_pose)
+        # Update the sim_pose with the actual pose of the object after it came to rest
+        self.object_metadata["mesh_frame_pose"] = PoseStamped(
+            header=Header(frame_id='world'), pose=object_pose)
 
         # Update moveit scene object
         if not self.is_eval_sess:

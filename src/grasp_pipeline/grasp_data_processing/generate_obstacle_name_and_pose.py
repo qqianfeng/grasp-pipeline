@@ -1,6 +1,10 @@
 """
 Before running the multi obj data generation, we first randomly choose obstacle objects and their random poses and store them in file.
-The reason is that if we generate random poses during data generation, the generation script can crash but we need fixed poses."""
+The reason is that if we generate random poses during data generation, the generation script can crash but we need fixed poses.
+
+Data to be saved for obsatcle objects:
+obstacle_pose_in_target_frame
+"""
 
 import rospy
 import os
@@ -13,10 +17,10 @@ from grasp_pipeline.utils import utils
 import random
 from copy import deepcopy
 
-
 init_pose = [0.5, 0.0, 0.2, 0, 0, 0]
 
 all_grasp_objects = []
+
 
 def get_obstacle_objects(gazebo_objects_path, grasp_object, amount=3):
     """Randomly choose a number of obstacble objects
@@ -43,21 +47,23 @@ def get_obstacle_objects(gazebo_objects_path, grasp_object, amount=3):
     objects = []
     num_total = len(all_grasp_objects)
     if num_total < 20:
-        raise ValueError('There should be more than 20 objects in the dataset, however only '
-                         + str(num_total) + ' is found.')
+        raise ValueError('There should be more than 20 objects in the dataset, however only ' +
+                         str(num_total) + ' is found.')
     amount = min(amount, num_total)
     chosen_object_name = []
     for _ in range(amount):
         obj = random.choice(all_grasp_objects)
         while obj['name'] == grasp_object['name'] or obj['name'] in chosen_object_name:
             obj = random.choice(all_grasp_objects)
-        rospy.loginfo("obstacle object: %s"% obj['name'])
+        rospy.loginfo("obstacle object: %s" % obj['name'])
         objects.append(obj)
         chosen_object_name.append(obj['name'])
     return objects
 
 
-def distribute_obstacle_objects_randomly(grasp_object_pose, obstacle_objects, min_center_to_center_distance=0.10):
+def distribute_obstacle_objects_randomly(grasp_object_pose,
+                                         obstacle_objects,
+                                         min_center_to_center_distance=0.10):
     """Assign random location to each obstacle objects. Location is defined within a certain space.
 
     Args:
@@ -71,12 +77,21 @@ def distribute_obstacle_objects_randomly(grasp_object_pose, obstacle_objects, mi
     existing_object_positions = [np.array(grasp_object_pose)[:3]]
     for idx, obj in enumerate(obstacle_objects):
         obstacle_objects[idx] = grasp_client.set_to_random_pose(obj)
-        position = np.array([obstacle_objects[idx]['mesh_frame_pose'].pose.position.x, obstacle_objects[idx]['mesh_frame_pose'].pose.position.y, obstacle_objects[idx]['mesh_frame_pose'].pose.position.z])
-        while not all([np.linalg.norm(position[:2] - existing_position[:2]) > min_center_to_center_distance for existing_position in existing_object_positions]):
+        position = np.array([
+            obstacle_objects[idx]['mesh_frame_pose'].pose.position.x,
+            obstacle_objects[idx]['mesh_frame_pose'].pose.position.y,
+            obstacle_objects[idx]['mesh_frame_pose'].pose.position.z
+        ])
+        while not all([
+                np.linalg.norm(position[:2] - existing_position[:2]) >
+                min_center_to_center_distance for existing_position in existing_object_positions
+        ]):
             obstacle_objects[idx] = grasp_client.set_to_random_pose(obj)
-            position = np.array([obstacle_objects[idx]['mesh_frame_pose'].pose.position.x,
-                                 obstacle_objects[idx]['mesh_frame_pose'].pose.position.y,
-                                 obstacle_objects[idx]['mesh_frame_pose'].pose.position.z])
+            position = np.array([
+                obstacle_objects[idx]['mesh_frame_pose'].pose.position.x,
+                obstacle_objects[idx]['mesh_frame_pose'].pose.position.y,
+                obstacle_objects[idx]['mesh_frame_pose'].pose.position.z
+            ])
         existing_object_positions.append(position)
     return obstacle_objects
 
@@ -101,27 +116,30 @@ if __name__ == '__main__':
 
             grasp_client.update_object_metadata(object_metadata)
 
-            obstacle_objects = get_obstacle_objects(gazebo_objects_path, grasp_client.object_metadata)
+            obstacle_objects = get_obstacle_objects(gazebo_objects_path,
+                                                    grasp_client.object_metadata)
 
             # target object pose is not always fixed. It's dependent on the object/dataset
             target_obj_pose = deepcopy(init_pose)
             target_obj_pose[3] = object_metadata["spawn_angle_roll"]  # 0
             target_obj_pose[2] = object_metadata["spawn_height_z"]  # 0.05
 
-            obstacle_objects = distribute_obstacle_objects_randomly(target_obj_pose, obstacle_objects)
+            obstacle_objects = distribute_obstacle_objects_randomly(target_obj_pose,
+                                                                    obstacle_objects)
 
             # Data to store
             for idx in range(len(obstacle_objects)):
-                obstacle_obj_group = target_obj_group.create_group("obstacle_"+str(idx))
-                obstacle_obj_group.create_dataset('name',
-                                    data=obstacle_objects[idx]["name"])
-                pose_list = [obstacle_objects[idx]['mesh_frame_pose'].pose.position.x,
-                            obstacle_objects[idx]['mesh_frame_pose'].pose.position.y,
-                            obstacle_objects[idx]['mesh_frame_pose'].pose.position.z,
-                            obstacle_objects[idx]['mesh_frame_pose'].pose.orientation.x,
-                            obstacle_objects[idx]['mesh_frame_pose'].pose.orientation.y,
-                            obstacle_objects[idx]['mesh_frame_pose'].pose.orientation.z,
-                            obstacle_objects[idx]['mesh_frame_pose'].pose.orientation.w]
+                obstacle_obj_group = target_obj_group.create_group("obstacle_" + str(idx))
+                obstacle_obj_group.create_dataset('name', data=obstacle_objects[idx]["name"])
+                pose_list = [
+                    obstacle_objects[idx]['mesh_frame_pose'].pose.position.x,
+                    obstacle_objects[idx]['mesh_frame_pose'].pose.position.y,
+                    obstacle_objects[idx]['mesh_frame_pose'].pose.position.z,
+                    obstacle_objects[idx]['mesh_frame_pose'].pose.orientation.x,
+                    obstacle_objects[idx]['mesh_frame_pose'].pose.orientation.y,
+                    obstacle_objects[idx]['mesh_frame_pose'].pose.orientation.z,
+                    obstacle_objects[idx]['mesh_frame_pose'].pose.orientation.w
+                ]
                 # Convert xya+quat pose into tranf matrix
                 obs_obj_pose_mat = utils.hom_matrix_from_pos_quat_list(pose_list)
                 target_obj_quat_pose = utils.get_rot_quat_list_from_array(target_obj_pose)
@@ -131,11 +149,15 @@ if __name__ == '__main__':
                 target_obj_T_obs_obj = np.matmul(np.linalg.inv(tar_obj_pose_mat), obs_obj_pose_mat)
                 # Test if calculation is correct
                 print(obs_obj_pose_mat - np.matmul(tar_obj_pose_mat, target_obj_T_obs_obj))
-                np.testing.assert_allclose(obs_obj_pose_mat, np.matmul(tar_obj_pose_mat, target_obj_T_obs_obj),rtol=1, atol=1e-8)
+                np.testing.assert_allclose(
+                    obs_obj_pose_mat,
+                    np.matmul(tar_obj_pose_mat, target_obj_T_obs_obj),
+                    rtol=1,
+                    atol=1e-8)
 
                 pose_stamped = utils.pose_stamped_from_hom_matrix(target_obj_T_obs_obj, 'world')
                 rot_trans_list = utils.get_rot_trans_list_from_pose_stamp(pose_stamped)
                 # calculate the relation pose of obstacle obj cooresponding to target object
                 # Data saved in a format of [x,y,z,quaternions]
-                obstacle_obj_group.create_dataset('obstacle_pose_in_target_frame',
-                                    data=rot_trans_list)
+                obstacle_obj_group.create_dataset(
+                    'obstacle_pose_in_target_frame', data=rot_trans_list)
