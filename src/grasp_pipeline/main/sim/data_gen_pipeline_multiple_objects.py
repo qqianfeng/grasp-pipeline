@@ -57,8 +57,8 @@ if __name__ == '__main__':
     # Create grasp client and metadata handler
     grasp_client = GraspClient(is_rec_sess=True, grasp_data_recording_path=data_recording_path)
     metadata_handler = MetadataHandler(gazebo_objects_path=gazebo_objects_path)
-    # TODO: remove hardcoded path
-    obstacle_data = h5py.File("/home/vm/Documents/obstacle_data.h5", 'r')
+
+    obstacle_data = h5py.File(rospy.get_param('obstacle_data_path'), 'r')
 
     # This loop runs for all objects, 4 poses, and evaluates N grasps per pose
     for i in range(metadata_handler.get_total_num_objects()):
@@ -69,8 +69,8 @@ if __name__ == '__main__':
             object_cycle_start = time.time()
             start = object_cycle_start
 
-            obstacle_objects = get_obstacle_objects(metadata_handler, grasp_client,
-                                                    obstacle_data, pose)
+            obstacle_objects = get_obstacle_objects(metadata_handler, grasp_client, obstacle_data,
+                                                    pose)
 
             # Create dirs
             grasp_client.create_dirs_new_grasp_trial_multi_obj(

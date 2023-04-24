@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+"""Verify the spawn of obstacle objects
+"""
 from pickletools import anyobject
 
 import rospy
@@ -55,7 +57,7 @@ if __name__ == '__main__':
     # Create grasp client and metadata handler
     grasp_client = GraspClient(is_rec_sess=True, grasp_data_recording_path=data_recording_path)
     metadata_handler = MetadataHandler(gazebo_objects_path=gazebo_objects_path)
-    obstacle_data = h5py.File("/home/vm/Documents/obstacle_data.h5", 'r')
+    obstacle_data = h5py.File(rospy.get_param('obstacle_data_path'), 'r')
 
     # This loop runs for all objects, 4 poses, and evaluates N grasps per pose
     for i in range(metadata_handler.get_total_num_objects()):
@@ -95,8 +97,8 @@ if __name__ == '__main__':
                     start = time.time()
 
                     # Create dirs
-                    grasp_client.create_dirs_new_grasp_trial_multi_obj(pose_idx,
-                                                                       is_new_pose_or_object=False)
+                    grasp_client.create_dirs_new_grasp_trial_multi_obj(
+                        pose_idx, is_new_pose_or_object=False)
 
                     # Reset panda and hithand
                     grasp_client.reset_hithand_and_panda()
