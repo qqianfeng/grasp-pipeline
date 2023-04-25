@@ -147,10 +147,10 @@ if __name__ == '__main__':
     # n_pcds_per_obj = 50
 
     # This h5 should be the file that is merged
-    input_grasp_data_file = '/home/vm/Documents/grasp_data_all.h5'
-    # input_grasp_data_file = '/data/hdd1/qf/hithand_data/clutter_data/grasp_data_all.h5'
-    # gazebo_objects_path = '/home/yb/Projects/gazebo-objects/objects_gazebo/'
-    gazebo_objects_path = '/home/vm/gazebo-objects/objects_gazebo/'
+    # input_grasp_data_file = '/home/vm/Documents/grasp_data_all.h5'
+    input_grasp_data_file = '/data/hdd1/qf/hithand_data/clutter_data/grasp_data_all.h5'
+    gazebo_objects_path = '/home/yb/Projects/gazebo-objects/objects_gazebo/'
+    # gazebo_objects_path = '/home/vm/gazebo-objects/objects_gazebo/'
 
     # Get all available objects and choose one
     with h5py.File(input_grasp_data_file, 'r') as hdf:
@@ -171,25 +171,31 @@ if __name__ == '__main__':
         # Iterate through all objects
         for obj_full_name in hdf.keys():
             obj_data = hdf[obj_full_name]  # -> collision, negative, positive
-            collision_data = obj_data['collision']
 
-            for grasp_id in collision_data.keys():
-                # Tested until 00039
+            # test_data = obj_data['collision']
+            test_data = obj_data['negative']
+
+            for grasp_id in test_data.keys():
+                # Collision: Tested until 00039
                 # grasp_00006 and 00026 ,00029, 00036!!!!,seems no collision but hand is very close to the target object -> reason probably
                 # is the collision model is simplified and not same as visual model
-                if int(grasp_id.split('_')[1]) <= 6:
-                    continue
-                print("verify collision grasp of", grasp_id)
-                collision_grasp = collision_data[grasp_id]
+                # Positive: test 00000 it's close.
+                # Negative: test 00001 it's close, 20% are very close
+                # if int(grasp_id.split('_')[1]) <= 6:
+                #     continue
+                print("verify grasp of", grasp_id)
+                collision_grasp = test_data[grasp_id]
 
                 object_mesh_frame_world = collision_grasp['object_mesh_frame_world'][()]
 
                 # get grasp palm pose in worl frame
                 palm_mesh_frame = collision_grasp['desired_preshape_palm_mesh_frame'][()]
-                object_mesh_frame_world_mat = utils.hom_matrix_from_pos_quat_list(object_mesh_frame_world)
+                object_mesh_frame_world_mat = utils.hom_matrix_from_pos_quat_list(
+                    object_mesh_frame_world)
                 palm_mesh_frame_mat = utils.hom_matrix_from_pos_quat_list(palm_mesh_frame)
                 palm_world_frame_mat = np.matmul(object_mesh_frame_world_mat, palm_mesh_frame_mat)
-                palm_world_frame_stamp = utils.pose_stamped_from_hom_matrix(palm_world_frame_mat,'world')
+                palm_world_frame_stamp = utils.pose_stamped_from_hom_matrix(
+                    palm_world_frame_mat, 'world')
 
                 # Get obstacle names and poses
                 obstacle1_name = collision_grasp['obstacle1_name'][()]
@@ -261,5 +267,8 @@ if __name__ == '__main__':
                 target_obj_pose = grasp_client.get_grasp_object_pose_client()
                 obstacle_obj_poses = grasp_client.get_obstacle_objects_poses(obstacle_objects)
 
-                execution_success = grasp_client.visualize_hand(target_obj_pose, obstacle_objects,
-                                                                obstacle_obj_poses, hand_pose=palm_world_frame_stamp)
+                execution_success = grasp_client.visualize_hand(
+                    target_obj_pose,
+                    obstacle_objects,
+                    obstacle_obj_poses,
+                    hand_pose=palm_world_frame_stamp)

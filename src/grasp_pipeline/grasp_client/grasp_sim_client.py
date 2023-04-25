@@ -767,6 +767,64 @@ class GraspClient():
             rospy.logerr('Service record_collision_data call failed: %s' % e)
         rospy.logdebug('Service record_collision_data is executed.')
 
+    def record_non_collision_data_multi_obj_client(self, objects=False):
+        """This function saved all no collision grasps into the dataset that are not executed.
+
+        Args:
+            objects (bool, optional): _description_. Defaults to False.
+        """
+        wait_for_service('record_collision_multi_obj_data')
+        try:
+            self.top_idxs = [x for x in self.top_idxs if x not in self.prune_idxs]
+            self.side1_idxs = [x for x in self.side1_idxs if x not in self.prune_idxs]
+            self.side2_idxs = [x for x in self.side2_idxs if x not in self.prune_idxs]
+            self.noncollision_idxs = self.top_idxs + self.side1_idxs + self.side2_idxs
+            # First select only the hithand joint states and heuristic preshapes which are in collision, as indicated by self.prune_idxs
+            palm_poses_collision = [
+                self.heuristic_preshapes.palm_goal_poses_world[i] for i in self.noncollision_idxs
+            ]
+            joint_states_collision = [
+                self.heuristic_preshapes.hithand_joint_states[i] for i in self.noncollision_idxs
+            ]
+            # Then transform the poses from world frame to object mesh frame
+            palm_goal_poses_mesh_frame = []
+            for pose in palm_poses_collision:
+                pose_mesh_frame = self.transform_pose(pose, 'world', 'object_mesh_frame')
+                palm_goal_poses_mesh_frame.append(pose_mesh_frame)
+
+            # Get service proxy
+            record_collision_multi_obj_data = rospy.ServiceProxy('record_collision_multi_obj_data',
+                                                                 RecordCollisionMultiObjData)
+
+            # Build request only send the joint states and palm goal poses which are in collision
+            req = RecordCollisionMultiObjDataRequest()
+            req.failure_type = 'non_collision_not_executed'
+            if objects is not False:
+                print("objects[0]['name']:", objects[0]['name'])
+                print("objects[1]['name']:", objects[1]['name'])
+                print("objects[2]['name']:", objects[2]['name'])
+                req.obstacle1_name = objects[0]['name']
+                req.obstacle2_name = objects[1]['name']
+                req.obstacle3_name = objects[2]['name']
+                req.obstacle1_mesh_frame_world = len(
+                    self.noncollision_idxs) * [objects[0]['mesh_frame_pose']]
+                req.obstacle2_mesh_frame_world = len(
+                    self.noncollision_idxs) * [objects[1]['mesh_frame_pose']]
+                req.obstacle3_mesh_frame_world = len(
+                    self.noncollision_idxs) * [objects[2]['mesh_frame_pose']]
+
+            req.object_name = self.object_metadata["name_rec_path"]
+            req.object_world_poses = len(
+                self.noncollision_idxs) * [self.object_metadata["mesh_frame_pose"]]
+            req.preshapes_palm_mesh_frame_poses = palm_goal_poses_mesh_frame
+            req.preshape_hithand_joint_states = joint_states_collision
+
+            res = record_collision_multi_obj_data(req)
+
+        except rospy.ServiceException, e:
+            rospy.logerr('Service record_collision_multi_obj_data call failed: %s' % e)
+        rospy.logdebug('Service record_collision_multi_obj_data is executed.')
+
     def record_collision_data_multi_obj_client(self, objects=False):
         """ self.heuristic_preshapes stores all grasp poses. Self.prune_idxs contains idxs of poses in collision. Store
         these poses too, but convert to true object mesh frame first
@@ -1909,6 +1967,8 @@ class GraspClient():
                 self.record_collision_data_client()
             else:
                 self.record_collision_data_multi_obj_client(objects)
+                # record all other grasps that are not in collision to quickly build a collision dataset, where the grasps are only labeled collision or not.
+                self.record_non_collision_data_multi_obj_client(objects)
 
     ### Functions to check object status ###
     def get_obstacle_objects_poses(self, obstacle_objects, threshold=0.01):
@@ -1965,7 +2025,11 @@ class GraspClient():
 
     ################################################
 
-    def visualize_hand(self, target_obj_pose, obstacle_objects, obstacle_obj_poses, hand_pose=False):
+    def visualize_hand(self,
+                       target_obj_pose,
+                       obstacle_objects,
+                       obstacle_obj_poses,
+                       hand_pose=False):
         """Visualize the hand model given grasp pose
 
         Args:
@@ -1993,7 +2057,7 @@ class GraspClient():
         # Now once it failed once, we remove this grasp pose.
         if is_target_obj_moved or are_obstacle_obj_moved:
             rospy.logerr("target_object_moved: %s or obstacle_object_mmoved: %s" %
-                            (is_target_obj_moved, are_obstacle_obj_moved))
+                         (is_target_obj_moved, are_obstacle_obj_moved))
             self.remove_grasp_pose()
         # if check hand, no further execution of the grasps.
         return True
