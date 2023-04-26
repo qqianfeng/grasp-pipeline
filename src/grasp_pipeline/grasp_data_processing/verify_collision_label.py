@@ -148,7 +148,7 @@ if __name__ == '__main__':
 
     # This h5 should be the file that is merged
     # input_grasp_data_file = '/home/vm/Documents/grasp_data_all.h5'
-    input_grasp_data_file = '/data/hdd1/qf/hithand_data/clutter_data/grasp_data_all.h5'
+    input_grasp_data_file = '/data/hdd1/qf/hithand_data/collision_only_data/grasp_data_all.h5'
     gazebo_objects_path = '/home/yb/Projects/gazebo-objects/objects_gazebo/'
     # gazebo_objects_path = '/home/vm/gazebo-objects/objects_gazebo/'
 
@@ -172,8 +172,9 @@ if __name__ == '__main__':
         for obj_full_name in hdf.keys():
             obj_data = hdf[obj_full_name]  # -> collision, negative, positive
 
-            # test_data = obj_data['collision']
-            test_data = obj_data['negative']
+            test_data = obj_data['collision']
+            # test_data = obj_data['non_collision_not_executed']
+            # test_data = obj_data['negative']
 
             for grasp_id in test_data.keys():
                 # Collision: Tested until 00039
@@ -211,7 +212,7 @@ if __name__ == '__main__':
                                                 obstacle3_name)
 
                 dset = obj_full_name.split('_')[0]
-                obj_name = obj_full_name.split('_')[1]
+                obj_name = obj_full_name[len(dset) + 1:]
                 # Get metadata for new object and set in grasp_client
                 object_metadata = metadata_handler.get_object_metadata(dset, obj_name)
                 grasp_client.update_object_metadata(object_metadata)
