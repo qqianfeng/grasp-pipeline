@@ -135,8 +135,6 @@ if __name__ == '__main__':
                 if execution_success:
                     j += 1
 
-                # for temp. test
-                break
             # Finally write the time to file it took to test all poses
             grasp_client.log_object_cycle_time(time.time() - object_cycle_start)
 
