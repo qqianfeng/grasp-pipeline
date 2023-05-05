@@ -390,20 +390,6 @@ class GraspClient():
             rospy.logerr('Service control_hithand_config call failed: %s' % e)
         rospy.logdebug('Service control_allegro_config is executed.')
 
-    def check_pose_validity_utah_client(self, grasp_pose):
-        wait_for_service('check_pose_validity_utah')
-        try:
-            check_pose_validity_utah = rospy.ServiceProxy('check_pose_validity_utah',
-                                                          CheckPoseValidity)
-            req = CheckPoseValidityRequest()
-            req.object = self.object_segment_response.object
-            req.pose = grasp_pose
-            res = check_pose_validity_utah(req)
-        except rospy.ServiceException as e:
-            rospy.logerr('Service check_pose_validity_utah call failed: %s' % e)
-        rospy.logdebug('Service check_pose_validity_utah is executed.')
-        return res.is_valid
-
     def encode_pcd_with_bps_client(self):
         """ Encodes a pcd from disk (assumed static location) with bps_torch and saves the result to disk,
         from where the infer_grasp server can load it to sample grasps.
@@ -1031,62 +1017,6 @@ class GraspClient():
             rospy.logerr('Service record_grasp_trial_multi_obj_data call failed: %s' % e)
         rospy.logdebug('Service record_grasp_trial_multi_obj_data is executed.')
 
-    # This seems never used!!!
-    def record_grasp_data_client(self):
-        wait_for_service('record_grasp_data')
-        try:
-            # Currently all poses are in the world frame. Transfer the desired pose into object frame
-
-            record_grasp_data = rospy.ServiceProxy('record_grasp_data', RecordGraspDataSim)
-            req = RecordGraspDataSimRequest()
-            req.object_name = self.object_metadata["name"]
-            req.time_stamp = datetime.datetime.now().isoformat()
-            req.is_top_grasp = self.chosen_is_top_grasp
-            req.grasp_success_label = self.grasp_label
-            req.object_size_aligned = self.object_metadata["aligned_dim_whd"]
-            req.object_size_unaligned = self.object_metadata["seg_dim_whd"]
-            req.sparse_voxel_grid = self.object_metadata["sparse_voxel_grid"]
-            req.object_world_sim_pose = self.object_metadata["mesh_frame_pose"]
-            req.object_world_seg_unaligned_pose = self.object_metadata["seg_pose"]
-            req.object_world_aligned_pose = self.object_metadata["aligned_pose"]
-            req.desired_preshape_palm_world_pose = self.palm_poses["desired_pre"]
-            req.palm_in_object_aligned_frame_pose = self.palm_poses["palm_in_object_aligned_frame"]
-            req.true_preshape_palm_world_pose = self.palm_poses["true_pre"]
-            req.closed_palm_world_pose = self.palm_poses["closed"]
-            req.lifted_palm_world_pose = self.palm_poses["lifted"]
-            req.desired_preshape_hithand_joint_state = self.hand_joint_states["desired_pre"]
-            req.true_preshape_hithand_joint_state = self.hand_joint_states["true_pre"]
-            req.closed_hithand_joint_state = self.hand_joint_states["closed"]
-            req.lifted_hithand_joint_state = self.hand_joint_states["lifted"]
-
-            res = record_grasp_data(req)
-        except rospy.ServiceException, e:
-            rospy.logerr('Service record_grasp_data call failed: %s' % e)
-        rospy.logdebug('Service record_grasp_data is executed.')
-
-    def record_sim_grasp_data_utah_client(self, grasp_id, object_name, grasp_config_obj, is_top,
-                                          label):
-        wait_for_service('record_grasp_data_utah')
-        try:
-            record_sim_grasp_data_utah = rospy.ServiceProxy("record_grasp_data_utah", SimGraspData)
-            req = SimGraspDataRequest()
-            req.grasp_id = grasp_id
-            req.object_name = str(self.object_metadata["name_rec_path"])
-            req.grasp_config_obj = list(grasp_config_obj)
-            req.top_grasp = bool(is_top)
-            req.sparse_voxel = list(self.object_metadata["sparse_voxel_grid"])
-            req.dim_w_h_d = list(self.object_metadata["aligned_dim_whd_utah"])
-
-            res = record_sim_grasp_data_utah(req)
-        except rospy.ServiceException, e:
-            rospy.logerr('Service sim_grasp_data_utah call failed: %s' % e)
-        rospy.logdebug('Service sim_grasp_data_utah is executed.')
-
-    def reset_hithand_from_topic(self):
-        pub = rospy.Publisher("/start_hithand_reset", Bool, latch=True, queue_size=1)
-        self.trigger_cond = not self.trigger_cond
-        pub.publish(Bool(data=self.trigger_cond))
-
     def reset_hithand_joints_client(self):
         """ Server call to reset the hithand joints.
         """
@@ -1210,9 +1140,9 @@ class GraspClient():
         rospy.logdebug('Service update_gazebo_object is executed %s.' % str(res.success))
         return res.success
 
-    #####################
-    ## Test spawn hand ##
-    #####################
+    ####################################
+    ## spawn hand only for evaluation ##
+    ####################################
     def get_base_link_hithand_pose(self):
         trans = self.tf_buffer.lookup_transform(
             'world', 'base_link_hithand', rospy.Time(0), timeout=rospy.Duration(10))
@@ -1524,9 +1454,6 @@ class GraspClient():
         approach_pose.pose.position.y = approach_pos[1]
         approach_pose.pose.position.z = approach_pos[2]
         return approach_pose
-
-    def check_pose_validity_utah(self, grasp_pose):
-        return self.check_pose_validity_utah_client(grasp_pose)
 
     def encode_pcd_with_bps(self):
         self.encode_pcd_with_bps_client()
