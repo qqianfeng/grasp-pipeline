@@ -24,7 +24,16 @@ Start the panda_simulator\
 Start the panda_hithand_moveit_config\
 `roslaunch panda_hithand_moveit_config panda_hithand_moveit.launch`
 
-### To run in simulation
+### To run data generation of single object in simulation
+
+Start the grasp_pipeline. This exposes the the grasping servers.\
+`roslaunch grasp_pipeline grasp_pipeline_servers.launch`
+
+Open another terminal and activate conda base environment\
+`cd ~/path/to/grasp-pipeline/src/grasp_pipeline/main/sim`\
+`python2 data_gen_pipeline.py`
+
+### To run evaluation of single object in simulation
 
 Start the grasp_pipeline. This exposes the the grasping servers.\
 `roslaunch grasp_pipeline grasp_pipeline_servers_eval_ffhnet.launch`
@@ -34,6 +43,7 @@ Open another terminal and activate conda base environment\
 `python2 eval_ffhgen_sim.py`
 
 ### Data post processing after data generation
+see FFHNet repo readme. https://github.com/qianbot/FFHNet-dev
 
 ## Grasp Data Preparation
 
@@ -50,19 +60,19 @@ This section details the step to bring the grasping data into the right format.
       ├── 2021-03-10
 ```
 
-2. Execute the script `grasp_pipeline/src/grasp_pipeline/grasp_data_processing/ffhnet_adapter_grasp_data.py` \
-This will go through all the folders under `Data/` and combine all `ffhnet_data.h5` files into one combined `ffhnet-grasp.h5`.
+2. Execute the script `grasp_pipeline/src/grasp_pipeline/grasp_data_processing/merge_raw_grasp_data.py` \
+This will go through all the folders under `Data/` and combine all `grasp_data.h5` files into one combined `grasp_data_all.h5`.
 
-3. Execute the script `grasp_pipeline/src/grasp_pipeline/grasp_data_processing/ffhnet_adapter_pcs_and_tfs`
-This will go through all the objects in `ffhnet-grasp.h5` and spawn each object in `n_pcds_per_object` random positions and orientations, record a segmented point cloud observation as well as the transformation between the mesh frame of the object and the object centroid frame. All transforms get stored in `pcd_transforms.h5`.
+3. Execute the script `grasp_pipeline/src/grasp_pipeline/grasp_data_processing/data_augmentation.py`
+This will go through all the objects in `grasp_data_all.h5` and spawn each object in `n_pcds_per_object` random positions and orientations, record a segmented point cloud observation as well as the transformation between the mesh frame of the object and the object centroid frame. All transforms get stored in `pcd_transforms.h5`.
 3.1 The script also creates `metadata.csv` which contains the columns \
 object_name | collision | negative | positive | train | test | val \
 An `X` in train/test/val indicates that this object belongs to the training, test or val set.
 A `XXX` indicates that the object should be excluded, because the data acquisition was invalid.
 
-4. Execute the script `hithand_grasp/scripts/train_test_val_split.py` which given the `metadata.csv` file splits the data in the three folders `train`, `test`, `val`. Under each of the three folders lies a folder `point_clouds` with N `.pcd` files of objects from different angles.
+4. Execute the script `ffhnet/scripts/train_test_val_split.py` which given the `metadata.csv` file splits the data in the three folders `train`, `test`, `val`. Under each of the three folders lies a folder `point_clouds` with N `.pcd` files of objects from different angles.
 
-5. Execute the script `bps_torch/convert_pcds_to_grabnet.py` which will first compute a BPS (basis point set) and then computes the bps representation for each object storing them in a folder `bps` under the respective object name.
+5. Execute the script `bps_torch/convert_pcds_to_bps.py` which will first compute a BPS (basis point set) and then computes the bps representation for each object storing them in a folder `bps` under the respective object name.
 
 ### To run in real world with calibrated camera
 
