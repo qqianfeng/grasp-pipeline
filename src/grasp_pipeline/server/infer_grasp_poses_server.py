@@ -155,13 +155,13 @@ class GraspInference():
     # For DexFFHNet
     def handle_evaluate_and_filter_grasp_poses(self, req):
         bps_object = np.load(rospy.get_param('object_pcd_enc_path'))
-        multi_obj_object = np.load(rospy.get_param('multi_object_pcd_enc_path'))
+        multi_bps_object = np.load(rospy.get_param('multi_object_pcd_enc_path'))
 
         grasp_dict = self.to_grasp_dict(req.palm_poses, req.joint_confs)
         palm_poses = req.palm_poses
         n_samples = len(palm_poses)
 
-        grasp_dict = self.FFHNet.filter_grasps_in_collision(multi_obj_object, grasp_dict, thresh=0.8)
+        grasp_dict = self.FFHNet.filter_grasps_in_collision(multi_bps_object, grasp_dict, thresh=0.8)
 
         filename = os.path.join(rospy.get_param('ffhnet_output_save_path'), 'coll_detector.npy')
         np.save(filename, grasp_dict)
