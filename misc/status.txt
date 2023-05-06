@@ -31,15 +31,15 @@
 	- Generally Pytorch is easier to use, faster, build dynamic computation graphs and becoming the default everywhere (PRO Pytorch)
 	- However UTAH people, 6DoF GraspNet (Fox, Mousavian) use Python 2.7 and Tensorflow 1.13 (CONTRA Pytorch)
 		- PointNet++ is based on Tensorflow
-		- There exist Pytorch implementations of PointNet++ but only for versions > Python 3.6. This won't work in melodic. 
-	- Pytorch and Tensorflow both work in Python 2.7 (Pytorch up to v1.4.0, can be installed via pip 
+		- There exist Pytorch implementations of PointNet++ but only for versions > Python 3.6. This won't work in melodic.
+	- Pytorch and Tensorflow both work in Python 2.7 (Pytorch up to v1.4.0, can be installed via pip
 - Starting implementing the voxel-based auto-encoder
 
 5.1.21
 - Utah people train autoencoder on reconstruction task and freeze the parameters
-	- synthetically render 590 meshes in 200 random positions and backproject (!?!?!) into 3D point cloud 
+	- synthetically render 590 meshes in 200 random positions and backproject (!?!?!) into 3D point cloud
 		- Question 1: Do they obtain partial point clouds or full point clouds from this?
-		- Question 2: Do they train the AE on reconstruction of partial point clouds to reconstruct partial point clouds? Or to reconstruct full point clouds from partial points clouds, or to reconstruct 
+		- Question 2: Do they train the AE on reconstruction of partial point clouds to reconstruct partial point clouds? Or to reconstruct full point clouds from partial points clouds, or to reconstruct
 			      full points clouds from full points clouds?
 		- Question 3: Because weights are frozen should we retrain the conv net?
 			- Does the model change when having a different camera setup?
@@ -82,12 +82,12 @@
 - Change visual data saver to grab point cloud itself                          [CHECK]
 
 10.1.21
-- generate voxel and run inference on the model!!! 
+- generate voxel and run inference on the model!!!
 	- Line 72 grasp_voxel_inference_server
 - If that works test/run the whole pipeline
 - Reinstall Ubuntu
 
-11.1.21 
+11.1.21
 - grasp voxel inference
 - wordings
 	suc -- success
@@ -121,7 +121,7 @@
 	- simulation runs slower, real time rate only 0.9
 		- deactivate unneccessary collision meshes
 		- there seems to exist a link to spawning ycb objects
-			- FIX Try different object database from github	
+			- FIX Try different object database from github
 
 - [IDEAS]: using grasp type/eigengrasp/grasp primitive to give more structure to the problem and limit search space
 	- mark grasp type of all grasps in simulation
@@ -133,7 +133,7 @@
 		- But simulating force and impedance is hard
 	- Not only predict where to grasp but how to grasp
 	- Using a point cloud as input would enable taking scene context into account
-	- BIG IDEA: Grasping in general considered as where to place the fingers, but almost never how to 
+	- BIG IDEA: Grasping in general considered as where to place the fingers, but almost never how to
 		    interact with the body
 		- Having an impedance controller in simulation would be awesome
 		- Most papers try to penetrating the object, thereby often not enabling proper contacts
@@ -149,9 +149,9 @@
 		(https://h2t.anthropomatik.kit.edu/pdf/Ottenhaus2019.pdf)
 		- Providing extra information to the voxel input (Pre-trained voxel encoder could not be used anymore)
 - [FIX] Make camera model publish slower now at 5 Hz
-	- use normal depth/points topic where depth is cutoff at certain distance, not happening for depth image_raw 
+	- use normal depth/points topic where depth is cutoff at certain distance, not happening for depth image_raw
 
-18.1.21 
+18.1.21
 - [FIX] Try grasping a primitive collision model
 	- Works, less downtime
 - [TASK] Optimize gazebo
@@ -159,12 +159,12 @@
 		- Convex hull makes sense
 		-
 - [PROBLEM] that the simulation gets super slow when in contact with the object
-	- Attempt 1 Simply object and hand geometry 
+	- Attempt 1 Simply object and hand geometry
 	[FIX] - no camera model +0.1 RTF
 	       - Simple hand collision model = +0.1 RTF
 	       - Simple object collision model = +-0.0 RTF
 19.1.21
-- activate conda eval "$(/home/vm/miniconda3/bin/conda shell.bash hook)" 
+- activate conda eval "$(/home/vm/miniconda3/bin/conda shell.bash hook)"
 - [Task 1] Add inertia tensors based on Meshlab calculations. [CHECK]
 - [Task 2] Find a viable grasp controller setting             [CHECK]
 - [Task 3] Automate mesh processing                           [CHECK]
@@ -179,24 +179,24 @@
 	- Need realistic friction coefficients of hithand    [CHECK]
 	- Need to think about the grasp closure controller. Right now only controlling one DOF (open close)
 		- UTAH people claim to sample preshape and then close the fingers.
-	- Need to update collision mesh of hithand palm.     [CHECK]  
+	- Need to update collision mesh of hithand palm.     [CHECK]
 		(y > -4*(x-0.035)) , z<-0.002
 		Palm (y > -4*(x-0.032))
 		Middle (y < -4*(x-0.03))
 - [Task 2] Talk with Qian about                              [CHECK]
-	1. Grasp controller Stopping fingers independently, 0 vel? 
+	1. Grasp controller Stopping fingers independently, 0 vel?
 Interesting on grasping control, talk about Salisbury and his Impedance grasping controller
-#https://www.robotic.de/fileadmin/robotic/borst/BorstEtAl-ICRA03-HandApplications.pdf: 
-Interesting for grasp impedance adaptation 
+#https://www.robotic.de/fileadmin/robotic/borst/BorstEtAl-ICRA03-HandApplications.pdf:
+Interesting for grasp impedance adaptation
 #https://www.researchgate.net/publication/326774657_A_Self-Tuning_Impedance_Controller_for_Autonomous_Robotic_Manipulation:
 #Also promising https://www.cambridge.org/core/journals/robotica/article/abs/development-and-experimental-evaluation-of-multifingered-robot-hand-with-adaptive-impedance-control-for-unknown-environment-grasping/6D2C90B5824543CDCD64A194C5A8A06D:
 	2. Grasp representation: use joint angles? Use synergistic control?:
 	3. Data collection What should all be recorded? This is the main task, important for whole thesis [CHECK]
 		- Collect the data on this machine? Then no development possible in parallel
-			- Get other machine or start working on real robot+hand 
+			- Get other machine or start working on real robot+hand
 - [Task 3] Optimize camera model [CHECK]
 
-21.1.21 
+21.1.21
 - Complete tasks still open from last two days
 - [Task 1] Couple joints of Hithand in Gazebo
 	- Solution 1 just send indentical commands two both joints
@@ -219,7 +219,7 @@ Interesting for grasp impedance adaptation
 24.1.21
 - [Task 1]: Updated the hithand collision meshes
 - [Task 2]: Verify once more the correct behavior of grasping controller
-- [Task 3]: Make the preshape sampling work + check problems with reachability. Maybe the workspace is too big. 
+- [Task 3]: Make the preshape sampling work + check problems with reachability. Maybe the workspace is too big.
 	- For utah people width=x, height=y, depth=z
 	- For me 	  width=x, height=z, depth=y
 	- Actually this isn't true and just depends on rotation of the bounding box coordinate frame
@@ -241,15 +241,15 @@ Interesting for grasp impedance adaptation
 	- [Finding 4] Still need to think about the fact that they say object-centric coordinate system is aligned to world frame  [CHECK]
 		- Potentially should use the bounding box center and not centroid of object cloud [CHECK]
 - [Task 2]: Optimize performance of grasp pipeline
-	- make moveit scene updateer MUCH faster        [CHECK] 
+	- make moveit scene updateer MUCH faster        [CHECK]
 	- reset hithand only if needed                  [CHECK]
 	- verify joint angles to be correct             [CHECK]
-- [Task 3]: Verify influence of visual mesh/material 
+- [Task 3]: Verify influence of visual mesh/material
 on performance, UTAH people have this turned off        [CHECK]
 
-26.1.21 
+26.1.21
 - [Task 1] Optimized the whole pipeline for speed       [CHECK]
-- [Task 2] Suggestion Karan change the motion planning: 
+- [Task 2] Suggestion Karan change the motion planning:
 - [Task 3] Integrate everything in the grasp pipeline script
 	- [Consid. 1] How many grasps in same position? Top vs. side? Balanced dataset? How many grasps?:
 	- [Consid. 2] Does it make sense to spawn object in same position but not save data again/ segment? --> Verify that that's no problem                         [CHECK}
@@ -273,7 +273,7 @@ on performance, UTAH people have this turned off        [CHECK]
 			- 2. 32x32x32 voxel grid representation of the object = 32768 values
 			- 3. object height x width x depth = 3 values
 			- 4. grasp label, success/failure = 1 value
-			- 5. grasp stability?! 
+			- 5. grasp stability?!
 				- Largest disturbance to counter_act?
 				- Or binary, if it can resist certain disturbance
 		b.) Visual data on the grasp
@@ -306,7 +306,7 @@ on performance, UTAH people have this turned off        [CHECK]
 	- [Finding 2] Material does not look correct for Chips Can
 - [Task 2] Finish data acquisition pipeline to be able to do everything            [CHECK]
            from spawning an object to recording data
-	- Problem with the grasp and lift API as it needs to choose 
+	- Problem with the grasp and lift API as it needs to choose
 		different poses unitl it finds a valid one
 	- Reset panda not working                                                  [CHECK]
 - [Task 3] Find good camera real pose:
@@ -322,18 +322,18 @@ on performance, UTAH people have this turned off        [CHECK]
 	- come up with a good way to prune grasps which are not executed           [CHECK]
 - [Task 8] Create list with only feasible objects from all datasets                [CHECK]
 - [Task 9] Save images as object name                                              [CHECK]
-- [Task 10] Fix discrepancies of object centric reference frame 
+- [Task 10] Fix discrepancies of object centric reference frame
 	    and storage of dim_w_h_d
-	- For utah people 
-		(middle-big) width=x, 
+	- For utah people
+		(middle-big) width=x,
 		(smallest)   height=y,
-		(biggest)    depth=z 
+		(biggest)    depth=z
 	- Segmentation working
 		1. Transform point cloud to world frame
 		2. Find cloud bounding box PCA
 			- Centroid, eigenvalues and eigenvectors from PCA
 			- find 3rd column of rotation matrix as cross product of the first two
-			- transform point cloud from world frame to object centric frame 
+			- transform point cloud from world frame to object centric frame
 			- find x,y,z bounds of new transformed point cloud
 - [Task 11] Process the collision meshes from text file:
 - [Task 12] Integrate the full mesh voxelization                                    [CHECK]
@@ -348,13 +348,13 @@ on performance, UTAH people have this turned off        [CHECK]
 - [Task 19] Top grasp might generate wrong palm orientation                         [CHECK]
 - [Task 20] What if no IK solution found for lift position?                         [CHECK]
 - [Task 21] Too often no IK solution can be obtained                                [CHECK]
-- [Task 22] Test record data save server                                            [CHECK]     
-- [Task 23] Set Realsense realistic values ALSO FOR IMAGE SIZE                      [CHECK]                                            
+- [Task 22] Test record data save server                                            [CHECK]
+- [Task 23] Set Realsense realistic values ALSO FOR IMAGE SIZE                      [CHECK]
 - [Task 24] Idea For top grasps --> first move above object then go down
 	- Top grasp wrong alignment of thumb
 	- Also for side grasps move to a position away from the obejct first, then  [CHECK]
 		approach it
-		- if the first pose is not reachable, then do it and go straight     
+		- if the first pose is not reachable, then do it and go straight
 - [Task 25] Set moveit workspace boundaries:
 - [Task 26] Distinguish between side one and side two grasps                        [CHECK]
 
@@ -382,7 +382,7 @@ Current big tasks
 - IDEA:
 	- 1. also store at least some of the poses which do not result in a feasible plan by moveit
 	- 2. Use Point-Net++ or similar to output coarse distribution of good grasp, possibly with label 			for grasp type?
-		- Refine the initial guess 
+		- Refine the initial guess
 	- 3. Use pre-trained Point-Net in simulation for data acquisition
 		- Input is a partial object point cloud, from this PointNet predicts a set of 			potentially interesting grasp points
 		- Around the predicted grasp points sample hypothesis, test these hypothesis in 		simulation and thereby generate ground truth labels (?)
@@ -404,7 +404,7 @@ Current big tasks
 - [Task 1]: Implement human eigengrasps            [CHECK]
 	- Choose DoF, DoFs that make sense
 		1. thumb abduction
-		2. Metacarpophalangeal (MCP) joints (where the fingers meet the palm)  (also of thumb)    
+		2. Metacarpophalangeal (MCP) joints (where the fingers meet the palm)  (also of thumb)
 		3. Proximalinterphalangeal (PIP) joints (joint between upper/lower part of the finger) (also of thumb)
 		4. Finger spread, only four fingers
 	- Find suitable min max for all degrees of freedom
@@ -415,13 +415,13 @@ Current big tasks
 - IDEA:
 	- Have one network to predict grasp regions/ grasp points / confidence/ success
 
-14.2.21 
-- [Task 1] Find max and min for sampling in normal distance 
+14.2.21
+- [Task 1] Find max and min for sampling in normal distance
 	- max about 12cm (ca. difference from ring phadist to palm link hithand
 	- min about 4 cm (ca diff between basecover and palm link hithand
 	- 10cm between thumb phadist and middle phadist. Object can not be bigger than 12cm
 	- sample max should be 0.2 if object is 12cm should be 1 if object is 2cm
-curr_object_size 
+curr_object_size
 15.2.21
 - [Task 1]
 	- Redesign grasp sampling pipeline

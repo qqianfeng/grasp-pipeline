@@ -28,13 +28,15 @@ add_message_files(
   DIRECTORY msg
   FILES
   GraspObject.msg
+  ObjectToBeSpawned.msg
 )
 
 add_service_files(
     FILES
-    GetCartesianPositionError.srv
+    BPSEncode.srv
     CheckPoseValidity.srv
     ControlHithand.srv
+    DeleteHandGazebo.srv
     EvaluateAndFilterGraspPoses.srv
     ExecuteJointTrajectory.srv
     FilterPalmPoses.srv
@@ -48,15 +50,23 @@ add_service_files(
     PlanCartesianPathTrajectory.srv
     PlanResetTrajectory.srv
     RecordCollisionData.srv
+    RecordCollisionMultiObjData.srv
     RecordGraspDataSim.srv
     RecordGraspTrialData.srv
+    RecordGraspTrialMultiObjData.srv
+    ResetScene.srv
     SaveVisualData.srv
     SegmentGraspObject.srv
     SimGraspData.srv
     UpdateObjectGazebo.srv
+    UpdateHandGazebo.srv
     UpdateObjectPose.srv
     UpdatePalmPose.srv
     VisualizeGraspPoseList.srv
+    CreateNewScene.srv
+    ClearScene.srv
+    ResetScene.srv
+    ChangeModelVisibility.srv
 )
 
 generate_messages(

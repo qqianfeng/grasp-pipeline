@@ -34,7 +34,7 @@ class ObjectSegmenter():
         self.x_min = 0.1 # for simulation
         self.z_max = 10
         # remove points that is too far away from the camera
-        
+
         # for real world
         # self.x_min = 0
         # self.z_max = 0.8
@@ -52,7 +52,7 @@ class ObjectSegmenter():
         r = self.transform_world_camera.transform.translation
         self.camera_T_world = tft.quaternion_matrix([q.x, q.y, q.z, q.w])
         self.camera_T_world[:, 3] = [r.x, r.y, r.z, 1]
-
+        print('self.camera_T_world',self.camera_T_world)
         self.bounding_box_corner_pub = rospy.Publisher(
             '/segmented_object_bounding_box_corner_points',
             Float64MultiArray,
@@ -216,45 +216,50 @@ class ObjectSegmenter():
         self.scene_pcd_path = req.scene_pcd_path
         self.object_pcd_path = req.object_pcd_path
 
-        pcd = o3d.io.read_point_cloud(self.scene_pcd_path)
+        if self.scene_pcd_path == self.object_pcd_path: # if they are equal, segmentation is done by grabcut before hand so plane segmentation should be skipped
+            object_pcd = o3d.io.read_point_cloud(self.scene_pcd_path)
+        else:
+            pcd = o3d.io.read_point_cloud(self.scene_pcd_path)
+            # segment the panda base from point cloud
+            points = np.asarray(pcd.points)  # shape [x,3]
+            colors = np.asarray(pcd.colors)
 
-        # segment the panda base from point cloud
-        points = np.asarray(pcd.points)  # shape [x,3]
-        colors = np.asarray(pcd.colors)
+            # currently the mask cropping is removed
+            mask1 = points[:, 0] > self.x_min
+            mask2 = points[:, 2] < self.z_max
+            mask = np.logical_and(mask1,mask2)
+            del pcd
+            pcd = o3d.geometry.PointCloud()
+            pcd.points = o3d.utility.Vector3dVector(points[mask])
+            pcd.colors = o3d.utility.Vector3dVector(colors[mask])
+            # pcd.points = o3d.utility.Vector3dVector(points)
+            # pcd.colors = o3d.utility.Vector3dVector(colors)
 
-        # currently the mask cropping is removed
-        mask1 = points[:, 0] > self.x_min
-        mask2 = points[:, 2] < self.z_max
-        mask = np.logical_and(mask1,mask2)
-        del pcd
-        pcd = o3d.geometry.PointCloud()
-        pcd.points = o3d.utility.Vector3dVector(points[mask])
-        pcd.colors = o3d.utility.Vector3dVector(colors[mask])
-        # pcd.points = o3d.utility.Vector3dVector(points)
-        # pcd.colors = o3d.utility.Vector3dVector(colors)
+            print("draw the scene")
+            self.custom_draw_scene(pcd)
 
-        print("draw the scene")
-        self.custom_draw_scene(pcd)
+            # segment plane
+            _, inliers = pcd.segment_plane(
+                distance_threshold=0.01, ransac_n=3, num_iterations=30)
+            object_pcd = pcd.select_down_sample(inliers, invert=True)
 
-        # segment plane
-        _, inliers = pcd.segment_plane(
-            distance_threshold=0.01, ransac_n=3, num_iterations=30)
-        object_pcd = pcd.select_down_sample(inliers, invert=True)
+            print("draw the object pcd")
+            self.custom_draw_object(object_pcd)
 
-        print("draw the object pcd")
-        self.custom_draw_object(object_pcd)
+            del pcd, points, colors
 
         # compute normals of object
         object_pcd.estimate_normals(
             search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.5, max_nn=100))
 
+        print("draw object pcd with normal estimations")
+        print("center:",object_pcd.get_center())
         self.custom_draw_scene(object_pcd)
 
         # downsample point cloud or make mean free if downsampling is not requested
         if req.down_sample_pcd:
             object_pcd = object_pcd.voxel_down_sample(voxel_size=0.003)
 
-        del pcd, points, colors
 
         self.custom_draw_scene(object_pcd)
 
@@ -310,8 +315,10 @@ class ObjectSegmenter():
 
         if not req.down_sample_pcd:  # if req.down_sample is false, we assume this should be stored in VAE format, therefore transform the cloud back to camera frame
             self.object_centroid = object_pcd.get_center()
-            object_pcd.transform(self.camera_T_world)
-            object_pcd.translate((-1) * object_pcd.get_center())
+            if not req.need_to_transfer_pcd_to_world_frame:
+                object_pcd.transform(self.camera_T_world)
+                object_pcd.translate((-1) * object_pcd.get_center())
+            print("pcd in world frame")
             self.custom_draw_scene(object_pcd)
 
         o3d.io.write_point_cloud(self.object_pcd_path, object_pcd)

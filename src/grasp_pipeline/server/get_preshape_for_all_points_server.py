@@ -269,7 +269,7 @@ class GetPreshapeForAllPoints():
     def update_object_information(self):
         """ Update instance variables related to the object of interest
 
-        This is intended to 1.) receive a single message from the object topics and store them in instance attributes and 
+        This is intended to 1.) receive a single message from the object topics and store them in instance attributes and
         2.) read the segmented object point cloud from disk
         """
         # Bounding box corner points and center
@@ -516,61 +516,17 @@ class GetPreshapeForAllPoints():
 
         return res
 
-    def handle_check_pose_validity(self, req):
-        # Extract only the position of the query pose
-        grasp_pos = np.array([[
-            req.pose.pose.position.x, req.pose.pose.position.y, req.pose.pose.position.z
-        ]])
-
-        # Get new information on segmented object from rostopics/disk and store in instance attributes
-        self.update_object_information()
-
-        # Get all bounding box faces
-        faces = self.get_oriented_bounding_box_faces(req.object, is_check_validity=True)
-
-        # Remove the top face
-        faces = sorted(faces, key=lambda x: x.center[2])
-        del faces[-1]
-
-        closest_pcd_point, _ = self.nearest_neighbor(self.object_points, grasp_pos[0, :])
-
-        # Bring point to correct format
-        cpd = np.zeros((1, 3))
-        cpd[0, :] = closest_pcd_point
-
-        # Find closest face to point cloud point closest to grasp pos
-        closest_face_idx = self.find_face_for_each_point(cpd, faces)
-
-        # Visualize the closest face
-        self.show_closest_face_validity(cpd, faces, closest_face_idx)
-
-        # Return
-        res = CheckPoseValidityResponse()
-        if faces[closest_face_idx[0]].face_id in ['side1', 'side2']:
-            res.is_valid = True
-        else:
-            res.is_valid = False
-
-        return res
-
     def create_get_preshape_for_all_points_server(self):
         rospy.Service('get_preshape_for_all_points', GraspPreshape,
                       self.handle_get_preshape_for_all_points)
         rospy.loginfo('Service get_preshape_for_all_points:')
         rospy.loginfo('Ready to generate the grasp preshape.')
 
-    def create_check_pose_validity_utah_server(self):
-        rospy.Service('check_pose_validity_utah', CheckPoseValidity,
-                      self.handle_check_pose_validity)
-        rospy.loginfo('Service check_pose_validity_utah:')
-        rospy.loginfo('Ready to check_pose_validity_utah')
-
 
 if __name__ == '__main__':
     ghp = GetPreshapeForAllPoints()
 
     ghp.create_get_preshape_for_all_points_server()
-    ghp.create_check_pose_validity_utah_server()
     rate = rospy.Rate(10)
     while not rospy.is_shutdown():
         ghp.broadcast_palm_poses()

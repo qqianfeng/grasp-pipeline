@@ -235,7 +235,7 @@ class GenerateHithandPreshape():
     def update_object_information(self):
         """ Update instance variables related to the object of interest
 
-        This is intended to 1.) receive a single message from the segmented_object topics and store them in instance attributes and 
+        This is intended to 1.) receive a single message from the segmented_object topics and store them in instance attributes and
         2.) read the segmented object point cloud from disk
         """
         # Bounding box corner points and center

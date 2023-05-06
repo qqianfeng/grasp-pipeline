@@ -1,15 +1,14 @@
 <?xml version="1.0"?>
 
 <launch>
-    <!-- This is a more basic version of grasp_pipeline_servers to work with the data adapter between data generated in simulation 
-    and data used to train VAE or UTAH baseline  -->
     <!-- +++++++NOTE: The different paths in the args must be modified for your machine. ++++++++ -->
     <arg name="sim"                     default="true"/>
-    <arg name="object_datasets_folder"  default="/home/vm/gazebo-objects"/>
-    <arg name="object_pcd_path"         default="/home/vm/object.pcd"/>
-    <arg name="scene_pcd_path"          default="/home/vm/scene.pcd"/>
-    <arg name="color_img_save_path"     default="/home/vm/scene.ppm"/>
-    <arg name="depth_img_save_path"     default="/home/vm/depth.pgm"/>
+    <arg name="data_recording_path"     default="/home/ffh/training_data_for_collision_detector"/>
+    <arg name="object_datasets_folder"  default="/home/ffh/ffh_ws/gazebo-objects"/>
+    <arg name="object_pcd_path"         default="/home/ffh/object.pcd"/>
+    <arg name="scene_pcd_path"          default="/home/ffh/scene.pcd"/>
+    <arg name="color_img_save_path"     default="/home/ffh/scene.ppm"/>
+    <arg name="depth_img_save_path"     default="/home/ffh/depth.pgm"/>
     <arg name="scene_pcd_topic"         default="/camera/depth/points"/>  <!-- /depth_registered/points -->   
     <arg name="color_img_topic"         default="/camera/color/image_raw"/>    
     <arg name="depth_img_topic"         default="/camera/depth/image_raw"/>    
@@ -17,14 +16,24 @@
     <param name="object_pcd_path"         value="$(arg object_pcd_path)"        type="string" />
     <param name="scene_pcd_path"          value="$(arg scene_pcd_path)"         type="string" />
     <param name="object_datasets_folder"  value="$(arg object_datasets_folder)" type="string" />
+    <param name="data_recording_path"     value="$(arg data_recording_path)" type="string" />
     <param name="color_img_save_path"     value="$(arg color_img_save_path)"    type="string" />
     <param name="depth_img_save_path"     value="$(arg depth_img_save_path)"    type="string" />
     <param name="scene_pcd_topic"         value="$(arg scene_pcd_topic)"        type="string" />
     <param name="color_img_topic"         value="$(arg color_img_topic)"        type="string" />
     <param name="depth_img_topic"         value="$(arg depth_img_topic)"        type="string" />   
-    <param name="/use_sim_time" value="true"/>
+    <param name="/use_sim_time"           value="true"/>
+    <param name="visualize"               value="false"/>
 
     <!-- +++++++++++++++++++++++++++++++++++++++++++++++++++ -->
+    <group if="$(arg sim)">
+        <!-- Gazebo scene manager -->
+        <node name="manage_gazebo_scene_node" pkg="grasp_pipeline" type="manage_gazebo_scene_server.py" output="screen"/>
+        <!-- Hand controller -->
+        <node name="grasp_control_hithand_node" pkg="grasp_pipeline" type="grasp_control_sim_hithand_server.py" output="screen"/>
+        <!-- Record grasp data in sim -->
+        <node name="record_grasp_and_collision_data_node" pkg="grasp_pipeline" type="record_grasp_and_collision_data_server.py" output="screen"/>
+    </group>
 
     <!-- Manage moveit scene -->
     <node name="manage_moveit_scene_node" pkg="grasp_pipeline"
@@ -32,30 +41,29 @@
         <param name="sim" type="bool" value="$(arg sim)"/>
     </node>
 
+    <!-- Get preshape for each point in an object point cloud -->
     <node name="get_preshape_for_all_points_node" pkg="grasp_pipeline" type="get_preshape_for_all_points_server.py" output="screen"/>
 
     <!-- Filter palm poses based on collision with object or ground plane -->
     <node name="filter_palm_goal_poses_node" pkg="grasp_pipeline" type="filter_palm_goal_poses_server.py" output="screen"/>
+
+    <!-- Moveit planner node for panda arm -->
+    <node name="plan_arm_trajectory_server_node" pkg="grasp_pipeline" type="plan_arm_trajectory_server.py" output="screen"/>
+
+    <!-- SMOOTH THE TRAJECTORY /-->
+    <node name="get_smooth_trajectory_node" pkg="trajectory_smoothing" type="service" output="screen"/>
+
+    <!-- Execute planned joint trajectory server-->
+    <node name="execute_joint_trajectory_server_node" pkg="grasp_pipeline" type="execute_joint_trajectory_server.py" output="screen"/>
 
 
     <!-- Save visual data node -->
     <node name="save_visual_data_node" pkg="grasp_pipeline" type="save_visual_data_server.py" output="screen"/>
 
 
-    <group if="$(arg sim)">
-        <!-- Gazebo scene manager -->
-        <node name="manage_gazebo_scene_node" pkg="grasp_pipeline" type="manage_gazebo_scene_server.py" output="screen"/>
-        <!-- Record grasp data in sim -->
-        <node name="record_sim_grasp_data_utah" pkg="grasp_pipeline" type="record_grasp_data_utah_server.py" output="screen"/>
-    </group>
-
-
     <!--Launch node which advertises service to segment the table from an object -->
     <node name="object_segmentation_node" pkg="grasp_pipeline" type="segment_object_server.py" output="screen"/>
    
     <!-- Node to update palm and object poses-->
-    <node name="update_object_pose_node" pkg="grasp_pipeline" type="update_object_and_palm_tf_server.py" output="screen"/>
-
-    <!-- Generate voxel grid from  -->
-    <node name="generate_voxel_node" pkg="grasp_pipeline" type="generate_voxel_from_pcd_server.py" output="screen"/>
+    <node name="update_poses_node" pkg="grasp_pipeline" type="update_object_and_palm_tf_server.py" output="screen"/>
 </launch>
