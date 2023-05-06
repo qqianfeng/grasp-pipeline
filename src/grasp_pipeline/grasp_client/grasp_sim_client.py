@@ -1965,8 +1965,6 @@ class GraspClient():
         distance = np.sqrt(delta_x**2 + delta_y**2 + delta_z**2)
         return distance
 
-    ################################################
-
     def visualize_hand(self,
                        target_obj_pose,
                        obstacle_objects,
@@ -2004,7 +2002,102 @@ class GraspClient():
         # if check hand, no further execution of the grasps.
         return True
 
-    def grasp_and_lift_object(self, obstacle_objects, check_hand=False):
+
+    # =============================================================================================================
+    # ++++++++ PART IV: The fourth part consists of the main grasping functions ++++++++++++
+    def grasp_and_lift_object(self):
+        # Control the hithand to it's preshape
+        i = 0
+        # As long as there are viable poses
+        if not self.grasps_available:
+            rospy.loginfo("No grasps are available")
+            return
+
+        desired_plan_exists = False
+        while self.grasps_available:
+            i += 1
+
+            # Step 1 choose a specific grasp. In first iteration self.chosen_grasp_type is unspecific, e.g. function will randomly choose grasp type
+            self.choose_specific_grasp_preshape(grasp_type=self.chosen_grasp_type)
+
+            if not self.grasps_available:
+                break
+
+            # Step 2, if the previous grasp type is not same as current grasp type move to approach pose
+            if self.previous_grasp_type != self.chosen_grasp_type or i == 1:
+                approach_plan_exists = self.plan_arm_trajectory_client(self.palm_poses["approach"])
+                # If a plan could be found, execute
+                if approach_plan_exists:
+                    self.execute_joint_trajectory_client(speed='mid')
+
+            # Step 3, try to move to the desired palm position
+            desired_plan_exists = self.plan_arm_trajectory_client()
+
+            # Step 4 if a plan exists execute it, otherwise delete unsuccessful pose and start from top:
+            if desired_plan_exists:
+                self.execute_joint_trajectory_client(speed='mid')
+                break
+            else:
+                self.remove_grasp_pose()
+
+        # If the function did not already return, it means a valid plan has been found and will be executed
+        # The pose to which the found plan leads is the pose which gets evaluated with respect to grasp success. Transform this pose to object_centric_fram
+
+        # self.palm_poses["palm_in_object_aligned_frame"] = self.transform_pose(
+        #     self.palm_poses["desired_pre"], from_frame='world', to_frame='object_pose_aligned')
+        # assert self.palm_poses[
+        #     "palm_in_object_aligned_frame"].header.frame_id == 'object_pose_aligned'
+
+        # Get the current actual joint position and palm pose
+        self.palm_poses["true_pre"], self.hand_joint_states[
+            "true_pre"] = self.get_hand_palm_pose_and_joint_state()
+
+        #letter = raw_input("Grasp object? Y/n: ")
+        letter = 'y'
+        if letter == 'y' or letter == 'Y':
+            # Close the hand
+            if desired_plan_exists:
+                # Go into preshape
+                self.control_hithand_config_client()
+                #self.grasp_control_hithand_client()
+
+        # Get the current actual joint position and palm pose
+        self.palm_poses["closed"], self.hand_joint_states[
+            "closed"] = self.get_hand_palm_pose_and_joint_state()
+
+        # Save visual data after hand is closed
+        self.save_only_depth_and_color(grasp_phase='during')
+
+        # Lift the object
+        if letter == 'y' or letter == 'Y':
+            lift_pose = copy.deepcopy(self.palm_poses["desired_pre"])
+            lift_pose.pose.position.z += self.object_lift_height
+            start = time.time()
+            execution_success = False
+            while not execution_success:
+                if time.time() - start > 60:
+                    rospy.loginfo('Could not find a lift pose')
+                    break
+                plan_exists = self.plan_arm_trajectory_client(place_goal_pose=lift_pose)
+                if plan_exists:
+                    execution_success = self.execute_joint_trajectory_client(speed='slow')
+                lift_pose.pose.position.x += np.random.uniform(-0.05, 0.05)
+                lift_pose.pose.position.y += np.random.uniform(-0.05, 0.05)
+                lift_pose.pose.position.z += np.random.uniform(0, 0.1)
+
+        # Get the joint position and palm pose after lifting
+        self.palm_poses["lifted"], self.hand_joint_states[
+            "lifted"] = self.get_hand_palm_pose_and_joint_state()
+
+        # Evaluate success
+        self.label_grasp()
+
+        # Finally remove the executed grasp from the list
+        self.remove_grasp_pose()
+
+        return True
+
+    def grasp_and_lift_object_multi_obj(self, obstacle_objects, check_hand=False):
         """ Used in data generation. For multi object generation.
         """
         # Record all object poses before grasp experiments

@@ -34,6 +34,7 @@ class BPSEncoder():
 
     def handle_encode_pcd_with_bps(self, req, res):
         start = time()
+        # TODO: refactor, take pcd_path as input from req.
         # Encode multi obj. This can not exit, for ffhnet eval.
         if os.path.exists(self.multi_pcd_path):
             obj_pcd = o3d.io.read_point_cloud(self.multi_pcd_path)

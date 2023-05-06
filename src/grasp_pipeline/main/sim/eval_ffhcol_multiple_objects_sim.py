@@ -1,4 +1,4 @@
-""" This file is used to evaluate the ffhcoldetr compared to moveit.
+""" This file is used to evaluate the ffhcoldetr compared to moveit. Still not working yet.
 """
 import numpy as np
 import shutil

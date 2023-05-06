@@ -106,7 +106,7 @@ if __name__ == '__main__':
     # Some "hyperparameters"
     n_pcds_per_obj = 50
     input_grasp_data_file = '/home/vm/multi_grasp_data/grasp_data_all.h5'
-
+    gazebo_objects_path = '/home/vm/gazebo-objects/objects_gazebo/')
     # Get all available objects and choose one
     with h5py.File(input_grasp_data_file, 'r') as hdf:
         objects = hdf.keys()
@@ -119,7 +119,7 @@ if __name__ == '__main__':
 
     # Instantiate grasp client
     grasp_client = GraspClient(is_rec_sess=False)
-    metadata_handler = MetadataHandler('/home/vm/gazebo-objects/objects_gazebo/')
+    metadata_handler = MetadataHandler(gazebo_objects_path)
 
     # Iterate over all objects
     for obj_full in objects:
