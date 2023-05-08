@@ -390,20 +390,6 @@ class GraspClient():
             rospy.logerr('Service control_hithand_config call failed: %s' % e)
         rospy.logdebug('Service control_allegro_config is executed.')
 
-    def check_pose_validity_utah_client(self, grasp_pose):
-        wait_for_service('check_pose_validity_utah')
-        try:
-            check_pose_validity_utah = rospy.ServiceProxy('check_pose_validity_utah',
-                                                          CheckPoseValidity)
-            req = CheckPoseValidityRequest()
-            req.object = self.object_segment_response.object
-            req.pose = grasp_pose
-            res = check_pose_validity_utah(req)
-        except rospy.ServiceException as e:
-            rospy.logerr('Service check_pose_validity_utah call failed: %s' % e)
-        rospy.logdebug('Service check_pose_validity_utah is executed.')
-        return res.is_valid
-
     def encode_pcd_with_bps_client(self):
         """ Encodes a pcd from disk (assumed static location) with bps_torch and saves the result to disk,
         from where the infer_grasp server can load it to sample grasps.
@@ -1031,62 +1017,6 @@ class GraspClient():
             rospy.logerr('Service record_grasp_trial_multi_obj_data call failed: %s' % e)
         rospy.logdebug('Service record_grasp_trial_multi_obj_data is executed.')
 
-    # This seems never used!!!
-    def record_grasp_data_client(self):
-        wait_for_service('record_grasp_data')
-        try:
-            # Currently all poses are in the world frame. Transfer the desired pose into object frame
-
-            record_grasp_data = rospy.ServiceProxy('record_grasp_data', RecordGraspDataSim)
-            req = RecordGraspDataSimRequest()
-            req.object_name = self.object_metadata["name"]
-            req.time_stamp = datetime.datetime.now().isoformat()
-            req.is_top_grasp = self.chosen_is_top_grasp
-            req.grasp_success_label = self.grasp_label
-            req.object_size_aligned = self.object_metadata["aligned_dim_whd"]
-            req.object_size_unaligned = self.object_metadata["seg_dim_whd"]
-            req.sparse_voxel_grid = self.object_metadata["sparse_voxel_grid"]
-            req.object_world_sim_pose = self.object_metadata["mesh_frame_pose"]
-            req.object_world_seg_unaligned_pose = self.object_metadata["seg_pose"]
-            req.object_world_aligned_pose = self.object_metadata["aligned_pose"]
-            req.desired_preshape_palm_world_pose = self.palm_poses["desired_pre"]
-            req.palm_in_object_aligned_frame_pose = self.palm_poses["palm_in_object_aligned_frame"]
-            req.true_preshape_palm_world_pose = self.palm_poses["true_pre"]
-            req.closed_palm_world_pose = self.palm_poses["closed"]
-            req.lifted_palm_world_pose = self.palm_poses["lifted"]
-            req.desired_preshape_hithand_joint_state = self.hand_joint_states["desired_pre"]
-            req.true_preshape_hithand_joint_state = self.hand_joint_states["true_pre"]
-            req.closed_hithand_joint_state = self.hand_joint_states["closed"]
-            req.lifted_hithand_joint_state = self.hand_joint_states["lifted"]
-
-            res = record_grasp_data(req)
-        except rospy.ServiceException, e:
-            rospy.logerr('Service record_grasp_data call failed: %s' % e)
-        rospy.logdebug('Service record_grasp_data is executed.')
-
-    def record_sim_grasp_data_utah_client(self, grasp_id, object_name, grasp_config_obj, is_top,
-                                          label):
-        wait_for_service('record_grasp_data_utah')
-        try:
-            record_sim_grasp_data_utah = rospy.ServiceProxy("record_grasp_data_utah", SimGraspData)
-            req = SimGraspDataRequest()
-            req.grasp_id = grasp_id
-            req.object_name = str(self.object_metadata["name_rec_path"])
-            req.grasp_config_obj = list(grasp_config_obj)
-            req.top_grasp = bool(is_top)
-            req.sparse_voxel = list(self.object_metadata["sparse_voxel_grid"])
-            req.dim_w_h_d = list(self.object_metadata["aligned_dim_whd_utah"])
-
-            res = record_sim_grasp_data_utah(req)
-        except rospy.ServiceException, e:
-            rospy.logerr('Service sim_grasp_data_utah call failed: %s' % e)
-        rospy.logdebug('Service sim_grasp_data_utah is executed.')
-
-    def reset_hithand_from_topic(self):
-        pub = rospy.Publisher("/start_hithand_reset", Bool, latch=True, queue_size=1)
-        self.trigger_cond = not self.trigger_cond
-        pub.publish(Bool(data=self.trigger_cond))
-
     def reset_hithand_joints_client(self):
         """ Server call to reset the hithand joints.
         """
@@ -1210,9 +1140,9 @@ class GraspClient():
         rospy.logdebug('Service update_gazebo_object is executed %s.' % str(res.success))
         return res.success
 
-    #####################
-    ## Test spawn hand ##
-    #####################
+    ####################################
+    ## spawn hand only for evaluation ##
+    ####################################
     def get_base_link_hithand_pose(self):
         trans = self.tf_buffer.lookup_transform(
             'world', 'base_link_hithand', rospy.Time(0), timeout=rospy.Duration(10))
@@ -1524,9 +1454,6 @@ class GraspClient():
         approach_pose.pose.position.y = approach_pos[1]
         approach_pose.pose.position.z = approach_pos[2]
         return approach_pose
-
-    def check_pose_validity_utah(self, grasp_pose):
-        return self.check_pose_validity_utah_client(grasp_pose)
 
     def encode_pcd_with_bps(self):
         self.encode_pcd_with_bps_client()
@@ -2023,8 +1950,6 @@ class GraspClient():
         distance = np.sqrt(delta_x**2 + delta_y**2 + delta_z**2)
         return distance
 
-    ################################################
-
     def visualize_hand(self,
                        target_obj_pose,
                        obstacle_objects,
@@ -2062,7 +1987,102 @@ class GraspClient():
         # if check hand, no further execution of the grasps.
         return True
 
-    def grasp_and_lift_object(self, obstacle_objects, check_hand=False):
+
+    # =============================================================================================================
+    # ++++++++ PART IV: The fourth part consists of the main grasping functions ++++++++++++
+    def grasp_and_lift_object(self):
+        # Control the hithand to it's preshape
+        i = 0
+        # As long as there are viable poses
+        if not self.grasps_available:
+            rospy.loginfo("No grasps are available")
+            return
+
+        desired_plan_exists = False
+        while self.grasps_available:
+            i += 1
+
+            # Step 1 choose a specific grasp. In first iteration self.chosen_grasp_type is unspecific, e.g. function will randomly choose grasp type
+            self.choose_specific_grasp_preshape(grasp_type=self.chosen_grasp_type)
+
+            if not self.grasps_available:
+                break
+
+            # Step 2, if the previous grasp type is not same as current grasp type move to approach pose
+            if self.previous_grasp_type != self.chosen_grasp_type or i == 1:
+                approach_plan_exists = self.plan_arm_trajectory_client(self.palm_poses["approach"])
+                # If a plan could be found, execute
+                if approach_plan_exists:
+                    self.execute_joint_trajectory_client(speed='mid')
+
+            # Step 3, try to move to the desired palm position
+            desired_plan_exists = self.plan_arm_trajectory_client()
+
+            # Step 4 if a plan exists execute it, otherwise delete unsuccessful pose and start from top:
+            if desired_plan_exists:
+                self.execute_joint_trajectory_client(speed='mid')
+                break
+            else:
+                self.remove_grasp_pose()
+
+        # If the function did not already return, it means a valid plan has been found and will be executed
+        # The pose to which the found plan leads is the pose which gets evaluated with respect to grasp success. Transform this pose to object_centric_fram
+
+        # self.palm_poses["palm_in_object_aligned_frame"] = self.transform_pose(
+        #     self.palm_poses["desired_pre"], from_frame='world', to_frame='object_pose_aligned')
+        # assert self.palm_poses[
+        #     "palm_in_object_aligned_frame"].header.frame_id == 'object_pose_aligned'
+
+        # Get the current actual joint position and palm pose
+        self.palm_poses["true_pre"], self.hand_joint_states[
+            "true_pre"] = self.get_hand_palm_pose_and_joint_state()
+
+        #letter = raw_input("Grasp object? Y/n: ")
+        letter = 'y'
+        if letter == 'y' or letter == 'Y':
+            # Close the hand
+            if desired_plan_exists:
+                # Go into preshape
+                self.control_hithand_config_client()
+                #self.grasp_control_hithand_client()
+
+        # Get the current actual joint position and palm pose
+        self.palm_poses["closed"], self.hand_joint_states[
+            "closed"] = self.get_hand_palm_pose_and_joint_state()
+
+        # Save visual data after hand is closed
+        self.save_only_depth_and_color(grasp_phase='during')
+
+        # Lift the object
+        if letter == 'y' or letter == 'Y':
+            lift_pose = copy.deepcopy(self.palm_poses["desired_pre"])
+            lift_pose.pose.position.z += self.object_lift_height
+            start = time.time()
+            execution_success = False
+            while not execution_success:
+                if time.time() - start > 60:
+                    rospy.loginfo('Could not find a lift pose')
+                    break
+                plan_exists = self.plan_arm_trajectory_client(place_goal_pose=lift_pose)
+                if plan_exists:
+                    execution_success = self.execute_joint_trajectory_client(speed='slow')
+                lift_pose.pose.position.x += np.random.uniform(-0.05, 0.05)
+                lift_pose.pose.position.y += np.random.uniform(-0.05, 0.05)
+                lift_pose.pose.position.z += np.random.uniform(0, 0.1)
+
+        # Get the joint position and palm pose after lifting
+        self.palm_poses["lifted"], self.hand_joint_states[
+            "lifted"] = self.get_hand_palm_pose_and_joint_state()
+
+        # Evaluate success
+        self.label_grasp()
+
+        # Finally remove the executed grasp from the list
+        self.remove_grasp_pose()
+
+        return True
+
+    def grasp_and_lift_object_multi_obj(self, obstacle_objects, check_hand=False):
         """ Used in data generation. For multi object generation.
         """
         # Record all object poses before grasp experiments

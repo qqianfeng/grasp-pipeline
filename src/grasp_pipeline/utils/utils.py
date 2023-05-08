@@ -142,33 +142,6 @@ def get_rot_trans_list_from_pose_stamp(pose_stamped):
     ]
 
 
-def get_utah_grasp_config_from_pose_and_joints(palm_pose, joint_pos):
-    # Get pos and quat
-    pos = palm_pose.pose.position
-    q = palm_pose.pose.orientation
-    quat = [q.x, q.y, q.z, q.w]
-    # "allocate" memory for full pose 6D and 10 joints
-    pose_array = np.zeros(6 + 10)
-
-    # Bring ori from quaternion to euler
-    r, p, y = tft.euler_from_quaternion(quat)
-
-    # Insert pos and euler in right places
-    pose_array[:3] = [pos.x, pos.y, pos.z]
-    pose_array[3:6] = [r, p, y]
-
-    # Insert joint angles in the right place
-    # Index, Little, Middle, Ring, Thumb
-    des_joints = []
-    for i in range(0, len(joint_pos), 4):
-        des_joints.append(joint_pos[i])
-        des_joints.append(joint_pos[i + 1])
-    assert len(des_joints) == 10
-    pose_array[6:] = des_joints
-
-    return pose_array
-
-
 def hom_matrix_from_pos_quat_list(rot_quat_list):
     p = rot_quat_list[:3]
     q = rot_quat_list[3:]

@@ -216,8 +216,10 @@ class ObjectSegmenter():
         self.scene_pcd_path = req.scene_pcd_path
         self.object_pcd_path = req.object_pcd_path
 
-        if self.scene_pcd_path == self.object_pcd_path: # if they are equal, segmentation is done by grabcut before hand so plane segmentation should be skipped
+        # if they are equal, segmentation is done by grabcut before hand so plane segmentation should be skipped
+        if self.scene_pcd_path == self.object_pcd_path:
             object_pcd = o3d.io.read_point_cloud(self.scene_pcd_path)
+        # otherwise run plane segmentation
         else:
             pcd = o3d.io.read_point_cloud(self.scene_pcd_path)
             # segment the panda base from point cloud
@@ -227,7 +229,7 @@ class ObjectSegmenter():
             # currently the mask cropping is removed
             mask1 = points[:, 0] > self.x_min
             mask2 = points[:, 2] < self.z_max
-            mask = np.logical_and(mask1,mask2)
+            mask = np.logical_and(mask1, mask2)
             del pcd
             pcd = o3d.geometry.PointCloud()
             pcd.points = o3d.utility.Vector3dVector(points[mask])
@@ -259,7 +261,6 @@ class ObjectSegmenter():
         # downsample point cloud or make mean free if downsampling is not requested
         if req.down_sample_pcd:
             object_pcd = object_pcd.voxel_down_sample(voxel_size=0.003)
-
 
         self.custom_draw_scene(object_pcd)
 
@@ -315,9 +316,11 @@ class ObjectSegmenter():
 
         if not req.down_sample_pcd:  # if req.down_sample is false, we assume this should be stored in VAE format, therefore transform the cloud back to camera frame
             self.object_centroid = object_pcd.get_center()
+            # if no need to transfer to world frame, pcd stay in self center frame.
             if not req.need_to_transfer_pcd_to_world_frame:
                 object_pcd.transform(self.camera_T_world)
                 object_pcd.translate((-1) * object_pcd.get_center())
+            # else pcd stays in world frame
             print("pcd in world frame")
             self.custom_draw_scene(object_pcd)
 

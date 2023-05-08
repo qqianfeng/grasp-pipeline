@@ -125,7 +125,7 @@ if __name__ == '__main__':
                     rospy.logdebug("grasp_client.reset_obstacle_objects(obstacle_objects)")
 
                 # Grasp and lift object
-                execution_success = grasp_client.grasp_and_lift_object(obstacle_objects)
+                execution_success = grasp_client.grasp_and_lift_object_multi_obj(obstacle_objects)
 
                 # Save all grasp data including post grasp images
                 grasp_client.save_visual_data_and_record_grasp(obstacle_objects)
