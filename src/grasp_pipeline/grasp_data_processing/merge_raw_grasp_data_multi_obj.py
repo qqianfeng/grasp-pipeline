@@ -66,13 +66,14 @@ GPS = 'grasp_success_label'
 
 
 def log_to_csv(src_file, save_path):
-    data = {'names': [], 'positive': [], 'negative': [], 'collision': []}
+    data = {'names': [], 'positive': [], 'negative': [], 'collision': [], 'non_collision_not_executed': []}
     # Add three rows positive negative collision
     for obj in src_file.keys():
         # Init counter
         pos_cnt = 0
         neg_cnt = 0
         coll_cnt = 0
+        non_coll_cnt = 0
 
         obj_gp = src_file[obj]
         use_ix = False
@@ -91,6 +92,8 @@ def log_to_csv(src_file, save_path):
                     neg_cnt += 1
                 if grasp_type == 'collision':
                     coll_cnt += 1
+                if grasp_type == 'non_collision_not_executed':
+                    non_coll_cnt += 1
 
             if use_ix:
                 if grasp_type == 'positive':
@@ -99,6 +102,8 @@ def log_to_csv(src_file, save_path):
                     data['negative'][ix] += neg_cnt
                 if grasp_type == 'collision':
                     data['collision'][ix] += coll_cnt
+                if grasp_type == 'non_collision_not_executed':
+                    data['non_collision_not_executed'][ix] += non_coll_cnt
             else:
                 if grasp_type == 'positive':
                     data['positive'].append(pos_cnt)
@@ -106,7 +111,8 @@ def log_to_csv(src_file, save_path):
                     data['negative'].append(neg_cnt)
                 if grasp_type == 'collision':
                     data['collision'].append(coll_cnt)
-
+                if grasp_type == 'non_collision_not_executed':
+                    data['non_collision_not_executed'].append(non_coll_cnt)
     # Save to disk
     obj_names = data['names']
     data.pop('names')
@@ -209,85 +215,86 @@ if __name__ == "__main__":
     # base_path contains all folders each contains a complete recording data.
     base_path = '/data/hdd1/qf/hithand_data/collision_only_data'
     dst_path = '/data/hdd1/qf/hithand_data/collision_only_data/grasp_data_all.h5'
-    hdf_dst = h5py.File(dst_path, 'a')
+    hdf_dst = h5py.File(dst_path, 'r')
+    # hdf_dst = h5py.File(dst_path, 'a')
 
-    # go through all the dirs, each dir contains one grasp_data.h5
-    for dir in sorted(os.listdir(base_path)):
-        if dir[-2:] == 'h5' or dir[-3:] == 'txt':
-            continue
-        print('start foler: ', dir)
-        src_path = os.path.join(base_path, dir, 'grasp_data.h5')
-        hdf_src = h5py.File(src_path, 'r')
+    # # go through all the dirs, each dir contains one grasp_data.h5
+    # for dir in sorted(os.listdir(base_path)):
+    #     if dir[-2:] == 'h5' or dir[-3:] == 'txt':
+    #         continue
+    #     print('start foler: ', dir)
+    #     src_path = os.path.join(base_path, dir, 'grasp_data.h5')
+    #     hdf_src = h5py.File(src_path, 'r')
 
-        for key in hdf_src[RC].keys():
-            src_objs_gp = hdf_src[RC][key][GT]
-            print 'All objects: ', src_objs_gp.keys()
-            for obj in src_objs_gp.keys():
-                print('Processing object:', obj)
-                # if obj == 'bigbird_3m_high_tack_spray_adhesive':
-                #     print('here')
-                # Grasp idxs
-                pos_idx = 0
-                neg_idx = 0
-                coll_idx = 0
-                # For quick collision dataset
-                non_coll_idx = 0
-                # Get the object_group in dest file
-                if obj not in hdf_dst.keys():
-                    dst_obj_gp = hdf_dst.create_group(obj)
-                    dst_obj_gp.create_group('positive')
-                    dst_obj_gp.create_group('negative')
-                    dst_obj_gp.create_group('collision')
-                    dst_obj_gp.create_group('non_collision_not_executed')
-                else:
-                    dst_obj_gp = hdf_dst[obj]
-                    if dst_obj_gp[P].keys():
-                        pos_idx = int(dst_obj_gp[P].keys()[-1].split('_')[-1]) + 1
-                    if dst_obj_gp[N].keys():
-                        neg_idx = int(dst_obj_gp[N].keys()[-1].split('_')[-1]) + 1
-                    if dst_obj_gp[C].keys():
-                        coll_idx = int(dst_obj_gp[C].keys()[-1].split('_')[-1]) + 1
-                    if dst_obj_gp['non_collision_not_executed'].keys():
-                        non_coll_idx = int(
-                            dst_obj_gp['non_collision_not_executed'].keys()[-1].split('_')[-1]) + 1
-                # Get the grasps from no collision gp from src_file
-                no_coll_gp = src_objs_gp[obj][G][NC]
-                for grasp in no_coll_gp.keys():
-                    src_grasp_gp = no_coll_gp[grasp]
-                    label = src_grasp_gp["grasp_success_label"][()]
-                    if label:
-                        dst_grasp_gp = create_grasp_group(dst_obj_gp['positive'], pos_idx)
-                        pos_idx += 1
-                    else:
-                        dst_grasp_gp = create_grasp_group(dst_obj_gp['negative'], neg_idx)
-                        neg_idx += 1
-                    log_grasp(src_grasp_gp, dst_grasp_gp)
+    #     for key in hdf_src[RC].keys():
+    #         src_objs_gp = hdf_src[RC][key][GT]
+    #         print 'All objects: ', src_objs_gp.keys()
+    #         for obj in src_objs_gp.keys():
+    #             print('Processing object:', obj)
+    #             # if obj == 'bigbird_3m_high_tack_spray_adhesive':
+    #             #     print('here')
+    #             # Grasp idxs
+    #             pos_idx = 0
+    #             neg_idx = 0
+    #             coll_idx = 0
+    #             # For quick collision dataset
+    #             non_coll_idx = 0
+    #             # Get the object_group in dest file
+    #             if obj not in hdf_dst.keys():
+    #                 dst_obj_gp = hdf_dst.create_group(obj)
+    #                 dst_obj_gp.create_group('positive')
+    #                 dst_obj_gp.create_group('negative')
+    #                 dst_obj_gp.create_group('collision')
+    #                 dst_obj_gp.create_group('non_collision_not_executed')
+    #             else:
+    #                 dst_obj_gp = hdf_dst[obj]
+    #                 if dst_obj_gp[P].keys():
+    #                     pos_idx = int(dst_obj_gp[P].keys()[-1].split('_')[-1]) + 1
+    #                 if dst_obj_gp[N].keys():
+    #                     neg_idx = int(dst_obj_gp[N].keys()[-1].split('_')[-1]) + 1
+    #                 if dst_obj_gp[C].keys():
+    #                     coll_idx = int(dst_obj_gp[C].keys()[-1].split('_')[-1]) + 1
+    #                 if dst_obj_gp['non_collision_not_executed'].keys():
+    #                     non_coll_idx = int(
+    #                         dst_obj_gp['non_collision_not_executed'].keys()[-1].split('_')[-1]) + 1
+    #             # Get the grasps from no collision gp from src_file
+    #             no_coll_gp = src_objs_gp[obj][G][NC]
+    #             for grasp in no_coll_gp.keys():
+    #                 src_grasp_gp = no_coll_gp[grasp]
+    #                 label = src_grasp_gp["grasp_success_label"][()]
+    #                 if label:
+    #                     dst_grasp_gp = create_grasp_group(dst_obj_gp['positive'], pos_idx)
+    #                     pos_idx += 1
+    #                 else:
+    #                     dst_grasp_gp = create_grasp_group(dst_obj_gp['negative'], neg_idx)
+    #                     neg_idx += 1
+    #                 log_grasp(src_grasp_gp, dst_grasp_gp)
 
-                # Get the grasps that are non_collision and not executed
-                non_coll_gp = src_objs_gp[obj][G]['non_collision_not_executed']
-                for grasp in non_coll_gp.keys():
-                    src_grasp_gp = non_coll_gp[grasp]
-                    dst_grasp_gp = create_grasp_group(dst_obj_gp['non_collision_not_executed'],
-                                                      non_coll_idx)
-                    non_coll_idx += 1
-                    log_grasp(src_grasp_gp, dst_grasp_gp, is_coll=True)
+    #             # Get the grasps that are non_collision and not executed
+    #             non_coll_gp = src_objs_gp[obj][G]['non_collision_not_executed']
+    #             for grasp in non_coll_gp.keys():
+    #                 src_grasp_gp = non_coll_gp[grasp]
+    #                 dst_grasp_gp = create_grasp_group(dst_obj_gp['non_collision_not_executed'],
+    #                                                   non_coll_idx)
+    #                 non_coll_idx += 1
+    #                 log_grasp(src_grasp_gp, dst_grasp_gp, is_coll=True)
 
-                # Get the grasps from collision gp from src file
-                src_coll_gp = src_objs_gp[obj][G][C]
-                for grasp in src_coll_gp.keys():
-                    src_grasp_gp = src_coll_gp[grasp]
-                    dst_grasp_gp = create_grasp_group(dst_obj_gp['collision'], coll_idx)
-                    coll_idx += 1
-                    log_grasp(src_grasp_gp, dst_grasp_gp, is_coll=True)
+    #             # Get the grasps from collision gp from src file
+    #             src_coll_gp = src_objs_gp[obj][G][C]
+    #             for grasp in src_coll_gp.keys():
+    #                 src_grasp_gp = src_coll_gp[grasp]
+    #                 dst_grasp_gp = create_grasp_group(dst_obj_gp['collision'], coll_idx)
+    #                 coll_idx += 1
+    #                 log_grasp(src_grasp_gp, dst_grasp_gp, is_coll=True)
 
-                # Finally log the pos, neg coll idx to a txt file
-                path = os.path.join(base_path, 'obj_metadata.txt')
-                log_idxs(path, obj, pos_idx, neg_idx, coll_idx, non_coll_idx)
+    #             # Finally log the pos, neg coll idx to a txt file
+    #             path = os.path.join(base_path, 'obj_metadata.txt')
+    #             log_idxs(path, obj, pos_idx, neg_idx, coll_idx, non_coll_idx)
 
     # Create pandas dataframe and log
     save_path = os.path.join(os.path.split(dst_path)[0], 'metadata.csv')
     log_to_csv(hdf_dst, save_path)
 
     # close files
-    hdf_src.close()
+    # hdf_src.close()
     hdf_dst.close()
