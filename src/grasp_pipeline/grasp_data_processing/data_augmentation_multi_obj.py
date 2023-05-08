@@ -1,5 +1,7 @@
 """ The idea of this is to create a dataset for training the grasp VAE. Different objects are being spawned sequentially
 in random poses. They are being segmented and the object-centric frame in camera coords is extracted and saved. Also the mesh frame of the object is being stored.
+dataset details:
+pcd is saved in world frame
 """
 import os
 import copy
@@ -242,7 +244,9 @@ if __name__ == '__main__':
             #test_grasp_pose_transform(dset_obj_name=obj_full, grasp_client=grasp_client)
 
             # Lookup transform between current mesh frame and object_centroid_vae
-            # object_centroid_vae is the center of the estimation bbox center about the partial point cloud from the object
+            # object_centroid_vae is the center of the partial point cloud from the object
+
+            # TODO: this transform has object_centroid_vae in the target object centroid, not all objects.
             transform_cent_mf = grasp_client.tf_buffer.lookup_transform(
                 "object_centroid_vae",
                 "object_mesh_frame",

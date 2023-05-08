@@ -314,6 +314,9 @@ class ObjectSegmenter():
         if os.path.exists(self.object_pcd_path):
             os.remove(self.object_pcd_path)
 
+        # only in the data_gen_pipeline.py, data_gen_pipeline_multi_obj and verify_collision_label.py,
+        # down_sample_pcd is set to true.
+        # TODO: fix this super wired flag
         if not req.down_sample_pcd:  # if req.down_sample is false, we assume this should be stored in VAE format, therefore transform the cloud back to camera frame
             self.object_centroid = object_pcd.get_center()
             # if no need to transfer to world frame, pcd stay in self center frame.
