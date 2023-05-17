@@ -210,6 +210,22 @@ class ObjectSegmenter():
             markerArray.markers.append(marker)
         self.bounding_box_corner_vis_pub.publish(markerArray)
 
+    def _add_ground_to_segmentation(self, scene_pcd, object_pcd):
+        scene_points = np.asarray(scene_pcd.points)
+        object_points = np.asarray(object_pcd.points)
+
+        min_x = np.min(object_points[:,0])
+        max_x = np.max(object_points[:,0])
+        min_y = np.min(object_points[:,1])
+        max_y = np.max(object_points[:,1])
+        points = scene_points[scene_points[:,0]>min_x]
+        points = points[points[:,0]<max_x]
+        points = points[points[:,1]>min_y]
+        points = points[points[:,1]<max_y]
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector(points)
+        return pcd
+
     def handle_segment_object(self, req):
         print("handle_segment_object received the service call")
 
@@ -248,6 +264,10 @@ class ObjectSegmenter():
             print("draw the object pcd")
             self.custom_draw_object(object_pcd)
 
+            # add plane point cloud
+            object_pcd = self._add_ground_to_segmentation(pcd,object_pcd)
+            print("draw the object pcd with ground")
+            self.custom_draw_object(object_pcd)
             del pcd, points, colors
 
         # compute normals of object
