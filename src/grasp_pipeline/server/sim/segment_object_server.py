@@ -213,11 +213,11 @@ class ObjectSegmenter():
     def _add_ground_to_segmentation(self, scene_pcd, object_pcd):
         scene_points = np.asarray(scene_pcd.points)
         object_points = np.asarray(object_pcd.points)
-
-        min_x = np.min(object_points[:,0])
-        max_x = np.max(object_points[:,0])
-        min_y = np.min(object_points[:,1])
-        max_y = np.max(object_points[:,1])
+        ground_margin = 0.01 # m
+        min_x = np.min(object_points[:,0]) -ground_margin
+        max_x = np.max(object_points[:,0]) + ground_margin
+        min_y = np.min(object_points[:,1]) - ground_margin
+        max_y = np.max(object_points[:,1]) + ground_margin
         points = scene_points[scene_points[:,0]>min_x]
         points = points[points[:,0]<max_x]
         points = points[points[:,1]>min_y]

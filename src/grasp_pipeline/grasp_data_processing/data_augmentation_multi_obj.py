@@ -159,12 +159,12 @@ if __name__ == '__main__':
 
     # Make the base directory
     # dest_folder = os.path.join('/home', os.getlogin(), 'new_data_full/')
-    dest_folder = '/data/hdd1/qf/hithand_data/collision_only_data/'
+    dest_folder = '/data/hdd1/qf/hithand_data/collision_only_data_with_ground/'
     pcds_folder = os.path.join(dest_folder, 'point_clouds')
     pcd_tfs_path = os.path.join(dest_folder, 'pcd_transforms.h5')
     mkdir(pcds_folder)
     # data_recording_path = os.path.join('/home', os.getlogin(), 'new_data_full/')
-    data_recording_path = '/data/hdd1/qf/hithand_data/collision_only_data'
+    data_recording_path = '/data/hdd1/qf/hithand_data/collision_only_data_with_ground'
     ######################################
 
     all_objects = get_all_objects(gazebo_objects_path)
