@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+"""This script saves the color image, depth image and point cloud in world frame to file.
+"""
 import rospy
 import numpy as np
 import os
@@ -109,6 +111,7 @@ class VisualDataSaver():
                 ros_numpy.point_cloud2.pointcloud2_to_xyz_array(pcd))
             del pcd
 
+            # Transform point cloud from camera frame to world frame/ robot base frame
             pcd_o3d.transform(self.world_T_camera)
 
             p = np.asarray(pcd_o3d.points)

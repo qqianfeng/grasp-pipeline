@@ -64,15 +64,17 @@ NC = 'no_collision'
 NIK = 'no_ik'
 GPS = 'grasp_success_label'
 
-
+# The label for 'non_collision_not_executed' is for the collision-only dataset where grasps are not executed so only labeled as either
+# collision or non-collision.
 def log_to_csv(src_file, save_path):
-    data = {'names': [], 'positive': [], 'negative': [], 'collision': []}
+    data = {'names': [], 'positive': [], 'negative': [], 'collision': [], 'non_collision_not_executed': []}
     # Add three rows positive negative collision
     for obj in src_file.keys():
         # Init counter
         pos_cnt = 0
         neg_cnt = 0
         coll_cnt = 0
+        non_coll_cnt = 0
 
         obj_gp = src_file[obj]
         use_ix = False
@@ -91,6 +93,8 @@ def log_to_csv(src_file, save_path):
                     neg_cnt += 1
                 if grasp_type == 'collision':
                     coll_cnt += 1
+                if grasp_type == 'non_collision_not_executed':
+                    non_coll_cnt += 1
 
             if use_ix:
                 if grasp_type == 'positive':
@@ -99,6 +103,8 @@ def log_to_csv(src_file, save_path):
                     data['negative'][ix] += neg_cnt
                 if grasp_type == 'collision':
                     data['collision'][ix] += coll_cnt
+                if grasp_type == 'non_collision_not_executed':
+                    data['non_collision_not_executed'][ix] += non_coll_cnt
             else:
                 if grasp_type == 'positive':
                     data['positive'].append(pos_cnt)
@@ -106,7 +112,8 @@ def log_to_csv(src_file, save_path):
                     data['negative'].append(neg_cnt)
                 if grasp_type == 'collision':
                     data['collision'].append(coll_cnt)
-
+                if grasp_type == 'non_collision_not_executed':
+                    data['non_collision_not_executed'].append(non_coll_cnt)
     # Save to disk
     obj_names = data['names']
     data.pop('names')
