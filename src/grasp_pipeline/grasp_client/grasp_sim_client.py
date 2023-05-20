@@ -551,7 +551,8 @@ class GraspClient():
         palm_pose.pose.orientation.y = trans.transform.rotation.y
         palm_pose.pose.orientation.z = trans.transform.rotation.z
         palm_pose.pose.orientation.w = trans.transform.rotation.w
-        joint_state = rospy.wait_for_message("/hithand/joint_states", JointState, timeout=5)
+        # It happened once that this message is time out so we increase it from 5 to 20
+        joint_state = rospy.wait_for_message("/hithand/joint_states", JointState, timeout=20)
         return palm_pose, joint_state
 
     def get_grasp_object_pose_client(self, obj_name=''):
@@ -1510,7 +1511,6 @@ class GraspClient():
         reset_plan_exists = self.plan_reset_trajectory_client()
         if reset_plan_exists:
             self.execute_joint_trajectory_client()
-        self.delete_hand()
 
     def spawn_object(self, pose_type, pose_arr=None):
         """ delete and spawn the target object. Update moveit scene according to generation or evaluation.
