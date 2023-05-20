@@ -211,6 +211,8 @@ class ObjectSegmenter():
         self.bounding_box_corner_vis_pub.publish(markerArray)
 
     def _add_ground_to_segmentation(self, scene_pcd, object_pcd):
+        """ Add ground point cloud with a ground margin exceeding the object bbox
+        """
         scene_points = np.asarray(scene_pcd.points)
         object_points = np.asarray(object_pcd.points)
         ground_margin = 0.01 # m
