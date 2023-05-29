@@ -41,7 +41,7 @@ class RecordGraspData():
         metadata_gp.create_dataset("object_num_successes", data=0, dtype='u4')
         metadata_gp.create_dataset("object_num_failures", data=0, dtype='u4')
         metadata_gp.create_dataset("object_num_collisions", data=0, dtype='u4')
-        self.collision_id = 0
+        self.collision_id = {'collision': 0, 'no_ik': 0, 'non_collision_not_executed': 0}
         self.no_collision_id = 0
 
     def initialize_sess_metadata(self, sess_metadata_gp):
@@ -54,10 +54,18 @@ class RecordGraspData():
         sess_metadata_gp.create_dataset("sess_num_collision_to_approach_pose", data=0, dtype='u4')
         sess_metadata_gp.create_dataset("sess_num_collision_to_grasp_pose", data=0, dtype='u4')
 
+        sess_metadata_gp.create_dataset(
+            "sess_num_grasp_pose_collide_target_object", data=0, dtype='u4')
+        sess_metadata_gp.create_dataset(
+            "sess_num_grasp_pose_collide_obstacle_objects", data=0, dtype='u4')
+        sess_metadata_gp.create_dataset(
+            "sess_num_close_finger_collide_obstacle_objects", data=0, dtype='u4')
+        sess_metadata_gp.create_dataset(
+            "sess_num_lift_motion_moved_obstacle_objects", data=0, dtype='u4')
+
     def initialize_file_metadata(self, metadata_gp):
-        metadata_gp.create_dataset("datetime_recording_start",
-                                   data=[datetime.now().isoformat()],
-                                   maxshape=(None, ))
+        metadata_gp.create_dataset(
+            "datetime_recording_start", data=[datetime.now().isoformat()], maxshape=(None, ))
         metadata_gp.create_dataset("total_num_grasps", data=0, dtype='u4')
         metadata_gp.create_dataset("total_num_tops", data=0, dtype='u4')
         metadata_gp.create_dataset("total_num_successes", data=0, dtype='u4')
@@ -65,6 +73,15 @@ class RecordGraspData():
         metadata_gp.create_dataset("total_num_collisions", data=0, dtype='u4')
         metadata_gp.create_dataset("total_num_collision_to_approach_pose", data=0, dtype='u4')
         metadata_gp.create_dataset("total_num_collision_to_grasp_pose", data=0, dtype='u4')
+
+        metadata_gp.create_dataset(
+            "total_num_grasp_pose_collide_target_object", data=0, dtype='u4')
+        metadata_gp.create_dataset(
+            "total_num_grasp_pose_collide_obstacle_objects", data=0, dtype='u4')
+        metadata_gp.create_dataset(
+            "total_num_close_finger_collide_obstacle_objects", data=0, dtype='u4')
+        metadata_gp.create_dataset(
+            "total_num_lift_motion_moved_obstacle_objects", data=0, dtype='u4')
 
         metadata_gp.create_dataset("total_num_recordings", data=1, dtype='u4')
 
@@ -121,11 +138,15 @@ class RecordGraspData():
                             is_top_grasp,
                             grasp_success_label,
                             collision_to_approach_pose=False,
-                            collision_to_grasp_pose=False):
+                            collision_to_grasp_pose=False,
+                            grasp_pose_collide_target_object=False,
+                            grasp_pose_collide_obstacle_objects=False,
+                            close_finger_collide_obstacle_objects=False,
+                            lift_motion_moved_obstacle_objects=False):
         # Overall meta data and grasp trial metadata
         metadata_group = grasp_file['metadata']
-        curr_sess_metadata_group = grasp_file['recording_sessions'][
-            self.curr_sess_name]['metadata']
+        curr_sess_metadata_group = grasp_file['recording_sessions'][self.curr_sess_name][
+            'metadata']
 
         metadata_group['total_num_grasps'][()] += 1
         curr_sess_metadata_group['sess_num_grasps'][()] += 1
@@ -140,6 +161,20 @@ class RecordGraspData():
             metadata_group['total_num_collision_to_grasp_pose'][()] += 1
             curr_sess_metadata_group['sess_num_collision_to_grasp_pose'][()] += 1
 
+        # labels added for multi obj data generation
+        if grasp_pose_collide_target_object:
+            metadata_group['total_num_grasp_pose_collide_target_object'][()] += 1
+            curr_sess_metadata_group['sess_num_grasp_pose_collide_target_object'][()] += 1
+        if grasp_pose_collide_obstacle_objects:
+            metadata_group['total_num_grasp_pose_collide_obstacle_objects'][()] += 1
+            curr_sess_metadata_group['sess_num_grasp_pose_collide_obstacle_objects'][()] += 1
+        if close_finger_collide_obstacle_objects:
+            metadata_group['total_num_close_finger_collide_obstacle_objects'][()] += 1
+            curr_sess_metadata_group['sess_num_close_finger_collide_obstacle_objects'][()] += 1
+        if lift_motion_moved_obstacle_objects:
+            metadata_group['total_num_lift_motion_moved_obstacle_objects'][()] += 1
+            curr_sess_metadata_group['sess_num_lift_motion_moved_obstacle_objects'][()] += 1
+
         if grasp_success_label:
             metadata_group['total_num_successes'][()] += 1
             curr_sess_metadata_group['sess_num_successes'][()] += 1
@@ -153,7 +188,11 @@ class RecordGraspData():
                               is_top_grasp,
                               grasp_success_label,
                               collision_to_approach_pose=False,
-                              collision_to_grasp_pose=False):
+                              collision_to_grasp_pose=False,
+                              grasp_pose_collide_target_object=False,
+                              grasp_pose_collide_obstacle_objects=False,
+                              close_finger_collide_obstacle_objects=False,
+                              lift_motion_moved_obstacle_objects=False):
 
         # Overall meta data and grasp trial metadata
         metadata_group['total_num_grasps'][()] += 1
@@ -173,6 +212,15 @@ class RecordGraspData():
         if collision_to_grasp_pose:
             metadata_group['total_num_collision_to_grasp_pose'][()] += 1
 
+        if grasp_pose_collide_target_object:
+            metadata_group['total_num_grasp_pose_collide_target_object'][()] += 1
+        if grasp_pose_collide_obstacle_objects:
+            metadata_group['total_num_grasp_pose_collide_obstacle_objects'][()] += 1
+        if close_finger_collide_obstacle_objects:
+            metadata_group['total_num_close_finger_collide_obstacle_objects'][()] += 1
+        if lift_motion_moved_obstacle_objects:
+            metadata_group['total_num_lift_motion_moved_obstacle_objects'][()] += 1
+
     def update_all_metadata_collision(self, grasp_file, num_grasps):
         # Update overall metadata
         grasp_file['metadata']['total_num_grasps'][()] += num_grasps
@@ -191,7 +239,7 @@ class RecordGraspData():
 
     def get_grasp_group(self, grasp_trials, grasp_class):
         """ Creates the entire folder structure under grasp_trials if it does not exist.
-        Returns the 
+        Returns the
         """
         object_name = self.curr_object_name
 
@@ -206,7 +254,9 @@ class RecordGraspData():
             grasps_gp = object_gp.create_group('grasps')
             # grasps --> collision/ no-collision
             grasps_gp.create_group('collision')
+            grasps_gp.create_group('no_ik')
             grasps_gp.create_group('no_collision')
+            grasps_gp.create_group('non_collision_not_executed')
 
         # Get the descriptor for the grasp group
         grasp_group = grasp_trials[object_name]['grasps'][grasp_class]
@@ -224,7 +274,8 @@ class RecordGraspData():
         with h5py.File(self.grasp_data_file_name, 'r+') as grasp_file:
             # Update grasp meta information and update sess metadata
             self.update_all_metadata(grasp_file, req.is_top_grasp, req.grasp_success_label,
-                                     req.collision_to_approach_pose, req.collision_to_grasp_pose)
+                                     req.collision_to_approach_pose, req.collision_to_grasp_pose,
+                                     False, False, False, False)
 
             # Get a descriptor for grasp trials
             grasp_trials = grasp_file['recording_sessions'][self.curr_sess_name]['grasp_trials']
@@ -240,6 +291,7 @@ class RecordGraspData():
             #Add all the grasp-specific data and store in datasets under new group
             # object_name
             grasp_group.create_dataset('object_name', data=req.object_name)
+
             # time stamp
             grasp_group.create_dataset('time_stamp', data=req.time_stamp)
             # is_top_grasp
@@ -247,35 +299,126 @@ class RecordGraspData():
             # grasp_success_label
             grasp_group.create_dataset('grasp_success_label', data=req.grasp_success_label)
             # collision label
-            grasp_group.create_dataset('collision_to_approach_pose',
-                                       data=req.collision_to_approach_pose)
+            grasp_group.create_dataset(
+                'collision_to_approach_pose', data=req.collision_to_approach_pose)
             grasp_group.create_dataset('collision_to_grasp_pose', data=req.collision_to_grasp_pose)
 
             # object_world_sim_pose
-            grasp_group.create_dataset('object_mesh_frame_world',
-                                       data=self.convert_pose_to_list(req.object_mesh_frame_world))
+            grasp_group.create_dataset(
+                'object_mesh_frame_world',
+                data=self.convert_pose_to_list(req.object_mesh_frame_world))
+
             # desired_preshape_palm_world_pose
-            grasp_group.create_dataset('desired_preshape_palm_mesh_frame',
-                                       data=self.convert_pose_to_list(
-                                           req.desired_preshape_palm_mesh_frame))
+            grasp_group.create_dataset(
+                'desired_preshape_palm_mesh_frame',
+                data=self.convert_pose_to_list(req.desired_preshape_palm_mesh_frame))
             # true_preshape_palm_world_pose
-            grasp_group.create_dataset('true_preshape_palm_mesh_frame',
-                                       data=self.convert_pose_to_list(
-                                           req.true_preshape_palm_mesh_frame))
+            grasp_group.create_dataset(
+                'true_preshape_palm_mesh_frame',
+                data=self.convert_pose_to_list(req.true_preshape_palm_mesh_frame))
+
+            # desired_preshape_hithand_joint_state
+            grasp_group.create_dataset(
+                'desired_preshape_joint_state', data=req.desired_joint_state.position)
+            # true_preshape_hithand_joint_state
+            grasp_group.create_dataset(
+                'true_preshape_joint_state', data=req.true_joint_state.position)
+            # closed_hithand_joint_state
+            grasp_group.create_dataset('closed_joint_state', data=req.closed_joint_state.position)
+            # lifted_hithand_joint_state
+            grasp_group.create_dataset('lifted_joint_state', data=req.lifted_joint_state.position)
+
+        # Return response, context manager closes file
+        res = RecordGraspTrialDataResponse(success=True)
+        return res
+
+    def handle_record_grasp_trial_multi_obj_data(self, req):
+        self.curr_object_name = req.object_name
+
+        # r+ : Read/write, file must exist
+        with h5py.File(self.grasp_data_file_name, 'r+') as grasp_file:
+            # Update grasp meta information and update sess metadata
+            self.update_all_metadata(
+                grasp_file, req.is_top_grasp, req.grasp_success_label, False, False,
+                req.grasp_pose_collide_target_object, req.grasp_pose_collide_obstacle_objects,
+                req.close_finger_collide_obstacle_objects, req.lift_motion_moved_obstacle_objects)
+
+            # Get a descriptor for grasp trials
+            grasp_trials = grasp_file['recording_sessions'][self.curr_sess_name]['grasp_trials']
+
+            # Create new grasp for this group
+            no_collision_gp = self.get_grasp_group(grasp_trials, 'no_collision')
+
+            # Create dataset for new grasp
+            self.no_collision_id += 1
+            nc_id_str = str(self.no_collision_id).zfill(4)
+            grasp_group = no_collision_gp.create_group('grasp_' + nc_id_str)
+
+            # Add all the grasp-specific data and store in datasets under new group
+            # object_name
+            grasp_group.create_dataset('object_name', data=req.object_name)
+            grasp_group.create_dataset('obstacle1_name', data=req.obstacle1_name)
+            grasp_group.create_dataset('obstacle2_name', data=req.obstacle2_name)
+            grasp_group.create_dataset('obstacle3_name', data=req.obstacle3_name)
+
+            # time stamp
+            grasp_group.create_dataset('time_stamp', data=req.time_stamp)
+            # is_top_grasp
+            grasp_group.create_dataset('is_top_grasp', data=req.is_top_grasp)
+            # grasp_success_label
+            grasp_group.create_dataset('grasp_success_label', data=req.grasp_success_label)
+            # collision label
+            grasp_group.create_dataset(
+                'collision_to_approach_pose', data=req.collision_to_approach_pose)
+            grasp_group.create_dataset('collision_to_grasp_pose', data=req.collision_to_grasp_pose)
+            # label for multi obj data generation
+            grasp_group.create_dataset(
+                'grasp_pose_collide_target_object', data=req.grasp_pose_collide_target_object)
+            grasp_group.create_dataset(
+                'grasp_pose_collide_obstacle_objects',
+                data=req.grasp_pose_collide_obstacle_objects)
+            grasp_group.create_dataset(
+                'close_finger_collide_obstacle_objects',
+                data=req.close_finger_collide_obstacle_objects)
+            grasp_group.create_dataset(
+                'lift_motion_moved_obstacle_objects', data=req.lift_motion_moved_obstacle_objects)
+
+            # object_world_sim_pose
+            grasp_group.create_dataset(
+                'object_mesh_frame_world',
+                data=self.convert_pose_to_list(req.object_mesh_frame_world))
+            grasp_group.create_dataset(
+                'obstacle1_mesh_frame_world',
+                data=self.convert_pose_to_list(req.obstacle1_mesh_frame_world))
+            grasp_group.create_dataset(
+                'obstacle2_mesh_frame_world',
+                data=self.convert_pose_to_list(req.obstacle2_mesh_frame_world))
+            grasp_group.create_dataset(
+                'obstacle3_mesh_frame_world',
+                data=self.convert_pose_to_list(req.obstacle3_mesh_frame_world))
+
+            # desired_preshape_palm_world_pose
+            grasp_group.create_dataset(
+                'desired_preshape_palm_mesh_frame',
+                data=self.convert_pose_to_list(req.desired_preshape_palm_mesh_frame))
+            # true_preshape_palm_world_pose
+            grasp_group.create_dataset(
+                'true_preshape_palm_mesh_frame',
+                data=self.convert_pose_to_list(req.true_preshape_palm_mesh_frame))
 
             #desired_preshape_hithand_joint_state
-            grasp_group.create_dataset('desired_preshape_joint_state',
-                                       data=req.desired_joint_state.position)
+            grasp_group.create_dataset(
+                'desired_preshape_joint_state', data=req.desired_joint_state.position)
             #true_preshape_hithand_joint_state
-            grasp_group.create_dataset('true_preshape_joint_state',
-                                       data=req.true_joint_state.position)
+            grasp_group.create_dataset(
+                'true_preshape_joint_state', data=req.true_joint_state.position)
             #closed_hithand_joint_state
             grasp_group.create_dataset('closed_joint_state', data=req.closed_joint_state.position)
             #lifted_hithand_joint_state
             grasp_group.create_dataset('lifted_joint_state', data=req.lifted_joint_state.position)
 
         #Return response, context manager closes file
-        res = RecordGraspTrialDataResponse(success=True)
+        res = RecordGraspTrialMultiObjDataResponse(success=True)
         return res
 
     def handle_record_collision_data(self, req):
@@ -289,11 +432,11 @@ class RecordGraspData():
             grasp_trials = grasp_file['recording_sessions'][self.curr_sess_name]['grasp_trials']
 
             # Verify if object name already exists, if not create first
-            collision_gp = self.get_grasp_group(grasp_trials, grasp_class='collision')
+            collision_gp = self.get_grasp_group(grasp_trials, grasp_class=req.failure_type)
 
             # Update all metadata
-            self.update_all_metadata_collision(grasp_file,
-                                               num_grasps=len(req.preshapes_palm_mesh_frame_poses))
+            self.update_all_metadata_collision(
+                grasp_file, num_grasps=len(req.preshapes_palm_mesh_frame_poses))
 
             # Iterate through all grasps
             for obj, palm, joints in zip(req.object_world_poses,
@@ -304,8 +447,9 @@ class RecordGraspData():
                 palm_l = self.convert_pose_to_list(palm)
 
                 # Increase collision id counter
-                self.collision_id += 1
-                collision_id_str = 'collision_' + str(self.collision_id).zfill(4)
+                self.collision_id[req.failure_type] += 1
+                collision_id_str = req.failure_type + '_' + str(
+                    self.collision_id[req.failure_type]).zfill(4)
 
                 # Create new group under collision group for each grasp attempt
                 grasp_gp = collision_gp.create_group(collision_id_str)
@@ -321,16 +465,85 @@ class RecordGraspData():
         res = RecordCollisionDataResponse(success=True)
         return res
 
+    def handle_record_collision_multi_obj_data(self, req):
+        """ This records all the collision grasp data with multiple objects.
+        """
+        self.curr_object_name = req.object_name
+
+        # r+ : Read/write, file must exist
+        with h5py.File(self.grasp_data_file_name, 'r+') as grasp_file:
+            # get a descriptor for grasp trials
+            grasp_trials = grasp_file['recording_sessions'][self.curr_sess_name]['grasp_trials']
+
+            # Verify if object name already exists, if not create first
+            collision_gp = self.get_grasp_group(grasp_trials, grasp_class=req.failure_type)
+
+            # Update all metadata
+            self.update_all_metadata_collision(
+                grasp_file, num_grasps=len(req.preshapes_palm_mesh_frame_poses))
+
+            # Iterate through all grasps
+            for obj, obstacle1, obstacle2, obstacle3, palm, joints in zip(
+                    req.object_world_poses, req.obstacle1_mesh_frame_world,
+                    req.obstacle2_mesh_frame_world, req.obstacle3_mesh_frame_world,
+                    req.preshapes_palm_mesh_frame_poses, req.preshape_hithand_joint_states):
+                # Convert poses to lists
+                obj_l = self.convert_pose_to_list(obj)
+                obstacle1_l = self.convert_pose_to_list(obstacle1)
+                obstacle2_l = self.convert_pose_to_list(obstacle2)
+                obstacle3_l = self.convert_pose_to_list(obstacle3)
+                palm_l = self.convert_pose_to_list(palm)
+
+                # Increase collision id counter
+                self.collision_id[req.failure_type] += 1
+                collision_id_str = req.failure_type + '_' + str(
+                    self.collision_id[req.failure_type]).zfill(4)
+
+                # Create new group under collision group for each grasp attempt
+                grasp_gp = collision_gp.create_group(collision_id_str)
+
+                # Object in world
+                grasp_gp.create_dataset('object_name', data=req.object_name)
+                grasp_gp.create_dataset('obstacle1_name', data=req.obstacle1_name)
+                grasp_gp.create_dataset('obstacle2_name', data=req.obstacle2_name)
+                grasp_gp.create_dataset('obstacle3_name', data=req.obstacle3_name)
+
+                grasp_gp.create_dataset('object_mesh_frame_world', data=obj_l)
+                grasp_gp.create_dataset('obstacle1_mesh_frame_world', data=obstacle1_l)
+                grasp_gp.create_dataset('obstacle2_mesh_frame_world', data=obstacle2_l)
+                grasp_gp.create_dataset('obstacle3_mesh_frame_world', data=obstacle3_l)
+
+                # Palm pose w.r.t to object mesh frame
+                grasp_gp.create_dataset('desired_palm_pose_mesh_frame', data=palm_l)
+                # Desired joint state
+                grasp_gp.create_dataset('desired_joint_state', data=joints.position)
+
+        # Return response
+        res = RecordCollisionMultiObjDataResponse(success=True)
+        return res
+
     def create_record_grasp_trial_data_server(self):
         rospy.Service('record_grasp_trial_data', RecordGraspTrialData,
                       self.handle_record_grasp_trial_data)
         rospy.loginfo('Service record_grasp_trial_data:')
         rospy.loginfo('Ready to record your awesome grasp data.')
 
+    def create_record_grasp_trial_multi_obj_data_server(self):
+        rospy.Service('record_grasp_trial_multi_obj_data', RecordGraspTrialMultiObjData,
+                      self.handle_record_grasp_trial_multi_obj_data)
+        rospy.loginfo('Service record_grasp_trial_multi_obj_data:')
+        rospy.loginfo('Ready to record your awesome grasp data.')
+
     def create_record_collision_data_server(self):
         rospy.Service('record_collision_data', RecordCollisionData,
                       self.handle_record_collision_data)
         rospy.loginfo('Service record_collision_data:')
+        rospy.loginfo('Ready to record your awesome collision data.')
+
+    def create_record_collision_multi_obj_data_server(self):
+        rospy.Service('record_collision_multi_obj_data', RecordCollisionMultiObjData,
+                      self.handle_record_collision_multi_obj_data)
+        rospy.loginfo('Service record_collision_multi_obj_data:')
         rospy.loginfo('Ready to record your awesome collision data.')
 
 
@@ -340,6 +553,9 @@ if __name__ == '__main__':
     rgd = RecordGraspData()
     rgd.create_record_grasp_trial_data_server()
     rgd.create_record_collision_data_server()
+    rgd.create_record_grasp_trial_multi_obj_data_server()
+    rgd.create_record_collision_multi_obj_data_server()
+
     if DEBUG:
         req = RecordCollisionDataRequest(object_name='kit_baking')
         req.object_world_poses = [PoseStamped()]

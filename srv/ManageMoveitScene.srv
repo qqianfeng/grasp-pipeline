@@ -1,6 +1,7 @@
 bool create_scene
 bool clean_scene
-geometry_msgs/PoseStamped object_pose_world
-string object_mesh_path
+string[] object_names
+geometry_msgs/PoseStamped[] object_pose_worlds
+string[] object_mesh_paths
 ---
 bool success

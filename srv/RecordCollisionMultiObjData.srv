@@ -1,0 +1,16 @@
+string object_name
+# Modify here for how many obstacle objects there are
+string obstacle1_name
+string obstacle2_name
+string obstacle3_name
+
+string failure_type
+geometry_msgs/PoseStamped[] object_world_poses
+geometry_msgs/PoseStamped[] obstacle1_mesh_frame_world
+geometry_msgs/PoseStamped[] obstacle2_mesh_frame_world
+geometry_msgs/PoseStamped[] obstacle3_mesh_frame_world
+
+geometry_msgs/PoseStamped[] preshapes_palm_mesh_frame_poses
+sensor_msgs/JointState[] preshape_hithand_joint_states
+---
+bool success

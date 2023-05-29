@@ -1,5 +1,5 @@
 """ Small script to read in all the grasp-data-files in a directory and merges them into one file.
-This file consists of: 
+This file consists of:
     - level 1:  a.) object names
 
     - level 2:  a.) metadata

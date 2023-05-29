@@ -74,6 +74,21 @@ def get_pose_stamped_from_array(pose_array, frame_id='/world'):
     return pose_stamped
 
 
+def get_rot_quat_list_from_array(pose_array):
+    pose_quaternion = tft.quaternion_from_euler(pose_array[3], pose_array[4], pose_array[5])
+    rot_quat_list = pose_array[:3]
+    rot_quat_list += pose_quaternion.tolist()
+    return rot_quat_list
+
+
+def get_array_from_rot_quat_list(rot_quat_list):
+    r, p, y = tft.euler_from_quaternion(rot_quat_list[3:])
+
+    pose_array = rot_quat_list[:3].tolist()
+    pose_array = pose_array + [r, p, y]
+    return pose_array
+
+
 def get_pose_stamped_from_rot_quat_list(pose_list, frame_id="world"):
     """ Transform a list of 3 position and 4 orientation/quaternion elements to a stamped pose
     """
@@ -115,31 +130,16 @@ def get_pose_array_from_stamped(pose_stamped):
     return pose_array
 
 
-def get_utah_grasp_config_from_pose_and_joints(palm_pose, joint_pos):
-    # Get pos and quat
-    pos = palm_pose.pose.position
-    q = palm_pose.pose.orientation
-    quat = [q.x, q.y, q.z, q.w]
-    # "allocate" memory for full pose 6D and 10 joints
-    pose_array = np.zeros(6 + 10)
-
-    # Bring ori from quaternion to euler
-    r, p, y = tft.euler_from_quaternion(quat)
-
-    # Insert pos and euler in right places
-    pose_array[:3] = [pos.x, pos.y, pos.z]
-    pose_array[3:6] = [r, p, y]
-
-    # Insert joint angles in the right place
-    # Index, Little, Middle, Ring, Thumb
-    des_joints = []
-    for i in range(0, len(joint_pos), 4):
-        des_joints.append(joint_pos[i])
-        des_joints.append(joint_pos[i + 1])
-    assert len(des_joints) == 10
-    pose_array[6:] = des_joints
-
-    return pose_array
+def get_rot_trans_list_from_pose_stamp(pose_stamped):
+    return [
+        pose_stamped.pose.position.x,
+        pose_stamped.pose.position.y,
+        pose_stamped.pose.position.z,
+        pose_stamped.pose.orientation.x,
+        pose_stamped.pose.orientation.y,
+        pose_stamped.pose.orientation.z,
+        pose_stamped.pose.orientation.w,
+    ]
 
 
 def hom_matrix_from_pos_quat_list(rot_quat_list):
@@ -153,6 +153,14 @@ def hom_matrix_from_pos_quat_list(rot_quat_list):
 def hom_matrix_from_pose_stamped(pose_stamped):
     q = pose_stamped.pose.orientation
     r = pose_stamped.pose.position
+    hom_matrix = tft.quaternion_matrix([q.x, q.y, q.z, q.w])
+    hom_matrix[:, 3] = [r.x, r.y, r.z, 1]
+    return hom_matrix
+
+
+def hom_matrix_from_pose(pose):
+    q = pose.orientation
+    r = pose.position
     hom_matrix = tft.quaternion_matrix([q.x, q.y, q.z, q.w])
     hom_matrix[:, 3] = [r.x, r.y, r.z, 1]
     return hom_matrix
@@ -249,9 +257,9 @@ def wait_for_service(service_name):
 
 def get_objects_few_grasps(n_min, base_path='/home/vm/data/ffhnet-data'):
     """Get a list of objects with less positive grasps than threshold
-    
+
     Args:
-        n_min (int): Minimum number of successful grasps an object should have 
+        n_min (int): Minimum number of successful grasps an object should have
         base_path (str): Base path to where the metadata.csv file lies
     """
     file_path = os.path.join(base_path, 'metadata.csv')

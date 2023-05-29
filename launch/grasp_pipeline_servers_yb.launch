@@ -3,17 +3,19 @@
 <launch>
     <!-- +++++++NOTE: The different paths in the args must be modified for your machine. ++++++++ -->
     <arg name="sim"                     default="true"/>
-    <arg name="data_recording_path"     default="/home/vm/new_data_test/"/>
-    <arg name="object_datasets_folder"  default="/home/vm/gazebo-objects"/>
-    <arg name="object_pcd_path"         default="/home/vm/object.pcd"/>
-    <arg name="scene_pcd_path"          default="/home/vm/scene.pcd"/>
-    <arg name="color_img_save_path"     default="/home/vm/scene.ppm"/>
-    <arg name="depth_img_save_path"     default="/home/vm/depth.pgm"/>
+    <arg name="data_recording_path"     default="/data/hdd1/qf/hithand_data/clutter_data/clutter_data_test"/>
+    <!-- <arg name="data_recording_path"     default="/tmp/"/> -->
+
+    <arg name="object_datasets_folder"  default="/home/yb/Projects/gazebo-objects"/>
+    <arg name="object_pcd_path"         default="/home/yb/object.pcd"/>
+    <arg name="scene_pcd_path"          default="/home/yb/scene.pcd"/>
+    <arg name="color_img_save_path"     default="/home/yb/scene.ppm"/>
+    <arg name="depth_img_save_path"     default="/home/yb/depth.pgm"/>
     <arg name="scene_pcd_topic"         default="/camera/depth/points"/>  <!-- /depth_registered/points -->
     <arg name="color_img_topic"         default="/camera/color/image_raw"/>
     <arg name="depth_img_topic"         default="/camera/depth/image_raw"/>
-    <arg name="hand_urdf_path"         default="/home/vm/hand_ws/src/hithand-ros/hithand_description/urdf/hithand.urdf"/>
-    <arg name="obstacle_data_path"      default="/home/vm/Documents/obstacle_data.h5"/>
+    <arg name="hand_urdf_path"         default="/home/yb/Projects/hithand_ws/src/hithand-ros/hithand_description/urdf/hithand.urdf"/>
+    <arg name="obstacle_data_path"      default="/home/yb/Documents/obstacle_data.h5"/>
 
     <!-- +++++++++++++++++++ Set the params needed by the different nodes ++++++++++++++++++++++++++++++++ -->
     <param name="object_pcd_path"         value="$(arg object_pcd_path)"        type="string" />

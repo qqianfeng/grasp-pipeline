@@ -22,7 +22,6 @@ def mkdir(base_folder, folder_name=None):
 
 def test_grasp_pose_transform(dset_obj_name, grasp_client):
     # Create data and metadata handler
-    # TODO: Where is this data???????????????
     file_path = os.path.join("/home/vm/data", "grasp_data.h5")
     data_handler = GraspDataHandler(file_path=file_path, sess_name='recording_session_0001')
 
@@ -106,21 +105,21 @@ def save_mesh_frame_centroid_tf(obj_full, full_save_path, obj_full_pcd, tf_list)
 if __name__ == '__main__':
     # Some "hyperparameters"
     n_pcds_per_obj = 50
-    input_grasp_data_file = '/home/vm/data/vae-grasp/vae-grasp.h5'
-
+    input_grasp_data_file = '/home/vm/multi_grasp_data/grasp_data_all.h5'
+    gazebo_objects_path = '/home/vm/gazebo-objects/objects_gazebo/')
     # Get all available objects and choose one
     with h5py.File(input_grasp_data_file, 'r') as hdf:
         objects = hdf.keys()
 
     # Make the base directory
-    dest_folder = '/home/vm/data/vae-grasp'
+    dest_folder = '/home/vm/multi_grasp_data/'
     pcds_folder = os.path.join(dest_folder, 'point_clouds')
     pcd_tfs_path = os.path.join(dest_folder, 'pcd_transforms.h5')
     mkdir(pcds_folder)
 
     # Instantiate grasp client
     grasp_client = GraspClient(is_rec_sess=False)
-    metadata_handler = MetadataHandler()
+    metadata_handler = MetadataHandler(gazebo_objects_path)
 
     # Iterate over all objects
     for obj_full in objects:

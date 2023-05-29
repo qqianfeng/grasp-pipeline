@@ -4,11 +4,11 @@ import numpy as np
 import shutil
 import sys
 """ This scripts expects:
-1. the rawdata of the YCB, KIT and BigBird object datasets under base_folder/objects_raw. 
+1. the rawdata of the YCB, KIT and BigBird object datasets under base_folder/objects_raw.
 2. simplified meshes from the scripts create_collision_meshes_pymeshlab and create_convex_meshes_pymeshlab
     - The collision meshes are downsampled (to 250 faces) versions of the visual meshes and stored as $OBJECT_NAME_250_collision.$MESH_TYPE.
     - The convex meshes are simply the convex hull of the respective visual mesh and stored as $OBJECT_NAME_convex_hull.$MESH_TYPE
-        The convex_hull meshes are needed to compute the inertia through trimesh. 
+        The convex_hull meshes are needed to compute the inertia through trimesh.
 3. the directory templates with templates of the files needed to create Gazebo objects
 """
 

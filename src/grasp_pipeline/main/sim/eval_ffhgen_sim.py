@@ -1,4 +1,4 @@
-""" This file is used to evaluate the model and sample grasps. 
+""" This file is used to evaluate the model and sample grasps.
 """
 import numpy as np
 import shutil
