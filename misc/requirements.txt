@@ -96,9 +96,6 @@ scipy == 1.2.0
 # grasp_pipeline/src/sim/segment_object_server.py: 14,21
 tf == 1.12.1
 
-# grasp_pipeline/scripts/test/test_grasp_controller.py: 8
-tf2_geometry_msgs == 0.6.5
-
 # grasp_pipeline/scripts/camera_transform_broadcaster.py: 3
 # grasp_pipeline/scripts/test/test_grasp_controller.py: 7
 # grasp_pipeline/src/save_visual_data_server.py: 13
