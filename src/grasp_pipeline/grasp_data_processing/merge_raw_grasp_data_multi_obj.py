@@ -64,7 +64,8 @@ NC = 'no_collision'
 NIK = 'no_ik'
 GPS = 'grasp_success_label'
 
-
+# The label for 'non_collision_not_executed' is for the collision-only dataset where grasps are not executed so only labeled as either
+# collision or non-collision.
 def log_to_csv(src_file, save_path):
     data = {'names': [], 'positive': [], 'negative': [], 'collision': [], 'non_collision_not_executed': []}
     # Add three rows positive negative collision
