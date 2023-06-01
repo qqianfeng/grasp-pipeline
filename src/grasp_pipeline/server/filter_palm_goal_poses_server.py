@@ -63,8 +63,13 @@ class PalmGoalPosesFilter():
         gsvr.robot_state = self.robot_state
         gsvr.group_name = 'panda_arm'
         result = self.state_validity_service(gsvr)
+        # manually check if there is any collision for the hand
+        # ignore the collision from the arm itself
+        for contact in result.contacts:
+            if contact.contact_body_1[-7:] == 'hithand' or contact.contact_body_2[:5] == 'hithand':
+                return True
 
-        return result
+        return False
 
     def handle_filter_palm_goal_poses(self, req):
         """ Receives a list of all palm goal poses (grasp hypotheses) and returns a list of idxs of unfeasible grasps, either because
@@ -82,7 +87,7 @@ class PalmGoalPosesFilter():
             ik_js = self.get_ik_for_palm_pose(pose)
             if ik_js is not None:
                 result = self.check_pose_for_collision(ik_js)
-                if not result.valid:
+                if result:
                     prune_idxs.append(i)
                     collision_idxs.append(i)
                 else:
