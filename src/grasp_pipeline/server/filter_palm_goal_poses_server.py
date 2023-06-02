@@ -56,6 +56,13 @@ class PalmGoalPosesFilter():
 
         return ik_js
 
+    @staticmethod
+    def check_if_is_part_of_hand_link(str):
+        if str[-7:] == 'hithand' or str[:5] == 'Right':
+            return True
+        else:
+            return False
+
     def check_pose_for_collision(self, ik_js):
         """It seems this checks the collision with environments and self collision, the feedback found online. But not verified so far."""
         gsvr = GetStateValidityRequest()
@@ -66,7 +73,7 @@ class PalmGoalPosesFilter():
         # manually check if there is any collision for the hand
         # ignore the collision from the arm itself
         for contact in result.contacts:
-            if contact.contact_body_1[-7:] == 'hithand' or contact.contact_body_2[:5] == 'hithand':
+            if self.check_if_is_part_of_hand_link(contact.contact_body_1) or self.check_if_is_part_of_hand_link(contact.contact_body_2):
                 return True
 
         return False

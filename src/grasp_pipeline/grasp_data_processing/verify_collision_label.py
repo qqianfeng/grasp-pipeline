@@ -9,13 +9,14 @@ import rospy
 import numpy as np
 import h5py
 from time import time
+import pickle
 
 from grasp_pipeline.grasp_client.grasp_sim_client import GraspClient
 from grasp_pipeline.utils.metadata_handler import MetadataHandler
 from grasp_pipeline.utils.grasp_data_handler import GraspDataHandler
 import grasp_pipeline.utils.utils as utils
 from grasp_pipeline.utils.object_names_in_datasets import *
-
+from grasp_pipeline.utils.check_gazebo_collision import get_contact, check_collision
 
 def mkdir(base_folder, folder_name=None):
     path = os.path.join(base_folder, folder_name) if folder_name is not None else base_folder
@@ -150,7 +151,7 @@ if __name__ == '__main__':
 
     # This h5 should be the file that is merged
     # input_grasp_data_file = '/home/vm/Documents/grasp_data_all.h5'
-    input_grasp_data_file = '/data/hdd1/qf/hithand_data/collision_only_data_with_ground/grasp_data_all.h5'
+    input_grasp_data_file = '/data/hdd1/qf/hithand_data/collision_only_data_new/grasp_data_all.h5'
     gazebo_objects_path = '/home/yb/Projects/gazebo-objects/objects_gazebo/'
     # gazebo_objects_path = '/home/vm/gazebo-objects/objects_gazebo/'
 
@@ -250,20 +251,17 @@ if __name__ == '__main__':
                 else:
                     raise ValueError("obj name not found", obj['name'])
 
-            grasp_client.spawn_obstacle_objects(obstacle_objects, moveit=False)
+            grasp_client.spawn_obstacle_objects(obstacle_objects, moveit=True)
 
             # visualize the hand in the scene
             target_obj_pose = grasp_client.get_grasp_object_pose_client()
             obstacle_obj_poses = grasp_client.get_obstacle_objects_poses(obstacle_objects)
 
+            collision_count = 0
             for grasp_id in test_data.keys():
-                # Collision: Tested until 00039
-                # grasp_00006 and 00026 ,00029, 00036!!!!,seems no collision but hand is very close to the target object -> reason probably
-                # is the collision model is simplified and not same as visual model
-                # Positive: test 00000 it's close.
-                # Negative: test 00001 it's close, 20% are very close
-                # if int(grasp_id.split('_')[1]) <= 6:
-                #     continue
+
+                # TODO: check if objects are moved if so respawn
+
                 print("verify grasp of", grasp_id)
                 collision_grasp = test_data[grasp_id]
 
@@ -275,8 +273,22 @@ if __name__ == '__main__':
                 palm_world_frame_stamp = utils.pose_stamped_from_hom_matrix(
                     palm_world_frame_mat, 'world')
 
-                execution_success = grasp_client.visualize_hand(
-                    target_obj_pose,
-                    obstacle_objects,
-                    obstacle_obj_poses,
-                    hand_pose=palm_world_frame_stamp)
+                palm_world_arr = utils.get_pose_array_from_stamped(palm_world_frame_stamp)
+                grasp_client.spawn_hand(palm_world_arr)
+                rospy.sleep(0.5)
+                home_folder = os.path.expanduser('~')
+                coll_flag_path = os.path.join(home_folder,'collision_flag.pickle')
+                with open(coll_flag_path, 'rb') as file:
+                    b = pickle.load(file)
+                    print(b)
+                if b == True:
+                    collision_count += 1
+                    print(collision_count)
+                # get_contact()
+                # result = check_collision()
+                # print(result)
+
+                grasp_client.delete_hand()
+
+            print('found collisions of : ', collision_count)
+            print(1.0*collision_count/len(test_data.keys()))
