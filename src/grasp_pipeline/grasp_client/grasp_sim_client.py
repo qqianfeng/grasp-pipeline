@@ -1030,6 +1030,12 @@ class GraspClient():
         rospy.logdebug('Service reset_hithand_joints is executed.')
 
     def save_visual_data_client(self, save_pcd=True):
+        """Save visual data (color, depth, pcd) to a constant path for further
+        image precessing (segmentaion etc.)
+
+        Args:
+            save_pcd (bool, optional): _description_. Defaults to True.
+        """
         wait_for_service('save_visual_data')
         try:
             save_visual_data = rospy.ServiceProxy('save_visual_data', SaveVisualData)
@@ -1783,6 +1789,12 @@ class GraspClient():
         o3d.io.write_point_cloud(rospy.get_param('multi_object_pcd_path'))
 
     def set_visual_data_save_paths(self, grasp_phase):
+        """Save grasp images during the grasping phase of pre, during, post.
+        It's for the purpose of monitoring the data generation.
+
+        Args:
+            grasp_phase (_type_): _description_
+        """
         if self.is_rec_sess:
             if grasp_phase not in ['single', 'pre', 'during', 'post']:
                 rospy.logerr('Given grasp_phase is not valid. Must be pre, during or post.')
@@ -1884,7 +1896,8 @@ class GraspClient():
         self.filter_preshapes()
 
     def get_valid_preshape_for_all_points(self, objects=False):
-        """ First generates preshpes from the hithand preshape server and then prunes out all preshapes which are either in collision or have no IK solution.
+        """ First generates preshapes from the hithand preshape (palm pose + joint conf) server
+        then prunes out all preshapes which are either in collision or have no IK solution.
         """
         # Only record ones which
         self.get_preshape_for_all_points_client()
