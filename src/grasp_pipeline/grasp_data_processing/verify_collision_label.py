@@ -1,3 +1,6 @@
+""" The idea of this is to create a dataset for training the grasp VAE. Different objects are being spawned sequentially
+in random poses. They are being segmented and the object-centric frame in camera coords is extracted and saved. Also the mesh frame of the object is being stored.
+"""
 import os
 import copy
 import rospy

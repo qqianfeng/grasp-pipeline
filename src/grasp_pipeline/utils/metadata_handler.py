@@ -11,11 +11,13 @@ class MetadataHandler():
     """
     def __init__(self, gazebo_objects_path):
 
-        #self.datasets = [BIGBIRD_OBJECTS]
+        # self.datasets = [BIGBIRD_OBJECTS]
         self.datasets = [BIGBIRD_OBJECTS, KIT_OBJECTS]#, YCB_OBJECTS]
 
         #self.datasets_name = ['bigbird']
         self.datasets_name = ['bigbird', 'kit']#, 'ycb']
+
+        # self.datasets_name = ['bigbird']#, 'ycb']
 
         self.object_ix = -1
         self.dataset_ix = 0
@@ -24,6 +26,7 @@ class MetadataHandler():
     def get_total_num_objects(self):
         # return len(YCB_OBJECTS + BIGBIRD_OBJECTS + KIT_OBJECTS)
         return len(BIGBIRD_OBJECTS + KIT_OBJECTS)
+        # return len(BIGBIRD_OBJECTS)
 
     def choose_next_grasp_object(self,case=''):
         """ Iterates through all objects in all datasets and returns object_metadata. Gives a new object each time it is called.

@@ -3,7 +3,7 @@
 <launch>
     <!-- +++++++NOTE: The different paths in the args must be modified for your machine. ++++++++ -->
     <arg name="sim"                     default="true"/>
-    <arg name="data_recording_path"     default="/home/david/new_data_test/"/>
+    <arg name="data_recording_path"     default="/home/david/new_data_test"/>
     <arg name="object_datasets_folder"  default="/home/david/gazebo-objects"/>
     <arg name="object_pcd_path"         default="/home/david/object.pcd"/>
     <arg name="scene_pcd_path"          default="/home/david/scene.pcd"/>
@@ -12,7 +12,7 @@
     <arg name="scene_pcd_topic"         default="/camera/depth/points"/>  <!-- /depth_registered/points -->
     <arg name="color_img_topic"         default="/camera/color/image_raw"/>
     <arg name="depth_img_topic"         default="/camera/depth/image_raw"/>
-    <arg name="hand_urdf_path"         default="/home/david/hand_ws/src/hithand-ros/hithand_description/urdf/hithand.urdf"/>
+    <arg name="hand_urdf_path"         default="/home/david/hithand_ws/src/robotiq/robotiq_3f_gripper_visualization/cfg/robotiq-3f-gripper_articulated.urdf"/>
     <arg name="obstacle_data_path"      default="/home/david/Documents/obstacle_data.h5"/>
 
     <!-- +++++++++++++++++++ Set the params needed by the different nodes ++++++++++++++++++++++++++++++++ -->
@@ -35,7 +35,9 @@
         <!-- Gazebo scene manager -->
         <node name="manage_gazebo_scene_node" pkg="grasp_pipeline" type="manage_gazebo_scene_server.py" output="screen"/>
         <!-- Hand controller -->
-        <node name="grasp_control_hithand_node" pkg="grasp_pipeline" type="grasp_control_sim_hithand_server.py" output="screen"/>
+        <node pkg="robotiq_3f_driver" type="listener.py" name="Robotiq3FGripperListener" />
+        <node pkg="robotiq_3f_driver" type="activate.py" name="Robotiq3FGripperActivate" />
+        <!-- <node name="grasp_control_hithand_node" pkg="grasp_pipeline" type="grasp_control_sim_robotiq_server.py" output="screen"/> -->
         <!-- Record grasp data in sim -->
         <node name="record_grasp_and_collision_data_node" pkg="grasp_pipeline" type="record_grasp_and_collision_data_server.py" output="screen"/>
     </group>
@@ -47,13 +49,13 @@
     </node>
 
     <!-- Get preshape for each point in an object point cloud -->
-    <node name="get_preshape_for_all_points_node" pkg="grasp_pipeline" type="get_preshape_for_all_points_server.py" output="screen"/>
+    <node name="get_preshape_for_all_points_node" pkg="grasp_pipeline" type="get_preshape_for_all_points_server_robotiq.py" output="screen"/>
 
     <!-- Filter palm poses based on collision with object or ground plane -->
-    <node name="filter_palm_goal_poses_node" pkg="grasp_pipeline" type="filter_palm_goal_poses_server.py" output="screen"/>
+    <node name="filter_palm_goal_poses_node" pkg="grasp_pipeline" type="filter_palm_goal_poses_server_robotiq.py" output="screen"/>
 
     <!-- Moveit planner node for panda arm -->
-    <node name="plan_arm_trajectory_server_node" pkg="grasp_pipeline" type="plan_arm_trajectory_server.py" output="screen"/>
+    <node name="plan_arm_trajectory_server_node" pkg="grasp_pipeline" type="plan_arm_trajectory_server_robotiq.py" output="screen"/>
 
     <!-- SMOOTH THE TRAJECTORY /-->
     <node name="get_smooth_trajectory_node" pkg="trajectory_smoothing" type="service" output="screen"/>
