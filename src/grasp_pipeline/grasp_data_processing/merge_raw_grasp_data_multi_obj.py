@@ -254,9 +254,10 @@ if __name__ == "__main__":
                         neg_idx = int(dst_obj_gp[N].keys()[-1].split('_')[-1]) + 1
                     if dst_obj_gp[C].keys():
                         coll_idx = int(dst_obj_gp[C].keys()[-1].split('_')[-1]) + 1
-                    if dst_obj_gp['non_collision_not_executed'].keys():
-                        non_coll_idx = int(
-                            dst_obj_gp['non_collision_not_executed'].keys()[-1].split('_')[-1]) + 1
+                    # Comment this if not for collision only
+                    # if dst_obj_gp['non_collision_not_executed'].keys():
+                    #     non_coll_idx = int(
+                    #         dst_obj_gp['non_collision_not_executed'].keys()[-1].split('_')[-1]) + 1
                 # Get the grasps from no collision gp from src_file
                 no_coll_gp = src_objs_gp[obj][G][NC]
                 for grasp in no_coll_gp.keys():
@@ -271,13 +272,14 @@ if __name__ == "__main__":
                     log_grasp(src_grasp_gp, dst_grasp_gp)
 
                 # Get the grasps that are non_collision and not executed
-                non_coll_gp = src_objs_gp[obj][G]['non_collision_not_executed']
-                for grasp in non_coll_gp.keys():
-                    src_grasp_gp = non_coll_gp[grasp]
-                    dst_grasp_gp = create_grasp_group(dst_obj_gp['non_collision_not_executed'],
-                                                      non_coll_idx)
-                    non_coll_idx += 1
-                    log_grasp(src_grasp_gp, dst_grasp_gp, is_coll=True)
+                # comment here if not for collision only
+                # non_coll_gp = src_objs_gp[obj][G]['non_collision_not_executed']
+                # for grasp in non_coll_gp.keys():
+                #     src_grasp_gp = non_coll_gp[grasp]
+                #     dst_grasp_gp = create_grasp_group(dst_obj_gp['non_collision_not_executed'],
+                #                                       non_coll_idx)
+                #     non_coll_idx += 1
+                #     log_grasp(src_grasp_gp, dst_grasp_gp, is_coll=True)
 
                 # Get the grasps from collision gp from src file
                 src_coll_gp = src_objs_gp[obj][G][C]
