@@ -15,6 +15,36 @@ the conda python 3.8 (base) environment and starts the server `encode_pcd_with_b
 
 In order to debug the python2 script in vscode, you have to downgrade python extension to an old version in this link:
 <https://stackoverflow.com/questions/72214043/how-to-debug-python-2-7-code-with-vs-code>
+## Run test for robotiq
+
+Start the panda_simulator with robotiq\
+`roslaunch panda_gazebo panda_robotiq3f.launch`
+
+Start the panda_robotiq3f_moveit\
+`roslaunch robotiq_3f_rviz_moveit_panda panda_robotiq3f_moveit.launch`
+
+Start the grasp_pipeline. This exposes the the robotiq grasping servers.\
+`roslaunch grasp_pipeline grasp_pipeline_servers_robotiq.launch`
+
+Open another terminal and activate conda base environment\
+`cd hithand_ws/src/grasp-pipeline/tests`\
+`python2 test_grasping_robotiq.py`
+
+## To run data generation of single object in simulation with robotiq gripper
+
+Start the panda_simulator with robotiq\
+`roslaunch panda_gazebo panda_robotiq3f.launch`
+
+Start the panda_robotiq3f_moveit\
+`roslaunch robotiq_3f_rviz_moveit_panda panda_robotiq3f_moveit.launch`
+
+Start the grasp_pipeline. This exposes the the robotiq grasping servers.\
+`roslaunch grasp_pipeline grasp_pipeline_servers_robotiq.launch`
+
+Open another terminal and run the data generation \
+(Note that the metadata_handler.py and object_names_in_datasets.py scripts should be modified to select the datasets.)\
+`cd ~/path/to/grasp-pipeline/src/grasp_pipeline/main/sim`\
+`python2 data_gen_pipeline_robotiq.py`
 
 ## Run evaluation of model
 

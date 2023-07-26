@@ -4,20 +4,20 @@
     <arg name="sim"                     default="true"/>           
     <arg name="launch_rosbridge"        default="true"/>
     <!-- +++++++++++++++++++ Set the params needed by the different nodes ++++++++++++++++++++++++++++++++ -->
-    <param name="object_pcd_path"         value="/home/yb/object.pcd"       type="string" />
-    <param name="object_pcd_enc_path"     value="/home/yb/new_data_full/basis_point_set.npy" type="string"/>
-    <param name="scene_pcd_path"          value="/home/yb/scene.pcd"        type="string" />
-    <param name="object_datasets_folder"  value="/home/yb/Projects/gazebo-objects"   type="string" />
-    <param name="color_img_save_path"     value="/home/yb/scene.jpg"        type="string" />
-    <param name="depth_img_save_path"     value="/home/yb/depth.pgm"        type="string" />
+    <param name="object_pcd_path"         value="/home/david/object.pcd"       type="string" />
+    <param name="object_pcd_enc_path"     value="/home/david/new_data_full/basis_point_set.npy" type="string"/>
+    <param name="scene_pcd_path"          value="/home/david/scene.pcd"        type="string" />
+    <param name="object_datasets_folder"  value="/home/david/Projects/gazebo-objects"   type="string" />
+    <param name="color_img_save_path"     value="/home/david/scene.jpg"        type="string" />
+    <param name="depth_img_save_path"     value="/home/david/depth.pgm"        type="string" />
     <param name="scene_pcd_topic"         value="/camera/depth/points"      type="string" />
     <param name="color_img_topic"         value="/camera/color/image_raw"   type="string" />
     <param name="depth_img_topic"         value="/camera/depth/image_raw"   type="string" />   
     <param name="/use_sim_time"           value="true"                      type="bool"   />
-    <param name="ffhnet_path"             value="/home/yb/Projects/hithand_ws/src/FFHNet" type="string"/>
-    <param name="config_path"             value="/home/yb/Projects/hithand_ws/src/FFHNet/FFHNet/config/config_ffhnet_vm_test.yaml" type="string"/>
+    <param name="ffhnet_path"             value="/home/david/Projects/hithand_ws/src/FFHNet" type="string"/>
+    <param name="config_path"             value="/home/david/Projects/hithand_ws/src/FFHNet/FFHNet/config/config_ffhnet_vm_test.yaml" type="string"/>
 
-    <param name="hithand_ws_path"         value="/home/yb/Projects/hithand_ws" type="string"/>
+    <param name="hithand_ws_path"         value="/home/david/Projects/hithand_ws" type="string"/>
     <param name="data_recording_path"     value="/tmp/" type="string"/>
     <param name="visualize"               value="False"/> 
 

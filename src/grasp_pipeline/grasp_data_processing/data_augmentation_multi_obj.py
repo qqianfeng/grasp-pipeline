@@ -1,7 +1,5 @@
 """ The idea of this is to create a dataset for training the grasp VAE. Different objects are being spawned sequentially
 in random poses. They are being segmented and the object-centric frame in camera coords is extracted and saved. Also the mesh frame of the object is being stored.
-dataset details:
-pcd is saved in world frame
 """
 import os
 import copy
@@ -144,7 +142,7 @@ def save_mesh_frame_world_tf(obj_full, full_save_path, obj_full_pcd, tf_list):
 
 
 if __name__ == '__main__':
-    ##### Some "hyperparameters" #####
+    # Some "hyperparameters"
     # For debug purpose, create a file like 'new_data' and replace the name.
     n_pcds_per_obj = 50
     # input_grasp_data_file = os.path.join('/home',os.getlogin(),'new_data_full/grasp_data_all.h5')
@@ -157,18 +155,15 @@ if __name__ == '__main__':
     with h5py.File(input_grasp_data_file, 'r') as hdf:
         objects = hdf.keys()
 
+    all_objects = get_all_objects(gazebo_objects_path)
     # Make the base directory
     # dest_folder = os.path.join('/home', os.getlogin(), 'new_data_full/')
-    dest_folder = '/data/hdd1/qf/hithand_data/collision_only_data_with_ground/'
+    dest_folder = '/data/hdd1/qf/hithand_data/collision_only_data/'
     pcds_folder = os.path.join(dest_folder, 'point_clouds')
     pcd_tfs_path = os.path.join(dest_folder, 'pcd_transforms.h5')
     mkdir(pcds_folder)
-    # data_recording_path = os.path.join('/home', os.getlogin(), 'new_data_full/')
-    data_recording_path = '/data/hdd1/qf/hithand_data/collision_only_data_with_ground'
-    ######################################
-
-    all_objects = get_all_objects(gazebo_objects_path)
-
+    data_recording_path = os.path.join('/home', os.getlogin(), 'new_data_full/')
+    data_recording_path = '/data/hdd1/qf/hithand_data/collision_only_data'
     # Instantiate grasp client
     grasp_client = GraspClient(is_rec_sess=True, grasp_data_recording_path=data_recording_path)
     metadata_handler = MetadataHandler(gazebo_objects_path)
@@ -190,20 +185,22 @@ if __name__ == '__main__':
         # get objects pose from h5 file
         with h5py.File(input_grasp_data_file, 'r') as hdf:
             # certain object can have no grasps:
-            object_mesh_frame_world = hdf[obj_full]['collision']['grasp_00000'][
-                'object_mesh_frame_world'][()]
-            obstacle1_name = hdf[obj_full]['collision']['grasp_00000']['obstacle1_name'][()]
-            obstacle2_name = hdf[obj_full]['collision']['grasp_00000']['obstacle2_name'][()]
-            obstacle3_name = hdf[obj_full]['collision']['grasp_00000']['obstacle3_name'][()]
+            try:
+                object_mesh_frame_world = hdf[obj_full]['negative']['grasp_00000'][
+                    'object_mesh_frame_world'][()]
+                obstacle1_name = hdf[obj_full]['negative']['grasp_00000']['obstacle1_name'][()]
+                obstacle2_name = hdf[obj_full]['negative']['grasp_00000']['obstacle2_name'][()]
+                obstacle3_name = hdf[obj_full]['negative']['grasp_00000']['obstacle3_name'][()]
 
-            # [7,] pose
-            obstacle1_mesh_frame_world = hdf[obj_full]['collision']['grasp_00000'][
-                'obstacle1_mesh_frame_world'][()]
-            obstacle2_mesh_frame_world = hdf[obj_full]['collision']['grasp_00000'][
-                'obstacle2_mesh_frame_world'][()]
-            obstacle3_mesh_frame_world = hdf[obj_full]['collision']['grasp_00000'][
-                'obstacle3_mesh_frame_world'][()]
-
+                # [7,] pose
+                obstacle1_mesh_frame_world = hdf[obj_full]['negative']['grasp_00000'][
+                    'obstacle1_mesh_frame_world'][()]
+                obstacle2_mesh_frame_world = hdf[obj_full]['negative']['grasp_00000'][
+                    'obstacle2_mesh_frame_world'][()]
+                obstacle3_mesh_frame_world = hdf[obj_full]['negative']['grasp_00000'][
+                    'obstacle3_mesh_frame_world'][()]
+            except KeyError:
+                continue
         obstacle_objects = find_objects(all_objects, obstacle1_name, obstacle2_name,
                                         obstacle3_name)
         ###########################################
@@ -226,7 +223,7 @@ if __name__ == '__main__':
             time0 = time()
             grasp_client.remove_obstacle_objects(obstacle_objects, moveit=False)
             time1 = time()
-            print('time to remove obstacle objects,', time1 - time0)
+            print('time to remove bstacle objects,', time1 - time0)
             # Spawn object in random position and orientation. NOTE: currently this will only spawn the objects upright with random z orientation
             grasp_client.spawn_object(pose_type='random')
             time2 = time()
@@ -245,9 +242,7 @@ if __name__ == '__main__':
             #test_grasp_pose_transform(dset_obj_name=obj_full, grasp_client=grasp_client)
 
             # Lookup transform between current mesh frame and object_centroid_vae
-            # object_centroid_vae is the center of the partial point cloud from the object
-
-            # TODO: this transform has object_centroid_vae in the target object centroid, not all objects.
+            # object_centroid_vae is the center of the estimation bbox center about the partial point cloud from the object
             transform_cent_mf = grasp_client.tf_buffer.lookup_transform(
                 "object_centroid_vae",
                 "object_mesh_frame",
@@ -257,7 +252,7 @@ if __name__ == '__main__':
             # Bring the transform to list format
             trans_cent_mf_list = utils.trans_rot_list_from_ros_transform(transform_cent_mf)
 
-            # Save the transform to file. The grasps are in centroid frame so the saved mesh frame needs to be transformed to centroid frame.
+            # Save the transform to file
             save_mesh_frame_centroid_tf(obj_full, pcd_tfs_path, obj_full_pcd, trans_cent_mf_list)
 
             # Also save mesh frame world tf

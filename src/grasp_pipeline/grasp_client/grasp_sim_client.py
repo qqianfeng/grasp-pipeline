@@ -551,8 +551,7 @@ class GraspClient():
         palm_pose.pose.orientation.y = trans.transform.rotation.y
         palm_pose.pose.orientation.z = trans.transform.rotation.z
         palm_pose.pose.orientation.w = trans.transform.rotation.w
-        # It happened once that this message is time out so we increase it from 5 to 20
-        joint_state = rospy.wait_for_message("/hithand/joint_states", JointState, timeout=20)
+        joint_state = rospy.wait_for_message("/hithand/joint_states", JointState, timeout=5)
         return palm_pose, joint_state
 
     def get_grasp_object_pose_client(self, obj_name=''):
@@ -1053,7 +1052,7 @@ class GraspClient():
             res = save_visual_data(req)
         except rospy.ServiceException, e:
             rospy.logerr('Service save_visual_data call failed: %s' % e)
-        rospy.logdebug('Service save_visual_data is executed %s' % res.success)
+        #rospy.logdebug('Service save_visual_data is executed %s' % res.success) # commented 
 
     def segment_object_client(self,
                               align_object_world=True,
@@ -1523,6 +1522,7 @@ class GraspClient():
         reset_plan_exists = self.plan_reset_trajectory_client()
         if reset_plan_exists:
             self.execute_joint_trajectory_client()
+        self.delete_hand()
 
     def reset_tracking(self):
         self.reset_tracking_client()

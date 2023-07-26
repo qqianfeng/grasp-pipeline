@@ -6,15 +6,15 @@
     <arg name="simulation" default="false"/>
 
     <!-- +++++++++++++++++++ Set the params needed by the different nodes ++++++++++++++++++++++++++++++++ -->
-    <param name="object_pcd_path"           value="/home/vm/object.pcd"                     type="string"/>
-    <param name="object_pcd_enc_path"       value="/home/vm/pcd_enc.npy"                    type="string"/>
-    <param name="scene_pcd_path"            value="/home/vm/scene.pcd"                      type="string"/>
-    <param name="object_datasets_folder"    value="/home/vm/Projects/gazebo-objects"        type="string"/>
-    <param name="color_img_save_path"       value="/home/vm/scene.jpg"                      type="string"/>
-    <param name="depth_img_save_path"       value="/home/vm/depth.png"                      type="string"/>
-    <param name="ffhnet_path"               value="/home/vm/hand_ws/src/ffhnet"             type="string"/>
-    <param name="data_recording_path"       value="/home/vm"                                type="string"/>
-    <param name="hithand_ws_path"           value="/home/vm/hand_ws"                        type="string"/>
+    <param name="object_pcd_path"           value="/home/david/object.pcd"                     type="string"/>
+    <param name="object_pcd_enc_path"       value="/home/david/pcd_enc.npy"                    type="string"/>
+    <param name="scene_pcd_path"            value="/home/david/scene.pcd"                      type="string"/>
+    <param name="object_datasets_folder"    value="/home/david/Projects/gazebo-objects"        type="string"/>
+    <param name="color_img_save_path"       value="/home/david/scene.jpg"                      type="string"/>
+    <param name="depth_img_save_path"       value="/home/david/depth.png"                      type="string"/>
+    <param name="ffhnet_path"               value="/home/david/hand_ws/src/ffhnet"             type="string"/>
+    <param name="data_recording_path"       value="/home/david"                                type="string"/>
+    <param name="hithand_ws_path"           value="/home/david/hand_ws"                        type="string"/>
     <param name="color_img_topic"           value="/camera/color/image_raw"                 type="string"/>
     <param name="scene_pcd_topic"           value="/camera/depth/points" if="$(arg simulation)" type="string"/>
     <param name="scene_pcd_topic"           value="/camera/depth/color/points" unless="$(arg simulation)" type="string"/>

@@ -210,34 +210,14 @@ class ObjectSegmenter():
             markerArray.markers.append(marker)
         self.bounding_box_corner_vis_pub.publish(markerArray)
 
-    def _add_ground_to_segmentation(self, scene_pcd, object_pcd):
-        """ Add ground point cloud with a ground margin exceeding the object bbox
-        """
-        scene_points = np.asarray(scene_pcd.points)
-        object_points = np.asarray(object_pcd.points)
-        ground_margin = 0.01 # m
-        min_x = np.min(object_points[:,0]) -ground_margin
-        max_x = np.max(object_points[:,0]) + ground_margin
-        min_y = np.min(object_points[:,1]) - ground_margin
-        max_y = np.max(object_points[:,1]) + ground_margin
-        points = scene_points[scene_points[:,0]>min_x]
-        points = points[points[:,0]<max_x]
-        points = points[points[:,1]>min_y]
-        points = points[points[:,1]<max_y]
-        pcd = o3d.geometry.PointCloud()
-        pcd.points = o3d.utility.Vector3dVector(points)
-        return pcd
-
     def handle_segment_object(self, req):
         print("handle_segment_object received the service call")
 
         self.scene_pcd_path = req.scene_pcd_path
         self.object_pcd_path = req.object_pcd_path
 
-        # if they are equal, segmentation is done by grabcut before hand so plane segmentation should be skipped
-        if self.scene_pcd_path == self.object_pcd_path:
+        if self.scene_pcd_path == self.object_pcd_path: # if they are equal, segmentation is done by grabcut before hand so plane segmentation should be skipped
             object_pcd = o3d.io.read_point_cloud(self.scene_pcd_path)
-        # otherwise run plane segmentation
         else:
             pcd = o3d.io.read_point_cloud(self.scene_pcd_path)
             # segment the panda base from point cloud
@@ -247,7 +227,7 @@ class ObjectSegmenter():
             # currently the mask cropping is removed
             mask1 = points[:, 0] > self.x_min
             mask2 = points[:, 2] < self.z_max
-            mask = np.logical_and(mask1, mask2)
+            mask = np.logical_and(mask1,mask2)
             del pcd
             pcd = o3d.geometry.PointCloud()
             pcd.points = o3d.utility.Vector3dVector(points[mask])
@@ -266,10 +246,6 @@ class ObjectSegmenter():
             print("draw the object pcd")
             self.custom_draw_object(object_pcd)
 
-            # add plane point cloud
-            object_pcd = self._add_ground_to_segmentation(pcd,object_pcd)
-            print("draw the object pcd with ground")
-            self.custom_draw_object(object_pcd)
             del pcd, points, colors
 
         # compute normals of object
@@ -283,6 +259,7 @@ class ObjectSegmenter():
         # downsample point cloud or make mean free if downsampling is not requested
         if req.down_sample_pcd:
             object_pcd = object_pcd.voxel_down_sample(voxel_size=0.003)
+
 
         self.custom_draw_scene(object_pcd)
 
@@ -336,16 +313,11 @@ class ObjectSegmenter():
         if os.path.exists(self.object_pcd_path):
             os.remove(self.object_pcd_path)
 
-        # only in the data_gen_pipeline.py, data_gen_pipeline_multi_obj and verify_collision_label.py,
-        # down_sample_pcd is set to true.
-        # TODO: fix this super wired flag
         if not req.down_sample_pcd:  # if req.down_sample is false, we assume this should be stored in VAE format, therefore transform the cloud back to camera frame
             self.object_centroid = object_pcd.get_center()
-            # if no need to transfer to world frame, pcd stay in self center frame.
             if not req.need_to_transfer_pcd_to_world_frame:
                 object_pcd.transform(self.camera_T_world)
                 object_pcd.translate((-1) * object_pcd.get_center())
-            # else pcd stays in world frame
             print("pcd in world frame")
             self.custom_draw_scene(object_pcd)
 
