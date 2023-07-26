@@ -352,6 +352,9 @@ class GraspSampler():
         self.heuristic_preshapes = None
         self.grasps_available = True
 
+    def update_grasps_available(self, grasps_available):
+        self.grasps_available = grasps_available
+
     def get_object_segment_response(self, object_segment_response):
         self.object_segment_response = object_segment_response
 

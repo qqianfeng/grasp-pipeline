@@ -90,6 +90,8 @@ if __name__ == '__main__':
 
                 # Grasp and lift object
                 grasp_arm_plan = grasp_controller.grasp_and_lift_object()
+                # Update grasps available if all grasp idxs used 
+                grasp_sampler.update_grasps_available(grasp_controller.grasps_available)
 
                 # Save all grasp data including post grasp images
                 grasp_data_rec.get_palm_poses(grasp_controller.palm_poses)

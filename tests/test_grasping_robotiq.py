@@ -438,6 +438,8 @@ def main_data_gen(hand):
 
                 # Grasp and lift object
                 grasp_arm_plan = grasp_controller.grasp_and_lift_object()
+                # Update grasps available if grasp idxs empty 
+                grasp_sampler.update_grasps_available(grasp_controller.grasps_available)
 
                 # Save all grasp data including post grasp images
                 grasp_data_rec.get_palm_poses(grasp_controller.palm_poses)
@@ -455,6 +457,10 @@ def main_data_gen(hand):
                 # only for test:
                 if j >= 1 :
                     grasp_sampler.grasps_available = False
+                    # To debug grasp sampler idxs:
+                    # grasp_sampler.top_idxs = []
+                    # grasp_sampler.side1_idxs = []
+                    # grasp_sampler.side2_idxs = []
             # Finally write the time to file it took to test all poses
             grasp_data_rec.log_object_cycle_time(time.time() - object_cycle_start)
 
