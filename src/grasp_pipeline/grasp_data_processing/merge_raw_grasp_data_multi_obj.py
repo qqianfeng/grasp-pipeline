@@ -196,12 +196,12 @@ def create_grasp_group(group, idx):
     return group.create_group('grasp_' + str(idx).zfill(5))
 
 
-def log_idxs(path, obj, pos, neg, coll, non_coll):
-    l = [obj, pos, neg, coll, non_coll]
+def log_idxs(path, obj, pos, neg, coll): #, non_coll):
+    l = [obj, pos, neg, coll] #, non_coll]
     if os.path.exists(path):
         string = ''
     else:
-        string = 'obj_name \t \t \t pos \t neg \t coll \t non_coll \n'
+        string = 'obj_name \t \t \t pos \t neg \t coll \n' # \t non_coll \n'
     with open(path, 'a') as f:
         for i, txt in enumerate(l):
             string += str(txt) + '\t'
@@ -214,8 +214,8 @@ def log_idxs(path, obj, pos, neg, coll, non_coll):
 
 if __name__ == "__main__":
     # base_path contains all folders each contains a complete recording data.
-    base_path = '/data/hdd1/qf/hithand_data/collision_only_data'
-    dst_path = '/data/hdd1/qf/hithand_data/collision_only_data/grasp_data_all.h5'
+    base_path = '/data/hdd1/qf/hithand_data/clutter_data_2'
+    dst_path = '/data/hdd1/qf/hithand_data/clutter_data_2/grasp_data_all.h5'
     hdf_dst = h5py.File(dst_path, 'a')
 
     # go through all the dirs, each dir contains one grasp_data.h5
@@ -231,21 +231,21 @@ if __name__ == "__main__":
             print 'All objects: ', src_objs_gp.keys()
             for obj in src_objs_gp.keys():
                 print('Processing object:', obj)
-                # if obj == 'bigbird_3m_high_tack_spray_adhesive':
-                #     print('here')
+                if obj == 'kit_BakingSoda':
+                    print('here')
                 # Grasp idxs
                 pos_idx = 0
                 neg_idx = 0
                 coll_idx = 0
                 # For quick collision dataset
-                non_coll_idx = 0
+                # non_coll_idx = 0
                 # Get the object_group in dest file
                 if obj not in hdf_dst.keys():
                     dst_obj_gp = hdf_dst.create_group(obj)
                     dst_obj_gp.create_group('positive')
                     dst_obj_gp.create_group('negative')
                     dst_obj_gp.create_group('collision')
-                    dst_obj_gp.create_group('non_collision_not_executed')
+                #     dst_obj_gp.create_group('non_collision_not_executed')
                 else:
                     dst_obj_gp = hdf_dst[obj]
                     if dst_obj_gp[P].keys():
@@ -291,7 +291,7 @@ if __name__ == "__main__":
 
                 # Finally log the pos, neg coll idx to a txt file
                 path = os.path.join(base_path, 'obj_metadata.txt')
-                log_idxs(path, obj, pos_idx, neg_idx, coll_idx, non_coll_idx)
+                log_idxs(path, obj, pos_idx, neg_idx, coll_idx)#, non_coll_idx)
 
     # Create pandas dataframe and log
     save_path = os.path.join(os.path.split(dst_path)[0], 'metadata.csv')

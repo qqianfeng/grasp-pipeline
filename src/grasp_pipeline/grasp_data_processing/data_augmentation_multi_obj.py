@@ -146,10 +146,10 @@ def save_mesh_frame_world_tf(obj_full, full_save_path, obj_full_pcd, tf_list):
 if __name__ == '__main__':
     ##### Some "hyperparameters" #####
     # For debug purpose, create a file like 'new_data' and replace the name.
-    n_pcds_per_obj = 50
+    n_pcds_per_obj = 100 #50
     # input_grasp_data_file = os.path.join('/home',os.getlogin(),'new_data_full/grasp_data_all.h5')
     input_grasp_data_file = os.path.join(
-        '/data/hdd1/qf/hithand_data/collision_only_data/grasp_data_all.h5')
+        '/data/hdd1/qf/hithand_data/clutter_data_2/grasp_data_all.h5')
     # gazebo_objects_path = os.path.join('/home', os.getlogin(), 'gazebo-objects/objects_gazebo/')
     gazebo_objects_path = os.path.join('/home', os.getlogin(),
                                        'Projects/gazebo-objects/objects_gazebo/')
@@ -159,16 +159,12 @@ if __name__ == '__main__':
 
     # Make the base directory
     # dest_folder = os.path.join('/home', os.getlogin(), 'new_data_full/')
-    dest_folder = '/data/hdd1/qf/hithand_data/collision_only_data_with_ground/'
+    dest_folder = '/data/hdd1/qf/hithand_data/clutter_data_2/'
     pcds_folder = os.path.join(dest_folder, 'point_clouds')
     pcd_tfs_path = os.path.join(dest_folder, 'pcd_transforms.h5')
     mkdir(pcds_folder)
-    # data_recording_path = os.path.join('/home', os.getlogin(), 'new_data_full/')
-    data_recording_path = '/data/hdd1/qf/hithand_data/collision_only_data_with_ground'
-    ######################################
-
-    all_objects = get_all_objects(gazebo_objects_path)
-
+    data_recording_path = os.path.join('/home', os.getlogin(), 'new_data_full/')
+    data_recording_path = '/data/hdd1/qf/hithand_data/clutter_data_2'
     # Instantiate grasp client
     grasp_client = GraspClient(is_rec_sess=True, grasp_data_recording_path=data_recording_path)
     metadata_handler = MetadataHandler(gazebo_objects_path)
@@ -245,9 +241,7 @@ if __name__ == '__main__':
             #test_grasp_pose_transform(dset_obj_name=obj_full, grasp_client=grasp_client)
 
             # Lookup transform between current mesh frame and object_centroid_vae
-            # object_centroid_vae is the center of the partial point cloud from the object
-
-            # TODO: this transform has object_centroid_vae in the target object centroid, not all objects.
+            # object_centroid_vae is the center of the estimation bbox center about the partial point cloud from the objects
             transform_cent_mf = grasp_client.tf_buffer.lookup_transform(
                 "object_centroid_vae",
                 "object_mesh_frame",

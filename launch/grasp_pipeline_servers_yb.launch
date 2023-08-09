@@ -3,7 +3,7 @@
 <launch>
     <!-- +++++++NOTE: The different paths in the args must be modified for your machine. ++++++++ -->
     <arg name="sim"                     default="true"/>
-    <arg name="data_recording_path"     default="/data/hdd1/qf/hithand_data/clutter_data/clutter_data_test"/>
+    <arg name="data_recording_path"     default="/data/hdd1/qf/hithand_data/clutter_data_2"/>
     <!-- <arg name="data_recording_path"     default="/tmp/"/> -->
 
     <arg name="object_datasets_folder"  default="/home/yb/Projects/gazebo-objects"/>
