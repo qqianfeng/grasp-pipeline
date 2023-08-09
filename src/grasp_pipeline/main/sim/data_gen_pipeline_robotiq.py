@@ -32,12 +32,12 @@ if __name__ == '__main__':
     for i in range(metadata_handler.get_total_num_objects()):
 
         # Specify the object to be grasped, its pose, dataset, type, name etc.
-        object_metadata = metadata_handler.choose_next_grasp_object()
+        object_metadata = metadata_handler.choose_next_grasp_object(case='generation')
 
         # update object metadata for all classes that require it
         for class_inst in [grasp_data_rec, grasp_sampler, object_spawner, grasp_controller]:
             class_inst.update_object_metadata(object_metadata)
-        
+
         # Loop over all 4 poses:
         for k, pose in enumerate(poses):
             print('trying pose '+str(k), pose )
@@ -90,7 +90,7 @@ if __name__ == '__main__':
 
                 # Grasp and lift object
                 grasp_arm_plan = grasp_controller.grasp_and_lift_object()
-                # Update grasps available if all grasp idxs used 
+                # Update grasps available if all grasp idxs used
                 grasp_sampler.update_grasps_available(grasp_controller.grasps_available)
 
                 # Save all grasp data including post grasp images
