@@ -163,11 +163,13 @@ if __name__ == '__main__':
     pcds_folder = os.path.join(dest_folder, 'point_clouds')
     pcd_tfs_path = os.path.join(dest_folder, 'pcd_transforms.h5')
     mkdir(pcds_folder)
-    data_recording_path = os.path.join('/home', os.getlogin(), 'new_data_full/')
+    # data_recording_path = os.path.join('/home', os.getlogin(), 'new_data_full/')
     data_recording_path = '/data/hdd1/qf/hithand_data/clutter_data_2'
     # Instantiate grasp client
     grasp_client = GraspClient(is_rec_sess=True, grasp_data_recording_path=data_recording_path)
     metadata_handler = MetadataHandler(gazebo_objects_path)
+
+    all_objects = get_all_objects(gazebo_objects_path)
 
     # Iterate over all objects
     for obj_full in objects:
