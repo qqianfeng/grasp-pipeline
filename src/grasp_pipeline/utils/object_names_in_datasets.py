@@ -62,7 +62,6 @@ YCB_OBJECTS = [
 #     'vo5_extra_body_volumizing_shampoo', 'white_rain_sensations_apple_blossom_hydrating_body_wash'
 # ]
 BIGBIRD_OBJECTS = [
-   'chewy_dipps_peanut_butter'
 ]
 BIGBIRD_OBJECTS_PROBLEMS = [
     'cholula_chipotle_hot_sauce',
@@ -107,32 +106,53 @@ BIGBIRD_OBJECTS_BEFORE_REMOVING_DATA_GEN = [
     'v8_fusion_peach_mango', 'vo5_extra_body_volumizing_shampoo',
     'white_rain_sensations_apple_blossom_hydrating_body_wash'
 ]
-KIT_OBJECTS = ['Wineglass']
-# KIT_OBJECTS = [
-#     'BakingSoda', 'BakingVanilla', 'BathDetergent', 'BlueSaltCube', 'BroccoliSoup',
-#     'CeylonTea', 'ChickenSoup',
-#     'ChocSticks', 'ChocolateBars', 'ChoppedTomatoes', 'CleaningCloths',
-#     'CoffeeCookies', 'CoffeeFilters2', 'CoffeeFilters',
-#     'CokePlasticSmallGrasp', 'CondensedMilk', 'CoughDropsBerries',
-#     'CoughDropsHoney', 'CoughDropsLemon', 'Curry', 'Deodorant', 'DropsCherry',
-#     'DropsOrange', 'FennelTea', 'FizzyTabletsCalcium', 'FizzyTablets',
-#     'FlowerCup', 'FruitBars', 'FruitDrink', 'FruitTea', 'GreenCup',
-#     'GreenSaltCylinder', 'HamburgerSauce', 'HerbSalt', 'HeringTin', 'HotPot2', 'HotPot',
-#     'HygieneSpray', 'InstantDumplings', 'InstantMousse', 'InstantSauce2',
-#     'InstantSauce', 'InstantSoup', 'InstantTomatoSoup', 'JamSugar',
-#     'Knaeckebrot', 'LivioClassicOil', 'MashedPotatoes', 'MelforBottle', 'MilkDrinkVanilla', 'MilkRice',
-#     'MuesliBars', 'NutCandy', 'NutellaGo', 'OrangeMarmelade', 'OrgFruitTea',
-#     'Paprika', 'Patches', 'Peanuts2', 'Peanuts', 'Peas', 'PineappleSlices',
-#     'Pitcher', 'PotatoeDumplings', 'PotatoeStarch', 'PowderedSugarMill',
-#     'PowderedSugar', 'RedCup', 'Rice', 'SardinesCan',
-#     'SauceThickener', 'SmallGlass', 'SoftCakeOrange', 'Sprayflask', 'Sprudelflasche',
-#     'StrawberryPorridge', 'Sweetener', 'TomatoHerbSauce', 'TomatoSauce', 'TomatoSoup',
-#     'Toothpaste', 'Waterglass',
-#     'WhippedCream', 'WhiteCup', 'Wineglass', 'YellowSaltCube2', 'YellowSaltCube',
-#     'YellowSaltCylinderSmall', 'YellowSaltCylinder'
-# ]
+KIT_OBJECTS = [
+    'BakingSoda', 'BakingVanilla', 'BathDetergent', 'BlueSaltCube', 'BroccoliSoup',
+    'CeylonTea', 'ChickenSoup',
+    'ChocSticks', 'ChocolateBars', 'ChoppedTomatoes', 'CleaningCloths',
+    'CoffeeCookies', 'CoffeeFilters2', 'CoffeeFilters',
+    'CokePlasticSmallGrasp', 'CondensedMilk', 'CoughDropsBerries',
+    'CoughDropsHoney', 'CoughDropsLemon', 'Curry', 'Deodorant', 'DropsCherry',
+    'DropsOrange', 'FennelTea', 'FizzyTabletsCalcium', 'FizzyTablets',
+    'FlowerCup', 'FruitBars', 'FruitDrink', 'FruitTea', 'GreenCup',
+    'GreenSaltCylinder', 'HamburgerSauce', 'HerbSalt', 'HeringTin', 'HotPot2', 'HotPot',
+    'HygieneSpray', 'InstantDumplings', 'InstantMousse', 'InstantSauce2',
+    'InstantSauce', 'InstantSoup', 'InstantTomatoSoup', 'JamSugar',
+    'Knaeckebrot', 'LivioClassicOil', 'MashedPotatoes', 'MelforBottle', 'MilkDrinkVanilla', 'MilkRice',
+    'MuesliBars', 'NutCandy', 'NutellaGo', 'OrangeMarmelade', 'OrgFruitTea',
+    'Paprika', 'Patches', 'Peanuts2', 'Peanuts', 'Peas', 'PineappleSlices',
+    'Pitcher', 'PotatoeDumplings', 'PotatoeStarch', 'PowderedSugarMill',
+    'PowderedSugar', 'RedCup', 'Rice', 'SardinesCan',
+    'SauceThickener', 'SmallGlass', 'SoftCakeOrange', 'Sprayflask', 'Sprudelflasche',
+    'StrawberryPorridge', 'Sweetener', 'TomatoHerbSauce', 'TomatoSauce', 'TomatoSoup',
+    'Toothpaste', 'Waterglass',
+    'WhippedCream', 'WhiteCup', 'Wineglass', 'YellowSaltCube2', 'YellowSaltCube',
+    'YellowSaltCylinderSmall', 'YellowSaltCylinder'
+]
 
 KIT_OBJECTS_DATA_GENERATED = [
+    'BakingSoda', 'BakingVanilla', 'BathDetergent', 'BlueSaltCube', 'BroccoliSoup',
+    'CeylonTea', 'ChickenSoup',
+    'ChocSticks', 'ChocolateBars', 'ChoppedTomatoes', 'CleaningCloths',
+    'CoffeeCookies', 'CoffeeFilters2', 'CoffeeFilters',
+    'CokePlasticSmallGrasp', 'CondensedMilk', 'CoughDropsBerries',
+    'CoughDropsHoney', 'CoughDropsLemon',
+    'Curry', 'Deodorant', 'DropsCherry',
+    'DropsOrange', 'FennelTea', 'FizzyTabletsCalcium', 'FizzyTablets',
+    'FlowerCup', 'FruitBars', 'FruitDrink', 'FruitTea', 'GreenCup',
+    'GreenSaltCylinder', 'HamburgerSauce', 'HerbSalt', 'HeringTin', 'HotPot2', 'HotPot',
+    'HygieneSpray', 'InstantDumplings', 'InstantMousse', 'InstantSauce2',
+    'InstantSauce', 'InstantSoup', 'InstantTomatoSoup', 'JamSugar',
+    # 'Knaeckebrot', 'LivioClassicOil', 'MashedPotatoes', 'MelforBottle', 'MilkDrinkVanilla', 'MilkRice',
+    # 'MuesliBars', 'NutCandy', 'NutellaGo', 'OrangeMarmelade', 'OrgFruitTea',
+    # 'Paprika', 'Patches', 'Peanuts2', 'Peanuts', 'Peas', 'PineappleSlices',
+    # 'Pitcher', 'PotatoeDumplings', 'PotatoeStarch', 'PowderedSugarMill',
+    # 'PowderedSugar', 'RedCup', 'Rice', 'SardinesCan',
+    # 'SauceThickener', 'SmallGlass', 'SoftCakeOrange', 'Sprayflask', 'Sprudelflasche',
+    # 'StrawberryPorridge', 'Sweetener', 'TomatoHerbSauce', 'TomatoSauce', 'TomatoSoup',
+    # 'Toothpaste', 'Waterglass',
+    # 'WhippedCream', 'WhiteCup', 'Wineglass', 'YellowSaltCube2', 'YellowSaltCube',
+    # 'YellowSaltCylinderSmall', 'YellowSaltCylinder'
 ]
 KIT_OBJECTS_DATA_FOR_POSTPROCESSING = [
     # 'BakingSoda', 'BakingVanilla',
