@@ -15,6 +15,13 @@ the conda python 3.8 (base) environment and starts the server `encode_pcd_with_b
 
 In order to debug the python2 script in vscode, you have to downgrade python extension to an old version in this link:
 <https://stackoverflow.com/questions/72214043/how-to-debug-python-2-7-code-with-vs-code>
+
+## Difference between hithand and robotiq pipeline
+In repo grasp-pipeline, switch branch between `collision-data-generation` for hithand or `robotiq` for robotiq.
+
+In repo panda-simulator, switch branch between
+`melodic-hithand` for hithand or `agile-modifications` for robotiq.
+
 ## Run test for robotiq
 
 Start the panda_simulator with robotiq\
