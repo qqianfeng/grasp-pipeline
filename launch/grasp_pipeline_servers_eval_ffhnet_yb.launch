@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <launch>
-    <arg name="sim"                     default="true"/>           
+    <arg name="sim"                     default="true"/>
     <arg name="launch_rosbridge"        default="true"/>
     <!-- +++++++++++++++++++ Set the params needed by the different nodes ++++++++++++++++++++++++++++++++ -->
     <param name="object_pcd_path"         value="/home/yb/object.pcd"       type="string" />
@@ -9,24 +9,28 @@
     <param name="scene_pcd_path"          value="/home/yb/scene.pcd"        type="string" />
     <param name="object_datasets_folder"  value="/home/yb/Projects/gazebo-objects"   type="string" />
     <param name="color_img_save_path"     value="/home/yb/scene.jpg"        type="string" />
-    <param name="depth_img_save_path"     value="/home/yb/depth.pgm"        type="string" />
+    <param name="depth_img_save_path"     value="/home/yb/depth.png"        type="string" />
+
     <param name="scene_pcd_topic"         value="/camera/depth/points"      type="string" />
     <param name="color_img_topic"         value="/camera/color/image_raw"   type="string" />
-    <param name="depth_img_topic"         value="/camera/depth/image_raw"   type="string" />   
+    <param name="depth_img_topic"         value="/camera/depth/image_raw"   type="string" />
     <param name="/use_sim_time"           value="true"                      type="bool"   />
-    <param name="ffhnet_path"             value="/home/yb/Projects/hithand_ws/src/FFHNet" type="string"/>
-    <param name="config_path"             value="/home/yb/Projects/hithand_ws/src/FFHNet/FFHNet/config/config_ffhnet_vm_test.yaml" type="string"/>
+    <param name="ffhnet_path"             value="/home/yb/Projects/hithand_ws/src/FFHNet-dev" type="string"/>
+    <param name="config_path"             value="/home/yb/Projects/hithand_ws/src/FFHNet-dev/FFHNet/config/config_ffhnet_yb.yaml" type="string"/>
+    <param name="multi_object_pcd_path"         value="/home/yb/multi_object.pcd"       type="string" />
+    <param name="multi_object_pcd_enc_path"     value="/home/by/multi_pcd_enc.npy" type="string"/>
+    <param name="multi_bps_path"          value="/data/hdd1/qf/hithand_data/clutter_data/basis_point_set_radius0.3.npy" type="string"/>
 
     <param name="hithand_ws_path"         value="/home/yb/Projects/hithand_ws" type="string"/>
     <param name="data_recording_path"     value="/tmp/" type="string"/>
-    <param name="visualize"               value="False"/> 
+    <param name="visualize"               value="False"/>
 
     <!-- Gazebo scene manager -->
     <node name="manage_gazebo_scene_node" pkg="grasp_pipeline" type="manage_gazebo_scene_server.py" output="screen"/>
-    
+
     <!-- Hand controller -->
     <node name="grasp_control_hithand_node" pkg="grasp_pipeline" type="grasp_control_sim_hithand_server.py" output="screen"/>
-    
+
     <!-- Manage moveit scene -->
     <node name="manage_moveit_scene_node" pkg="grasp_pipeline"
         type="manage_moveit_scene_server.py" output="screen">
@@ -38,7 +42,7 @@
 
     <!-- SMOOTH THE TRAJECTORY /-->
     <node name="get_smooth_trajectory_node" pkg="trajectory_smoothing" type="service" output="screen"/>
-    
+
     <!-- Execute planned joint trajectory server-->
     <node name="execute_joint_trajectory_server_node" pkg="grasp_pipeline" type="execute_joint_trajectory_server.py" output="screen"/>
 
@@ -57,7 +61,7 @@
     <!-- Node to handle the bps encoding-->
     <group if="$(arg launch_rosbridge)">
         <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
-        <node pkg="tf2_web_republisher" type="tf2_web_republisher" name="tf2_web_republisher"/>   
+        <node pkg="tf2_web_republisher" type="tf2_web_republisher" name="tf2_web_republisher"/>
         <node name="encode_pcd_with_bps" pkg="grasp_pipeline" type="encode_pcd_with_bps.sh" output="screen"/>
     </group>
 
