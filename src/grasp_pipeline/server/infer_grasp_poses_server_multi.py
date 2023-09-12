@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# works with FFHNet tag of ICRA2022
 import numpy as np
 import rospy
 import tf.transformations as tft
@@ -10,7 +9,8 @@ import sys
 sys.path.append(rospy.get_param('ffhnet_path'))
 
 from FFHNet.models.ffhnet import FFHNet
-from FFHNet.config.eval_config import EvalConfig
+from FFHNet.config.config import Config
+
 from FFHNet.utils import visualization
 
 from geometry_msgs.msg import PoseStamped
@@ -22,19 +22,25 @@ from sensor_msgs.msg import JointState
 class GraspInference():
     def __init__(self):
         rospy.init_node('grasp_inference_node')
-        cfg = EvalConfig().parse()
-        self.load_path = rospy.get_param('ffhnet_path')
-        self.FFHNet = FFHNet(cfg)
-        self.FFHNet.load_ffhgenerator(epoch=10,
-                                      load_path=os.path.join(self.load_path,'models/ffhgenerator'))
-        self.FFHNet.load_ffhevaluator(
-            epoch=30,
-            load_path=os.path.join(self.load_path, 'models/ffhevaluator'))
+        config_path = rospy.get_param('config_path')
+        config = Config(config_path)
+        cfg = config.parse()
+
         self.VISUALIZE = rospy.get_param('visualize', False)
+        self.pcd_path = rospy.get_param('object_pcd_path')
+        self.multi_pcd_path = rospy.get_param('multi_object_pcd_path')
+
+        self.FFHNet = FFHNet(cfg)
+        ffhnet_path = rospy.get_param('ffhnet_path')
+        self.FFHNet.load_ffhgenerator(epoch=10,
+                                      load_path=os.path.join(ffhnet_path, 'models/ffhgenerator'))
+        self.FFHNet.load_ffhevaluator(epoch=30,
+                                      load_path=os.path.join(ffhnet_path, 'models/ffhevaluator'))
+        self.FFHNet.load_ffhcolldetr(epoch=8,
+                                     load_path=os.path.join(ffhnet_path, 'models/ffhcolldetr'))
 
     def build_pose_list(self, rot_matrix, transl, frame_id='object_centroid_vae'):
-        assert rot_matrix.shape[1:] == (
-            3, 3), "Assumes palm rotation is 3*3 matrix."
+        assert rot_matrix.shape[1:] == (3, 3), "Assumes palm rotation is 3*3 matrix."
         assert rot_matrix.shape[0] == transl.shape[
             0], "Batch dimension of rot and trans not equal."
 
@@ -71,17 +77,17 @@ class GraspInference():
         # reshape
         bps_object = np.load(rospy.get_param('object_pcd_enc_path'))
         n_samples = req.n_poses
-        results = self.FFHNet.generate_grasps(
-            bps_object, n_samples=n_samples, return_arr=True)
+        results = self.FFHNet.generate_grasps(bps_object, n_samples=n_samples, return_arr=True)
+
+        filename = os.path.join(rospy.get_param('ffhnet_output_save_path'), 'generator.npy')
+        np.save(filename, results)
 
         if self.VISUALIZE:
-            visualization.show_generated_grasp_distribution(
-                self.pcd_path, results)
+            visualization.show_generated_grasp_distribution(self.pcd_path, results)
 
         # prepare response
         res = InferGraspPosesResponse()
-        res.palm_poses = self.build_pose_list(
-            results['rot_matrix'], results['transl'])
+        res.palm_poses = self.build_pose_list(results['rot_matrix'], results['transl'])
         res.joint_confs = self.build_joint_conf_list(results['joint_conf'])
 
         return res
@@ -108,8 +114,7 @@ class GraspInference():
             q = palm_pose.pose.orientation
             t = palm_pose.pose.position
 
-            rot_matrix_arr[i, :, :] = tft.quaternion_matrix(
-                [q.x, q.y, q.z, q.w])[:3, :3]
+            rot_matrix_arr[i, :, :] = tft.quaternion_matrix([q.x, q.y, q.z, q.w])[:3, :3]
             transl_arr[i, :] = [t.x, t.y, t.z]
             joint_arr[i, :] = np.array(joint_conf.position)
 
@@ -121,47 +126,83 @@ class GraspInference():
 
         return grasp_dict
 
+    # # For FFHNet evaluation
+    # def handle_evaluate_and_filter_grasp_poses(self, req):
+        # bps_object = np.load(rospy.get_param('object_pcd_enc_path'))
+        # grasp_dict = self.to_grasp_dict(req.palm_poses, req.joint_confs)
+
+        # # grasp_dict = self.FFHNet.filter_grasps_in_collision(bps_object, grasp_dict, thresh=req.thresh)
+
+        # results = self.FFHNet.filter_grasps(bps_object, grasp_dict, thresh=req.thresh)
+
+        # n_grasps_filt = results['rot_matrix'].shape[0]
+
+        # palm_poses = req.palm_poses
+        # n_samples = len(palm_poses)
+        # print("n_grasps after filtering: %d" % n_grasps_filt)
+        # print("This means %.2f of grasps pass the filtering" % (n_grasps_filt / n_samples))
+
+        # if self.VISUALIZE:
+        #     visualization.show_generated_grasp_distribution(self.pcd_path, results)
+
+        # # prepare response
+        # res = EvaluateAndFilterGraspPosesResponse()
+        # res.palm_poses = self.build_pose_list(results['rot_matrix'], results['transl'])
+        # res.joint_confs = self.build_joint_conf_list(results['joint_conf'])
+
+        # return res
+
+    # For DexFFHNet
     def handle_evaluate_and_filter_grasp_poses(self, req):
         bps_object = np.load(rospy.get_param('object_pcd_enc_path'))
+        multi_bps_object = np.load(rospy.get_param('multi_object_pcd_enc_path'))
+
         grasp_dict = self.to_grasp_dict(req.palm_poses, req.joint_confs)
-        results = self.FFHNet.filter_grasps(
-            bps_object, grasp_dict, thresh=req.thresh)
-
-        n_grasps_filt = results['rot_matrix'].shape[0]
-
         palm_poses = req.palm_poses
         n_samples = len(palm_poses)
-        print("n_grasps after filtering: %d" % n_grasps_filt)
-        print("This means %.2f of grasps pass the filtering" %
-              (n_grasps_filt / n_samples))
+
+        grasp_dict = self.FFHNet.filter_grasps_in_collision(multi_bps_object, grasp_dict, thresh=0.8)
+
+        filename = os.path.join(rospy.get_param('ffhnet_output_save_path'), 'coll_detector.npy')
+        np.save(filename, grasp_dict)
+
+        n_grasp_no_col = grasp_dict['rot_matrix'].shape[0]
+        print("This means %.2f of grasps pass the filtering" % (1.0 * n_grasp_no_col / n_samples))
 
         if self.VISUALIZE:
-            visualization.show_generated_grasp_distribution(
-                self.pcd_path, results)
+            visualization.show_generated_grasp_distribution(self.multi_pcd_path, grasp_dict)
+
+        grasp_dict = self.FFHNet.filter_grasps(bps_object, grasp_dict, thresh=req.thresh)
+
+        filename = os.path.join(rospy.get_param('ffhnet_output_save_path'), 'evaluator.npy')
+        np.save(filename, grasp_dict)
+
+        n_grasps_filt = grasp_dict['rot_matrix'].shape[0]
+        print("n_grasps after filtering: %d" % n_grasps_filt)
+        print("This means %.2f of grasps pass the filtering" % (1.0 * n_grasps_filt / n_samples))
+
+        if self.VISUALIZE:
+            visualization.show_generated_grasp_distribution(self.multi_pcd_path, grasp_dict)
 
         # prepare response
         res = EvaluateAndFilterGraspPosesResponse()
-        res.palm_poses = self.build_pose_list(
-            results['rot_matrix'], results['transl'])
-        res.joint_confs = self.build_joint_conf_list(results['joint_conf'])
+        res.palm_poses = self.build_pose_list(grasp_dict['rot_matrix'], grasp_dict['transl'])
+        res.joint_confs = self.build_joint_conf_list(grasp_dict['joint_conf'])
 
         return res
 
     def handle_evaluate_grasp_poses(self, req):
         bps_object = np.load(rospy.get_param('object_pcd_enc_path'))
         # Build a dict with all the grasps
-        p_success = self.FFHNet.evaluate_grasps(
-            bps_object, grasps, return_arr=True)
+        p_success = self.FFHNet.evaluate_grasps(bps_object, grasps, return_arr=True)
 
     def create_infer_grasp_poses_server(self):
-        rospy.Service('infer_grasp_poses', InferGraspPoses,
-                      self.handle_infer_grasp_poses)
+        rospy.Service('infer_grasp_poses', InferGraspPoses, self.handle_infer_grasp_poses)
         rospy.loginfo('Service infer_grasp_poses')
         rospy.loginfo('Ready to sample grasps from FFHGenerator.')
 
     def create_evaluate_grasp_poses_server(self):
-        rospy.Service('evaluate_grasp_poses', EvaluateGraspPoses,
-                      self.handle_evaluate_grasp_poses)
+        rospy.Service('evaluate_grasp_poses', EvaluateGraspPoses, self.handle_evaluate_grasp_poses)
         rospy.loginfo('Service evaluate_grasp_poses')
         rospy.loginfo('Ready to evaluate grasps with the FFHEvaluator.')
 
@@ -169,8 +210,7 @@ class GraspInference():
         rospy.Service('evaluate_and_filter_grasp_poses', EvaluateAndFilterGraspPoses,
                       self.handle_evaluate_and_filter_grasp_poses)
         rospy.loginfo('Service evaluate_and_filter_grasp_poses')
-        rospy.loginfo(
-            'Ready to evaluate and filter grasps with the FFHEvaluator.')
+        rospy.loginfo('Ready to evaluate and filter grasps with the FFHEvaluator.')
 
 
 if __name__ == '__main__':
