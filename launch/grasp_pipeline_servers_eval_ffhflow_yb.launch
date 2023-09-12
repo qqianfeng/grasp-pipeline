@@ -4,27 +4,25 @@
     <arg name="sim"                     default="true"/>
     <arg name="launch_rosbridge"        default="true"/>
     <!-- +++++++++++++++++++ Set the params needed by the different nodes ++++++++++++++++++++++++++++++++ -->
-    <param name="object_pcd_path"         value="/home/vm/object.pcd"       type="string" />
-    <param name="object_pcd_enc_path"     value="/home/vm/pcd_enc.npy" type="string"/>
-    <param name="multi_object_pcd_path"         value="/home/vm/multi_object.pcd"       type="string" />
-    <param name="multi_object_pcd_enc_path"     value="/home/vm/multi_pcd_enc.npy" type="string"/>
-    <param name="scene_pcd_path"          value="/home/vm/scene.pcd"        type="string" />
-    <param name="object_datasets_folder"  value="/home/vm/gazebo-objects"   type="string" />
-    <param name="color_img_save_path"     value="/home/vm/scene.jpg"        type="string" />
-    <param name="depth_img_save_path"     value="/home/vm/depth.png"        type="string" />
+    <param name="object_pcd_path"         value="/home/yb/object.pcd"       type="string" />
+    <param name="object_pcd_enc_path"     value="/data/hdd1/qf/hithand_data/ffhnet-data/basis_point_set.npy" type="string"/>
+    <param name="scene_pcd_path"          value="/home/yb/scene.pcd"        type="string" />
+    <param name="object_datasets_folder"  value="/data/hdd1/qf/gazebo-objects"   type="string" />
+    <param name="color_img_save_path"     value="/home/yb/scene.jpg"        type="string" />
+    <param name="depth_img_save_path"     value="/home/yb/depth.png"        type="string" />
+
     <param name="scene_pcd_topic"         value="/camera/depth/points"      type="string" />
     <param name="color_img_topic"         value="/camera/color/image_raw"   type="string" />
     <param name="depth_img_topic"         value="/camera/depth/image_raw"   type="string" />
     <param name="/use_sim_time"           value="true"                      type="bool"   />
-    <param name="ffhnet_path"             value="/home/vm/hand_ws/src/ffhnet" type="string"/>
-    <param name="config_path"             value="/home/vm/hand_ws/src/ffhnet/FFHNet/config/config_ffhnet_vm_test.yaml" type="string"/>
-    <param name="multi_bps_path"          value="/home/vm/new_data_full/basis_point_set.npy" type="string"/>
 
-    <param name="hithand_ws_path"         value="/home/vm/hand_ws" type="string"/>
-    <param name="data_recording_path"     value="/home/vm/experiment_data" type="string"/>
-    <param name="ffhnet_path"             value="/home/vm/hand_ws/src/ffhnet" type="string"/>
-    <param name="visualize"               value="True"/>
-    <param name="ffhnet_output_save_path"             value="/home/vm/ffh_outputs" type="string"/>
+    <param name="ffhflow_path"             value="/home/yb/workspace/FFHFlow" type="string"/>
+    <param name="model_cfg"             value="models/ffhflow_bpsmlp_normal_flow_pos_enc_localinn_data_norm/hparams.yaml" type="string"/>
+    <param name="ckpt_path"             value="models/ffhflow_bpsmlp_normal_flow_pos_enc_localinn_data_norm/epoch=16-step=199955.ckpt" type="string"/>
+
+    <param name="hithand_ws_path"         value="/home/yb/Projects/hithand_ws" type="string"/>
+    <param name="data_recording_path"     value="/data/hdd1/qf/sim_exp_ffhflow" type="string"/>
+    <param name="visualize"               value="False"/>
 
     <!-- Gazebo scene manager -->
     <node name="manage_gazebo_scene_node" pkg="grasp_pipeline" type="manage_gazebo_scene_server.py" output="screen"/>
@@ -47,9 +45,6 @@
     <!-- Execute planned joint trajectory server-->
     <node name="execute_joint_trajectory_server_node" pkg="grasp_pipeline" type="execute_joint_trajectory_server.py" output="screen"/>
 
-    <!-- Filter palm poses based on collision with object or ground plane -->
-    <node name="filter_palm_goal_poses_node" pkg="grasp_pipeline" type="filter_palm_goal_poses_server.py" output="screen"/>
-
     <!-- Save visual data node -->
     <node name="save_visual_data_node" pkg="grasp_pipeline" type="save_visual_data_server.py" output="screen"/>
 
@@ -59,23 +54,16 @@
     <!-- Node to update palm and object poses-->
     <node name="update_poses_node" pkg="grasp_pipeline" type="update_object_and_palm_tf_server.py" output="screen"/>
 
-    <!-- Node to infer grasp poses -->
-    <node name="infer_grasp_poses" pkg="grasp_pipeline" type="infer_grasp_poses_server.py" output="screen"/>
+    <!-- Node to infer grasp poses
+    <node name="infer_grasp_poses" pkg="grasp_pipeline" type="infer_grasp_poses_server.py" output="screen"/> -->
 
-    <!-- Node to handle the bps encoding -->
+    <!-- Node to handle the bps encoding-->
     <group if="$(arg launch_rosbridge)">
         <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
         <node pkg="tf2_web_republisher" type="tf2_web_republisher" name="tf2_web_republisher"/>
         <node name="encode_pcd_with_bps" pkg="grasp_pipeline" type="encode_pcd_with_bps.sh" output="screen"/>
-        <!-- <node name="infer_ffhflow" pkg="grasp_pipeline" type="infer_ffhflow.sh" output="screen"/> -->
-
-    </group>
-
-    <!-- <group if="$(arg launch_rosbridge)">
-        <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
-        <node pkg="tf2_web_republisher" type="tf2_web_republisher" name="tf2_web_republisher2"/>
         <node name="infer_ffhflow" pkg="grasp_pipeline" type="infer_ffhflow.sh" output="screen"/>
-    </group> -->
+    </group>
 
     <!-- Record grasping data -->
     <node name="record_grasp_and_collision_data_node" pkg="grasp_pipeline" type="record_grasp_and_collision_data_server.py" output="screen"/>
