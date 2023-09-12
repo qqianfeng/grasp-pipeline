@@ -9,14 +9,13 @@ import rospy
 import numpy as np
 import h5py
 from time import time
-import pickle
 
 from grasp_pipeline.grasp_client.grasp_sim_client import GraspClient
 from grasp_pipeline.utils.metadata_handler import MetadataHandler
 from grasp_pipeline.utils.grasp_data_handler import GraspDataHandler
 import grasp_pipeline.utils.utils as utils
 from grasp_pipeline.utils.object_names_in_datasets import *
-from grasp_pipeline.utils.check_gazebo_collision import get_contact, check_collision
+
 
 def mkdir(base_folder, folder_name=None):
     path = os.path.join(base_folder, folder_name) if folder_name is not None else base_folder
@@ -151,7 +150,8 @@ if __name__ == '__main__':
 
     # This h5 should be the file that is merged
     # input_grasp_data_file = '/home/vm/Documents/grasp_data_all.h5'
-    input_grasp_data_file = '/data/hdd1/qf/hithand_data/collision_only_data_new/grasp_data_all.h5'
+    input_grasp_data_file = '/data/hdd1/qf/hithand_data/collision_only_data_with_ground/grasp_data_all.h5'
+    pcd_transform_path = '/data/hdd1/qf/hithand_data/collision_only_data_with_ground/pcd_transforms.h5'
     gazebo_objects_path = '/home/yb/Projects/gazebo-objects/objects_gazebo/'
     # gazebo_objects_path = '/home/vm/gazebo-objects/objects_gazebo/'
 
@@ -175,120 +175,127 @@ if __name__ == '__main__':
         for obj_full_name in hdf.keys():
             if obj_full_name.split('_')[0] == 'bigbird':
                 continue
-            if obj_full_name != 'kit_BakingVanilla':
-                continue
             obj_data = hdf[obj_full_name]  # -> collision, negative, positive
 
             # test_data = obj_data['collision']
             test_data = obj_data['non_collision_not_executed']
             # test_data = obj_data['negative']
 
-            collision_grasp = test_data[test_data.keys()[0]]
-            object_mesh_frame_world = collision_grasp['object_mesh_frame_world'][()]
-            object_mesh_frame_world_mat = utils.hom_matrix_from_pos_quat_list(
+            for idx in range(10):
+                collision_grasp = test_data[test_data.keys()[0]]
+                old_object_mesh_frame_world = collision_grasp['object_mesh_frame_world'][()]
+                old_object_mesh_frame_world_mat = utils.hom_matrix_from_pos_quat_list(
+                    old_object_mesh_frame_world)
+
+                with h5py.File(pcd_transform_path, 'r') as transf:
+                    obj_transf = transf[obj_full_name]
+                    pcd_name = obj_full_name + '_pcd' + str(idx).zfill(3)
+                    object_mesh_frame_world = obj_transf[pcd_name + '_mesh_to_world'][()]
+
+                object_mesh_frame_world_mat = utils.hom_matrix_from_pos_quat_list(object_mesh_frame_world)
+
+                # Get obstacle names and poses
+                obstacle1_name = collision_grasp['obstacle1_name'][()]
+                obstacle2_name = collision_grasp['obstacle2_name'][()]
+                obstacle3_name = collision_grasp['obstacle3_name'][()]
+
+                # [7,] pose, trans+quat
+                obstacle1_mesh_frame_world = collision_grasp['obstacle1_mesh_frame_world'][()]
+                obstacle2_mesh_frame_world = collision_grasp['obstacle2_mesh_frame_world'][()]
+                obstacle3_mesh_frame_world = collision_grasp['obstacle3_mesh_frame_world'][()]
+
+                obstacle_objects = find_objects(all_objects, obstacle1_name, obstacle2_name,
+                                                obstacle3_name)
+
+                dset = obj_full_name.split('_')[0]
+                obj_name = obj_full_name[len(dset) + 1:]
+                # Get metadata for new object and set in grasp_client
+                object_metadata = metadata_handler.get_object_metadata(dset, obj_name)
+                grasp_client.update_object_metadata(object_metadata)
+
+                # grasp_client.create_dirs_new_grasp_trial(
+                #     is_new_pose_or_object=True)  # TODO: here True is not always true?
+
+                grasp_client.remove_obstacle_objects(obstacle_objects, moveit=False)
+
+                # Spawn object in random position and orientation. NOTE: currently this will only spawn the objects upright with random z orientation
+                array_object_mesh_frame_world = utils.get_array_from_rot_quat_list(
                     object_mesh_frame_world)
-            # Get obstacle names and poses
-            obstacle1_name = collision_grasp['obstacle1_name'][()]
-            obstacle2_name = collision_grasp['obstacle2_name'][()]
-            obstacle3_name = collision_grasp['obstacle3_name'][()]
+                grasp_client.spawn_object(
+                    pose_type='replicate', pose_arr=array_object_mesh_frame_world)
 
-            # [7,] pose, trans+quat
-            obstacle1_mesh_frame_world = collision_grasp['obstacle1_mesh_frame_world'][()]
-            obstacle2_mesh_frame_world = collision_grasp['obstacle2_mesh_frame_world'][()]
-            obstacle3_mesh_frame_world = collision_grasp['obstacle3_mesh_frame_world'][()]
+                # grasp_client.set_path_and_save_visual_data(grasp_phase="single")
 
-            obstacle_objects = find_objects(all_objects, obstacle1_name, obstacle2_name,
-                                            obstacle3_name)
+                # First take a shot of the scene and store RGB, depth and point cloud to disk
+                # Then segment the object point cloud from the rest of the scene
+                grasp_client.segment_object_client(down_sample_pcd=True)
 
-            dset = obj_full_name.split('_')[0]
-            obj_name = obj_full_name[len(dset) + 1:]
-            # Get metadata for new object and set in grasp_client
-            object_metadata = metadata_handler.get_object_metadata(dset, obj_name)
-            grasp_client.update_object_metadata(object_metadata)
+                ###############################################
+                # Segment object and save visual data
+                # grasp_client.set_path_and_save_visual_data(
+                #     grasp_phase='single', object_pcd_record_path=single_pcd_save_path)
+                # grasp_client.segment_object_client(
+                #     down_sample_pcd=False, need_to_transfer_pcd_to_world_frame=True)
+                # print('time to segment single object,', time() - time2)
 
-            # grasp_client.create_dirs_new_grasp_trial(
-            #     is_new_pose_or_object=True)  # TODO: here True is not always true?
+                new_pose = grasp_client.get_grasp_object_pose_client()
+                new_pose_matrix = utils.hom_matrix_from_pose(new_pose)
+                old_pose_matrix = utils.hom_matrix_from_pos_quat_list(old_object_mesh_frame_world)
+                # new_pose = new_T_old * old_pose
+                # new_pose * old_pose^-1 = new_T_old
+                new_T_old = np.matmul(new_pose_matrix, np.linalg.inv(old_pose_matrix))
 
-            grasp_client.remove_obstacle_objects(obstacle_objects, moveit=False)
+                old_obstacle1_pose = utils.hom_matrix_from_pos_quat_list(obstacle1_mesh_frame_world)
+                old_obstacle2_pose = utils.hom_matrix_from_pos_quat_list(obstacle2_mesh_frame_world)
+                old_obstacle3_pose = utils.hom_matrix_from_pos_quat_list(obstacle3_mesh_frame_world)
 
-            # Spawn object in random position and orientation. NOTE: currently this will only spawn the objects upright with random z orientation
-            array_object_mesh_frame_world = utils.get_array_from_rot_quat_list(
-                object_mesh_frame_world)
-            grasp_client.spawn_object(
-                pose_type='replicate', pose_arr=array_object_mesh_frame_world)
+                new_obstacle1_pose = np.matmul(new_T_old, old_obstacle1_pose)
+                new_obstacle2_pose = np.matmul(new_T_old, old_obstacle2_pose)
+                new_obstacle3_pose = np.matmul(new_T_old, old_obstacle3_pose)
+                new_obstacle1_pose_stamped = utils.pose_stamped_from_hom_matrix(
+                    new_obstacle1_pose, frame_id='mesh_frame_pose')
+                new_obstacle2_pose_stamped = utils.pose_stamped_from_hom_matrix(
+                    new_obstacle2_pose, frame_id='mesh_frame_pose')
+                new_obstacle3_pose_stamped = utils.pose_stamped_from_hom_matrix(
+                    new_obstacle3_pose, frame_id='mesh_frame_pose')
 
-            # grasp_client.set_path_and_save_visual_data(grasp_phase="single")
+                for obj in obstacle_objects:
+                    if obj['name'] == obstacle1_name:
+                        assign_obstacle_objects_pose(obj, new_obstacle1_pose_stamped)
+                    elif obj['name'] == obstacle2_name:
+                        assign_obstacle_objects_pose(obj, new_obstacle2_pose_stamped)
+                    elif obj['name'] == obstacle3_name:
+                        assign_obstacle_objects_pose(obj, new_obstacle3_pose_stamped)
+                    else:
+                        raise ValueError("obj name not found", obj['name'])
 
-            # First take a shot of the scene and store RGB, depth and point cloud to disk
-            # Then segment the object point cloud from the rest of the scene
-            grasp_client.segment_object_client(down_sample_pcd=True)
+                grasp_client.spawn_obstacle_objects(obstacle_objects, moveit=False)
 
-            ###############################################
-            # Segment object and save visual data
-            # grasp_client.set_path_and_save_visual_data(
-            #     grasp_phase='single', object_pcd_record_path=single_pcd_save_path)
-            # grasp_client.segment_object_client(
-            #     down_sample_pcd=False, need_to_transfer_pcd_to_world_frame=True)
-            # print('time to segment single object,', time() - time2)
+                # visualize the hand in the scene
+                target_obj_pose = grasp_client.get_grasp_object_pose_client()
+                obstacle_obj_poses = grasp_client.get_obstacle_objects_poses(obstacle_objects)
 
-            obstacle1_pose = utils.hom_matrix_from_pos_quat_list(obstacle1_mesh_frame_world)
-            obstacle2_pose = utils.hom_matrix_from_pos_quat_list(obstacle2_mesh_frame_world)
-            obstacle3_pose = utils.hom_matrix_from_pos_quat_list(obstacle3_mesh_frame_world)
+                for grasp_id in test_data.keys():
+                    # Collision: Tested until 00039
+                    # grasp_00006 and 00026 ,00029, 00036!!!!,seems no collision but hand is very close to the target object -> reason probably
+                    # is the collision model is simplified and not same as visual model
+                    # Positive: test 00000 it's close.
+                    # Negative: test 00001 it's close, 20% are very close
+                    # if int(grasp_id.split('_')[1]) <= 6:
+                    #     continue
+                    print("verify grasp of", grasp_id)
+                    collision_grasp = test_data[grasp_id]
 
-            obstacle1_pose_stamped = utils.pose_stamped_from_hom_matrix(
-                obstacle1_pose, frame_id='mesh_frame_pose')
-            obstacle2_pose_stamped = utils.pose_stamped_from_hom_matrix(
-                obstacle2_pose, frame_id='mesh_frame_pose')
-            obstacle3_pose_stamped = utils.pose_stamped_from_hom_matrix(
-                obstacle3_pose, frame_id='mesh_frame_pose')
-            for obj in obstacle_objects:
-                if obj['name'] == obstacle1_name:
-                    assign_obstacle_objects_pose(obj, obstacle1_pose_stamped)
-                elif obj['name'] == obstacle2_name:
-                    assign_obstacle_objects_pose(obj, obstacle2_pose_stamped)
-                elif obj['name'] == obstacle3_name:
-                    assign_obstacle_objects_pose(obj, obstacle3_pose_stamped)
-                else:
-                    raise ValueError("obj name not found", obj['name'])
+                    # get grasp palm pose in worl frame
+                    palm_mesh_frame = collision_grasp['desired_preshape_palm_mesh_frame'][()]
+                    palm_mesh_frame_mat = utils.hom_matrix_from_pos_quat_list(palm_mesh_frame)
 
-            grasp_client.spawn_obstacle_objects(obstacle_objects, moveit=True)
+                    palm_world_frame_mat = np.matmul(object_mesh_frame_world_mat, palm_mesh_frame_mat)
+                    palm_world_frame_stamp = utils.pose_stamped_from_hom_matrix(
+                        palm_world_frame_mat, 'world')
 
-            # visualize the hand in the scene
-            target_obj_pose = grasp_client.get_grasp_object_pose_client()
-            obstacle_obj_poses = grasp_client.get_obstacle_objects_poses(obstacle_objects)
-
-            collision_count = 0
-            for grasp_id in test_data.keys():
-
-                # TODO: check if objects are moved if so respawn
-
-                print("verify grasp of", grasp_id)
-                collision_grasp = test_data[grasp_id]
-
-                # get grasp palm pose in worl frame
-                palm_mesh_frame = collision_grasp['desired_preshape_palm_mesh_frame'][()]
-
-                palm_mesh_frame_mat = utils.hom_matrix_from_pos_quat_list(palm_mesh_frame)
-                palm_world_frame_mat = np.matmul(object_mesh_frame_world_mat, palm_mesh_frame_mat)
-                palm_world_frame_stamp = utils.pose_stamped_from_hom_matrix(
-                    palm_world_frame_mat, 'world')
-
-                palm_world_arr = utils.get_pose_array_from_stamped(palm_world_frame_stamp)
-                grasp_client.spawn_hand(palm_world_arr)
-                rospy.sleep(0.5)
-                home_folder = os.path.expanduser('~')
-                coll_flag_path = os.path.join(home_folder,'collision_flag.pickle')
-                with open(coll_flag_path, 'rb') as file:
-                    b = pickle.load(file)
-                    print(b)
-                if b == True:
-                    collision_count += 1
-                    print(collision_count)
-                # get_contact()
-                # result = check_collision()
-                # print(result)
-
-                grasp_client.delete_hand()
-
-            print('found collisions of : ', collision_count)
-            print(1.0*collision_count/len(test_data.keys()))
+                    execution_success = grasp_client.visualize_hand(
+                        target_obj_pose,
+                        obstacle_objects,
+                        obstacle_obj_poses,
+                        hand_pose=palm_world_frame_stamp)

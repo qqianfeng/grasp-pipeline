@@ -26,7 +26,7 @@ gazebo_objects_path = os.path.join(object_datasets_folder, 'objects_gazebo')
 
 shutil.rmtree(path2grasp_data, ignore_errors=True)
 data_recording_path = rospy.get_param('data_recording_path')
-grasp_client = GraspClient(grasp_data_recording_path=data_recording_path, is_rec_sess=True, is_eval_sess=True)
+grasp_client = GraspClient(grasp_data_recording_path=data_recording_path, is_rec_sess=False, is_eval_sess=True)
 metadata_handler = MetadataHandler(gazebo_objects_path=gazebo_objects_path)
 object_metadata_buffer = None
 all_grasp_objects = []
@@ -112,6 +112,9 @@ for obj_full in obj_list:
     obstacle_objects = distribute_obstacle_objects_randomly(grasp_object_pose, obstacle_objects)
     grasp_client.remove_obstacle_objects(obstacle_objects)
     grasp_client.spawn_obstacle_objects(obstacle_objects, moveit=True)
+
+    grasp_client.save_visual_data(down_sample_pcd=False)
+
     ROIs, names = grasp_client.select_ROIs(obstacle_objects)
 
     for ROI, name in zip(ROIs, names):
