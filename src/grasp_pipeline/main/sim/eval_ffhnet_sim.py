@@ -8,11 +8,11 @@ import os
 
 from grasp_pipeline.grasp_client.grasp_sim_client import GraspClient
 from grasp_pipeline.utils.metadata_handler import MetadataHandler
-from grasp_pipeline.utils.object_names_in_datasets import OBJECTS_FOR_EVAL as obj_list
+from grasp_pipeline.utils.object_names_in_datasets import YCB_TEST_OBJECTS as obj_list
 # from grasp_pipeline.utils.object_names_in_datasets import OBJECTS_DATA_GEN_PAPER_VIDEO as obj_list
 
 # Define parameters:
-N_POSES = 400
+N_POSES = 100
 FILTER_THRESH = -1  # set to -1 if no filtering desired, default 0.9
 FILTER_NUM_GRASPS = 20
 NUM_TRIALS_PER_OBJ = 20
@@ -33,17 +33,22 @@ for obj_full in obj_list:
     #     print("Skipped")
     #     continue
 
-    dset, obj_name = metadata_handler.split_full_name(obj_full)
+    # dset, obj_name = metadata_handler.split_full_name(obj_full)
+    # # get metadata on object
+    # metadata = metadata_handler.get_object_metadata(dset, obj_name)
 
-    # get metadata on object
-    metadata = metadata_handler.get_object_metadata(dset, obj_name)
+    # for ycb
+    obj_name = obj_full
+    metadata = metadata_handler.get_object_metadata(False, obj_full)
+
     grasp_client.update_object_metadata(metadata)
 
     # create new folder
     grasp_client.create_dirs_new_grasp_trial(is_new_pose_or_object=True)
 
     rospy.loginfo("Now start experiement of object: %s" % obj_name)
-
+    total_trials = 0
+    success_trials = 0
     for trial in range(NUM_TRIALS_PER_OBJ):
         # Reset
         grasp_client.reset_hithand_and_panda()
@@ -72,7 +77,8 @@ for obj_full in obj_list:
         rospy.loginfo("The {} time of trial out of {}".format(trial, NUM_TRIALS_PER_OBJ))
         is_skipped = False
         for i in range(FILTER_NUM_GRASPS):
-            if i != 0 and not is_skipped:
+            rospy.loginfo('start a new grasp')
+            if i != 0:
                 grasp_client.reset_hithand_and_panda()
 
                 grasp_client.spawn_object(pose_type='same')
@@ -83,10 +89,13 @@ for obj_full in obj_list:
             #     continue
             # else:
             #     is_skipped = False
-
-            grasp_executed = grasp_client.grasp_from_inferred_pose(palm_poses_obj_frame[idx],
+            grasp_executed, grasp_label = grasp_client.grasp_from_inferred_pose(palm_poses_obj_frame[idx],
                                                                    joint_confs[idx])
             is_skipped = not grasp_executed
             if grasp_executed:
+                total_trials += 1
+                if grasp_label == 1:
+                    success_trials += 1
+                print('current status of %s success grasps out of %s trials', success_trials, total_trials)
                 grasp_client.record_grasp_trial_data_client()
                 break

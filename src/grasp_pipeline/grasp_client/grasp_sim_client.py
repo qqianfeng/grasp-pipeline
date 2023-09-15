@@ -17,6 +17,7 @@ import cv2
 import math
 import open3d as o3d
 import os
+import pickle
 import rospy
 import tf
 import tf.transformations as tft
@@ -538,7 +539,7 @@ class GraspClient():
         """ Returns pose stamped and joint state
             1. palm pose
             2. hithand joint state
-        """
+        """ # TODO: this trans is WRONG!!!!!!!!!!!!!!!!!!!!!
         trans = self.tf_buffer.lookup_transform(
             'world', 'palm_link_hithand', rospy.Time(0), timeout=rospy.Duration(10))
 
@@ -623,6 +624,18 @@ class GraspClient():
             rospy.logerr('Service infer_grasp_poses call fialed: %s' % e)
         rospy.logdebug('Service infer_grasp_poses is executed')
         return res.palm_poses, res.joint_confs
+
+    def infer_flow_grasp_poses_client(self):
+        """Infers grasps by sampling randomly in the latent space and decodes them to full pose via VAE. Later it will include some sort of refinement.
+        """
+        wait_for_service('infer_ffhflow')
+        try:
+            infer_grasp_poses = rospy.ServiceProxy('infer_ffhflow', SetBool)
+            req = SetBoolRequest(data=True)
+            res = infer_grasp_poses(req)
+        except rospy.ServiceException, e:
+            rospy.logerr('Service infer_ffhflow call fialed: %s' % e)
+        rospy.logdebug('Service infer_ffhflow is executed')
 
     def plan_arm_trajectory_client(
             self,
@@ -1499,6 +1512,15 @@ class GraspClient():
             self.visualize_grasp_pose_list_client(palm_poses)
         return palm_poses, joint_confs
 
+    def infer_flow_grasp_poses(self, visualize_poses=False):
+        self.infer_flow_grasp_poses_client()
+        # TODO why this visualization is not working
+        with open(rospy.get_param('grasp_save_path'), 'rb') as fp:
+            palm_poses, joint_confs = pickle.load(fp)
+        if visualize_poses:
+            self.visualize_grasp_pose_list_client(palm_poses)
+        return palm_poses, joint_confs
+
     def label_grasp(self):
         object_pose = self.get_grasp_object_pose_client()
         object_pos_delta_z = np.abs(
@@ -1958,7 +1980,7 @@ class GraspClient():
 
     def check_if_target_object_moved(self, previous_pose):
         current_pose = self.get_grasp_object_pose_client()
-        self.check_if_object_moved(previous_pose, current_pose)
+        return self.check_if_object_moved(previous_pose, current_pose)
 
     def check_if_any_obstacle_object_moved(self, obstacle_obj_poses_1, obstacle_obj_poses_2):
         """True if any of object is moved. False if all objects are not moved.
@@ -2290,7 +2312,7 @@ class GraspClient():
         else:
             self.grasp_label = -1
             rospy.logerr("no traj found to approach pose")
-            return False
+            return False, False
         # Execute to approach pose
         self.execute_joint_trajectory_client(speed='mid')
 
@@ -2298,6 +2320,7 @@ class GraspClient():
         if self.check_if_target_object_moved(object_pose):
             self.collision_to_approach_pose = 1
             rospy.logerr("Object moved during way to approach pose")
+            return False, False
         else:
             self.collision_to_approach_pose = 0
 
@@ -2313,7 +2336,7 @@ class GraspClient():
             if not plan_exists:
                 self.grasp_label = -1
                 rospy.logerr("no traj found to final grasp pose")
-                return False
+                return False, False
 
         # Execute joint trajectory
         self.execute_joint_trajectory_client(speed='mid')
@@ -2322,9 +2345,10 @@ class GraspClient():
         if self.check_if_target_object_moved(object_pose):
             self.collision_to_grasp_pose = 1
             rospy.logerr("Object moved during way to final pose")
+            return False, False
         else:
             self.collision_to_grasp_pose = 0
-
+        rospy.sleep(2)
         # Get the current actual joint position and palm pose
         self.palm_poses["true_pre"], self.hand_joint_states[
             "true_pre"] = self.get_hand_palm_pose_and_joint_state()
@@ -2354,7 +2378,7 @@ class GraspClient():
         while not execution_success:
             if time.time() - start > 60:
                 rospy.logerr('Could not find a lift pose')
-                break
+                return False, False
             plan_exists = self.plan_arm_trajectory_client(place_goal_pose=lift_pose)
             if plan_exists:
                 execution_success = self.execute_joint_trajectory_client(speed='slow')
@@ -2370,7 +2394,7 @@ class GraspClient():
         self.label_grasp()
 
         # raw_input('Continue?')
-        return True
+        return True , self.grasp_label
 
     def grasp_from_inferred_pose_multi_obj(self, pose_obj_frame, joint_conf, obstacle_objects):
         """ Used in FFHNet evaluataion. Try to reach the pose and joint conf and attempt grasp given grasps from FFHNet.

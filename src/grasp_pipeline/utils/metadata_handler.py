@@ -7,15 +7,15 @@ YCB_PI_HALF_ROLL = ["008_pudding_box", "009_gelatin_box", "035_power_drill"]
 
 
 class MetadataHandler():
-    """ Simple class to help iterate through objects and 
+    """ Simple class to help iterate through objects and
     """
     def __init__(self, gazebo_objects_path):
 
         #self.datasets = [BIGBIRD_OBJECTS]
-        self.datasets = [BIGBIRD_OBJECTS, KIT_OBJECTS]#, YCB_OBJECTS]
+        self.datasets = [BIGBIRD_OBJECTS, KIT_OBJECTS, YCB_OBJECTS]
 
         #self.datasets_name = ['bigbird']
-        self.datasets_name = ['bigbird', 'kit']#, 'ycb']
+        self.datasets_name = ['bigbird', 'kit', 'ycb']
 
         self.object_ix = -1
         self.dataset_ix = 0
@@ -74,6 +74,8 @@ class MetadataHandler():
                 dset_name = 'bigbird'
             elif obj_name in KIT_OBJECTS:
                 dset_name = 'kit'
+            elif obj_name in YCB_OBJECTS_FULL:
+                dset_name  = 'ycb'
             else:
                 raise ValueError('object name not found',obj_name)
         object_path = os.path.join(self.gazebo_objects_path, dset_name, obj_name)
@@ -120,7 +122,7 @@ class MetadataHandler():
 
 
 class MetadataHandlerFinalDataGen(MetadataHandler):
-    """ Simple class to help iterate through objects and 
+    """ Simple class to help iterate through objects and
     """
     def __init__(self, gazebo_objects_path):
         self.dset_obj_names = OBJECTS_TO_GENERATE_DATA_FOR_AFTER_15_04_Desktop

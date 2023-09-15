@@ -311,7 +311,7 @@ BIGBIRD_OBJECTS_FULL = [
 YCB_TEST_OBJECTS = [
     "001_chips_can", "003_cracker_box", "004_sugar_box", "006_mustard_bottle", "008_pudding_box",
     "011_banana", "053_mini_soccer_ball", "061_foam_brick", "077_rubiks_cube",
-    "010_potted_meat_can", "011_banana"
+    "010_potted_meat_can"
 ]
 
 ### OBJECTS WITH SOME SPECIAL NEEDS
@@ -360,8 +360,14 @@ DO_NOT_CONSIDER_NEGATIVE_GRASPS_BEFORE_15_04 = [
 
 # Objects used for evaluation 'ycb_006_mustard_bottle',
 OBJECTS_FOR_EVAL = [
-    'kit_BakingSoda', 'kit_BathDetergent', 'kit_BroccoliSoup', 'kit_CoughDropsLemon', 'kit_Curry',
-    'kit_FizzyTabletsCalcium', 'kit_InstantSauce', 'kit_NutCandy', 'kit_PotatoeDumplings',
+    'kit_BakingSoda',
+    'kit_BathDetergent',
+    'kit_BroccoliSoup',
+    'kit_CoughDropsLemon',
+    'kit_Curry',
+    'kit_FizzyTabletsCalcium', 'kit_InstantSauce',
+    'kit_NutCandy',
+    'kit_PotatoeDumplings',
     'kit_Sprayflask', 'kit_TomatoSoup', 'kit_YellowSaltCube2'
 ]
 # OBJECTS_FOR_EVAL = ["ycb_006_mustard_bottle"]

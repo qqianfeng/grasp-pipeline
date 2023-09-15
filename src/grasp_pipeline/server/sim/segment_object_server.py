@@ -267,8 +267,8 @@ class ObjectSegmenter():
             self.custom_draw_object(object_pcd)
 
             # add plane point cloud
-            object_pcd = self._add_ground_to_segmentation(pcd,object_pcd)
-            print("draw the object pcd with ground")
+            # object_pcd = self._add_ground_to_segmentation(pcd,object_pcd)
+            # print("draw the object pcd with ground")
             self.custom_draw_object(object_pcd)
             del pcd, points, colors
 

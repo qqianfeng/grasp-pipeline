@@ -7,7 +7,9 @@ import open3d as o3d
 import rospy
 import pandas as pd
 import pylab
-import tf.transformations as tft
+import sys
+if sys.version_info[0] == 2:
+    import tf.transformations as tft
 
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Header

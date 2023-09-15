@@ -10,11 +10,18 @@ from time import time
 import torch
 import sys
 import os
+import transforms3d
+import pickle
+
 # Add FFHNet to the path
 sys.path.append(rospy.get_param('ffhflow_path'))
 from ffhflow.configs import get_config
-from ffhflow.datasets import FFHDataModule
 from ffhflow.ffhflow_pos_enc import FFHFlowPosEnc
+from ffhflow.ffhflow_pos_enc_with_transl import FFHFlowPosEncWithTransl
+from geometry_msgs.msg import PoseStamped
+from grasp_pipeline.srv import *
+from grasp_pipeline.utils import utils
+from sensor_msgs.msg import JointState
 
 class InferFFHFlow():
     def __init__(self, client):
@@ -29,10 +36,7 @@ class InferFFHFlow():
         # Set up cfg
         cfg = get_config(model_cfg)
 
-        # configure dataloader
-        ffh_datamodule = FFHDataModule(cfg)
-
-        self.model = FFHFlowPosEnc.load_from_checkpoint(ckpt_path, cfg=cfg)
+        self.model = FFHFlowPosEncWithTransl.load_from_checkpoint(ckpt_path, cfg=cfg)
         self.model.eval()
 
     def build_pose_list(self, rot_matrix, transl, frame_id='object_centroid_vae'):
@@ -44,8 +48,7 @@ class InferFFHFlow():
         poses = []
 
         for i in range(rot_matrix.shape[0]):
-            rot_hom = utils.hom_matrix_from_rot_matrix(rot_matrix[i, :, :])
-            quat = tft.quaternion_from_matrix(rot_hom)
+            quat = transforms3d.quaternions.mat2quat(rot_matrix[i, :, :])
             t = transl[i, :]
 
             pose_st = PoseStamped()
@@ -53,16 +56,16 @@ class InferFFHFlow():
             pose_st.pose.position.x = t[0]
             pose_st.pose.position.y = t[1]
             pose_st.pose.position.z = t[2]
-            pose_st.pose.orientation.x = quat[0]
-            pose_st.pose.orientation.y = quat[1]
-            pose_st.pose.orientation.z = quat[2]
-            pose_st.pose.orientation.w = quat[3]
+            pose_st.pose.orientation.x = quat[1]
+            pose_st.pose.orientation.y = quat[2]
+            pose_st.pose.orientation.z = quat[3]
+            pose_st.pose.orientation.w = quat[0]
 
             poses.append(pose_st)
 
         return poses
 
-    def build_joint_conf_list(self, joint_conf):
+    def build_joint_conf_list(self, joint_conf=False):
         joint_confs = []
         for i in range(joint_conf.shape[0]):
             jc = JointState()
@@ -70,29 +73,26 @@ class InferFFHFlow():
             joint_confs.append(jc)
         return joint_confs
 
-    def handle_infer_grasp_poses(self, req):
+    def handle_infer_ffhflow(self, req, res):
         bps_object = np.load(rospy.get_param('object_pcd_enc_path'))
-        n_samples = req.n_poses
+        bps_tensor = torch.from_numpy(bps_object).to(self.device)
+        n_samples = 100
         # Go over the images in the dataset.
         with torch.no_grad():
-            grasps = self.model.sample(bps_object, num_samples=n_samples)
-            # grasps = self.model.filter_grasps(grasps)
-            self.model.show_grasps(bps, grasps)
+            grasps = self.model.sample(bps_tensor, num_samples=n_samples)
+            # self.model.show_grasps(pcd_path=rospy.get_param('object_pcd_path'), samples=grasps, i=-1)
+            grasps = self.model.sort_and_filter_grasps(grasps, perc=0.99,return_arr=True)
+            # i = -1 then no images will be saved in show_grasps
             # self.model.show_gt_grasps(batch['pcd_path'][0], batch, i)
 
-        return grasps
+        palm_poses = self.build_pose_list(grasps['rot_matrix'], grasps['transl'])
+        joint_confs = self.build_joint_conf_list(grasps['joint_conf'])
+        # joint_confs = self.build_joint_conf_list()
 
-        # if self.VISUALIZE:
-        #     visualization.show_generated_grasp_distribution(
-        #         self.pcd_path, results)
+        with open(rospy.get_param('grasp_save_path'), 'wb') as fp:
+            pickle.dump([palm_poses, joint_confs], fp, protocol=2)
 
-        # prepare response
-        res = InferGraspPosesResponse()
-        res.palm_poses = self.build_pose_list(
-            grasps['rot_matrix'], grasps['transl'])
-        res.joint_confs = self.build_joint_conf_list(grasps['joint_conf'])
-
-        return res
+        return True
 
     def to_grasp_dict(self, palm_poses, joint_confs):
         """Take the palm_poses and joint_confs in ros-format and convert them to a dict with two 3D arrays in order to
@@ -161,27 +161,9 @@ class InferFFHFlow():
         p_success = self.FFHNet.evaluate_grasps(
             bps_object, grasps, return_arr=True)
 
-    def create_infer_grasp_poses_server(self):
-        rospy.Service('infer_grasp_poses', InferGraspPoses,
-                      self.handle_infer_grasp_poses)
-        rospy.loginfo('Service infer_grasp_poses')
-        rospy.loginfo('Ready to sample grasps from FFHGenerator.')
-
-    def create_evaluate_grasp_poses_server(self):
-        rospy.Service('evaluate_grasp_poses', EvaluateGraspPoses,
-                      self.handle_evaluate_grasp_poses)
-        rospy.loginfo('Service evaluate_grasp_poses')
-        rospy.loginfo('Ready to evaluate grasps with the FFHEvaluator.')
-
-    def create_evaluate_and_filter_grasp_poses_server(self):
-        rospy.Service('evaluate_and_filter_grasp_poses', EvaluateAndFilterGraspPoses,
-                      self.handle_evaluate_and_filter_grasp_poses)
-        rospy.loginfo('Service evaluate_and_filter_grasp_poses')
-        rospy.loginfo(
-            'Ready to evaluate and filter grasps with the FFHEvaluator.')
 
 if __name__ == '__main__':
-    client = rlp.Ros(host='localhost', port=9091)
+    client = rlp.Ros(host='localhost', port=9090)
     bpsenc = InferFFHFlow(client)
     client.run_forever()
     client.terminate()
