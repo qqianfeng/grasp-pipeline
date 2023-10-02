@@ -18,6 +18,7 @@ sys.path.append(rospy.get_param('ffhflow_path'))
 from ffhflow.configs import get_config
 from ffhflow.ffhflow_pos_enc import FFHFlowPosEnc
 from ffhflow.ffhflow_pos_enc_with_transl import FFHFlowPosEncWithTransl
+from ffhflow.ffhflow_pos_enc_neg_grasp import FFHFlowPosEncNegGrasp
 from geometry_msgs.msg import PoseStamped
 from grasp_pipeline.srv import *
 from grasp_pipeline.utils import utils

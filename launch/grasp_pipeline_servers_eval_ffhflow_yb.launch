@@ -19,8 +19,8 @@
     <param name="ffhnet_path"             value="/home/yb/Projects/hithand_ws/src/FFHNet-dev" type="string"/>
 
     <param name="ffhflow_path"             value="/home/yb/workspace/FFHFlow" type="string"/>
-    <param name="model_cfg"             value="models/ffhflow_pos_enc_glow_8layers/hparams.yaml" type="string"/>
-    <param name="ckpt_path"             value="models/ffhflow_pos_enc_glow_8layers/epoch=16-step=199955.ckpt" type="string"/>
+    <param name="model_cfg"             value="models/ffhflow_neg_grasp_neg_loss_truncate_1e6_earlystop/hparams.yaml" type="string"/>
+    <param name="ckpt_path"             value="models/ffhflow_neg_grasp_neg_loss_truncate_1e6_earlystop/epoch=3-step=69863.ckpt" type="string"/>
 
     <param name="hithand_ws_path"         value="/home/yb/Projects/hithand_ws" type="string"/>
     <param name="data_recording_path"     value="/data/hdd1/qf/sim_exp_ffhflow" type="string"/>
