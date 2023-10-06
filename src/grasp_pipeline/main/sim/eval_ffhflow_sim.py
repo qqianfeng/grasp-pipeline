@@ -69,13 +69,13 @@ for obj_full in obj_list:
                 grasp_client.spawn_object(pose_type='same')
             # idx = np.random.randint(0, len(joint_confs))
             idx = i
-            # if palm_poses_obj_frame[idx].pose.position.y < -0.03:
-            #     is_skipped = True
-            #     continue
-            # else:
-            #     is_skipped = False
-            grasp_executed, grasp_label = grasp_client.grasp_from_inferred_pose(palm_poses_obj_frame[idx],
+            try:
+                grasp_executed, grasp_label = grasp_client.grasp_from_inferred_pose(palm_poses_obj_frame[idx],
                                                                    joint_confs[idx])
+            except IndexError:
+                print('palm_poses_obj_frame:', len(palm_poses_obj_frame))
+                print('joint_confs:', len(joint_confs))
+                print(idx)
             is_skipped = not grasp_executed
             if grasp_executed:
                 total_trials += 1
