@@ -1494,8 +1494,8 @@ class GraspClient():
         n_before = len(joint_confs)
         palm_poses_f, joint_confs_f = self.evaluate_and_filter_grasp_poses_client(
             palm_poses, joint_confs, thresh)
-        if visualize_poses:
-            self.visualize_grasp_pose_list_client(palm_poses_f)
+        # if visualize_poses:
+        #     self.visualize_grasp_pose_list_client(palm_poses_f)
         n_after = len(joint_confs_f)
         rospy.logdebug("Remaining grasps after filtering: %.2f" % (n_after / n_before))
         rospy.logdebug("This means %d grasps were removed." % (n_before - n_after))
@@ -1508,8 +1508,8 @@ class GraspClient():
         palm_poses, joint_confs = self.infer_grasp_poses_client(
             n_poses=n_poses, bps_object=bps_object)
         # TODO why this visualization is not working
-        if visualize_poses:
-            self.visualize_grasp_pose_list_client(palm_poses)
+        # if visualize_poses:
+        #     self.visualize_grasp_pose_list_client(palm_poses)
         return palm_poses, joint_confs
 
     def infer_flow_grasp_poses(self, visualize_poses=False):
@@ -1517,8 +1517,8 @@ class GraspClient():
         # TODO why this visualization is not working
         with open(rospy.get_param('grasp_save_path'), 'rb') as fp:
             palm_poses, joint_confs = pickle.load(fp)
-        if visualize_poses:
-            self.visualize_grasp_pose_list_client(palm_poses)
+        # if visualize_poses:
+        #     self.visualize_grasp_pose_list_client(palm_poses)
         return palm_poses, joint_confs
 
     def label_grasp(self):
