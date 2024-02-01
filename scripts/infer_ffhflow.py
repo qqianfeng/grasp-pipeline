@@ -15,10 +15,13 @@ import pickle
 
 # Add FFHNet to the path
 sys.path.append(rospy.get_param('ffhflow_path'))
+sys.path.append('/home/yb/workspace/normalizing-flows')
+
 from ffhflow.configs import get_config
-from ffhflow.ffhflow_pos_enc import FFHFlowPosEnc
-from ffhflow.ffhflow_pos_enc_with_transl import FFHFlowPosEncWithTransl
-from ffhflow.ffhflow_pos_enc_neg_grasp import FFHFlowPosEncNegGrasp
+# TODO: Change the import package
+# from ffhflow.ffhflow_pos_enc_with_transl import FFHFlowPosEncWithTransl
+from ffhflow.normflows_ffhflow_pos_enc_with_transl import NormflowsFFHFlowPosEncWithTransl, NormflowsFFHFlowPosEncWithTransl_LVM
+
 from geometry_msgs.msg import PoseStamped
 from grasp_pipeline.srv import *
 from grasp_pipeline.utils import utils
@@ -36,9 +39,16 @@ class InferFFHFlow():
 
         # Set up cfg
         cfg = get_config(model_cfg)
-
-        self.model = FFHFlowPosEncWithTransl.load_from_checkpoint(ckpt_path, cfg=cfg)
+        # TODO: Use the correct imported module
+        self.model = NormflowsFFHFlowPosEncWithTransl_LVM.load_from_checkpoint(ckpt_path, cfg=cfg)
         self.model.eval()
+
+    def check_quat_validity(self, quat):
+        q_norm_error = abs(quat[1] * quat[1] + quat[2] * quat[2] + quat[3] * quat[3] + quat[0] * quat[0] - 1.0)
+        if q_norm_error > 0.1:
+            return False
+        else:
+            return True
 
     def build_pose_list(self, rot_matrix, transl, frame_id='object_centroid_vae'):
         assert rot_matrix.shape[1:] == (
@@ -74,20 +84,68 @@ class InferFFHFlow():
             joint_confs.append(jc)
         return joint_confs
 
+    def build_pose_and_joint_conf_list(self, rot_matrix, transl, frame_id='object_centroid_vae', joint_conf=False):
+        """Add quaternion check validity
+
+        Args:
+            rot_matrix (_type_): _description_
+            transl (_type_): _description_
+            frame_id (str, optional): _description_. Defaults to 'object_centroid_vae'.
+            joint_conf (bool, optional): _description_. Defaults to False.
+
+        Returns:
+            _type_: _description_
+        """
+        assert rot_matrix.shape[1:] == (
+            3, 3), "Assumes palm rotation is 3*3 matrix."
+        assert rot_matrix.shape[0] == transl.shape[
+            0], "Batch dimension of rot and trans not equal."
+
+        poses = []
+        joint_confs = []
+
+        for i in range(rot_matrix.shape[0]):
+            quat = transforms3d.quaternions.mat2quat(rot_matrix[i, :, :])
+            if not self.check_quat_validity(quat):
+                continue
+            t = transl[i, :]
+
+            pose_st = PoseStamped()
+            pose_st.header.frame_id = frame_id
+            pose_st.pose.position.x = t[0]
+            pose_st.pose.position.y = t[1]
+            pose_st.pose.position.z = t[2]
+            pose_st.pose.orientation.x = quat[1]
+            pose_st.pose.orientation.y = quat[2]
+            pose_st.pose.orientation.z = quat[3]
+            pose_st.pose.orientation.w = quat[0]
+
+            poses.append(pose_st)
+
+            jc = JointState()
+            jc.position = joint_conf[i, :]
+            joint_confs.append(jc)
+
+        return poses, joint_confs
+
     def handle_infer_ffhflow(self, req, res):
         bps_object = np.load(rospy.get_param('object_pcd_enc_path'))
         bps_tensor = torch.from_numpy(bps_object).to(self.device)
         n_samples = 100
         # Go over the images in the dataset.
         with torch.no_grad():
-            grasps = self.model.sample(bps_tensor, num_samples=n_samples)
+            # For normflow ffhflow-lvm model
+            grasps = self.model.sample_in_experiment(bps_tensor, num_samples=n_samples)
+            # grasps = self.model.sample(bps_tensor, num_samples=n_samples)
+
             # self.model.show_grasps(pcd_path=rospy.get_param('object_pcd_path'), samples=grasps, i=-1)
             grasps = self.model.sort_and_filter_grasps(grasps, perc=0.99,return_arr=True)
             # i = -1 then no images will be saved in show_grasps
             # self.model.show_gt_grasps(batch['pcd_path'][0], batch, i)
 
-        palm_poses = self.build_pose_list(grasps['rot_matrix'], grasps['transl'])
-        joint_confs = self.build_joint_conf_list(grasps['joint_conf'])
+        palm_poses, joint_confs = self.build_pose_and_joint_conf_list(grasps['rot_matrix'], grasps['transl'],joint_conf=grasps['joint_conf'])
+        # palm_poses = self.build_pose_list(grasps['rot_matrix'], grasps['transl'])
+        # joint_confs = self.build_joint_conf_list(grasps['joint_conf'])
         # joint_confs = self.build_joint_conf_list()
 
         with open(rospy.get_param('grasp_save_path'), 'wb') as fp:
