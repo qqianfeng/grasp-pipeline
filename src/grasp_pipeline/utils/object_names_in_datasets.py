@@ -368,7 +368,8 @@ OBJECTS_FOR_EVAL = [
     'kit_FizzyTabletsCalcium', 'kit_InstantSauce',
     'kit_NutCandy',
     'kit_PotatoeDumplings',
-    'kit_Sprayflask', 'kit_TomatoSoup', 'kit_YellowSaltCube2'
+    'kit_Sprayflask',
+    'kit_TomatoSoup', 'kit_YellowSaltCube2'
 ]
 # OBJECTS_FOR_EVAL = ["ycb_006_mustard_bottle"]
 

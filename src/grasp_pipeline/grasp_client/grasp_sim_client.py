@@ -2130,7 +2130,7 @@ class GraspClient():
         # Finally remove the executed grasp from the list
         self.remove_grasp_pose()
 
-        return True
+        return plan_exists, self.grasp_label
 
     def grasp_and_lift_object_multi_obj(self, obstacle_objects, check_hand=False):
         """ Used in data generation. For multi object generation.
