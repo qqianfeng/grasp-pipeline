@@ -17,10 +17,14 @@ import pickle
 sys.path.append(rospy.get_param('ffhflow_path'))
 sys.path.append('/home/yb/workspace/normalizing-flows')
 
+use_ffhflow_lvm = True
+
 from ffhflow.configs import get_config
 # TODO: Change the import package
 # from ffhflow.ffhflow_pos_enc_with_transl import FFHFlowPosEncWithTransl
-from ffhflow.normflows_ffhflow_pos_enc_with_transl import NormflowsFFHFlowPosEncWithTransl, NormflowsFFHFlowPosEncWithTransl_LVM
+from ffhflow.normflows_ffhflow_pos_enc_with_transl import NormflowsFFHFlowPosEncWithTransl
+if use_ffhflow_lvm:
+    from ffhflow.normflows_ffhflow_pos_enc_with_transl import NormflowsFFHFlowPosEncWithTransl_LVM
 
 from geometry_msgs.msg import PoseStamped
 from grasp_pipeline.srv import *
@@ -40,7 +44,10 @@ class InferFFHFlow():
         # Set up cfg
         cfg = get_config(model_cfg)
         # TODO: Use the correct imported module
-        self.model = NormflowsFFHFlowPosEncWithTransl_LVM.load_from_checkpoint(ckpt_path, cfg=cfg)
+        if use_ffhflow_lvm:
+            self.model = NormflowsFFHFlowPosEncWithTransl_LVM.load_from_checkpoint(ckpt_path, cfg=cfg)
+        else:
+            self.model = NormflowsFFHFlowPosEncWithTransl.load_from_checkpoint(ckpt_path, cfg=cfg)
         self.model.eval()
 
     def check_quat_validity(self, quat):
@@ -135,8 +142,10 @@ class InferFFHFlow():
         # Go over the images in the dataset.
         with torch.no_grad():
             # For normflow ffhflow-lvm model
-            grasps = self.model.sample_in_experiment(bps_tensor, num_samples=n_samples)
-            # grasps = self.model.sample(bps_tensor, num_samples=n_samples)
+            if use_ffhflow_lvm:
+                grasps = self.model.sample_in_experiment(bps_tensor, num_samples=n_samples)
+            else:
+                grasps = self.model.sample(bps_tensor, num_samples=n_samples)
 
             # self.model.show_grasps(pcd_path=rospy.get_param('object_pcd_path'), samples=grasps, i=-1)
             grasps = self.model.sort_and_filter_grasps(grasps, perc=0.99,return_arr=True)

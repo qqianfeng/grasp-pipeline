@@ -40,7 +40,7 @@ with open('grasp_result.csv', 'wb') as file:
         rospy.loginfo("Now start experiement of object: %s" % obj_name)
         total_trials = 0
         success_trials = 0
-        choose_top_rated_grasp = False # otherwise choose top 20 grasps
+        choose_top_rated_grasp = True # otherwise choose top 20 grasps
         if choose_top_rated_grasp:
             for trial in range(NUM_TRIALS_PER_OBJ):
                 # Reset
@@ -94,7 +94,7 @@ with open('grasp_result.csv', 'wb') as file:
             # for trial in range(NUM_TRIALS_PER_OBJ):
             # Reset
             with_evaluator = False
-            FILTER_NUM_GRASPS = 50
+            FILTER_NUM_GRASPS = 80
             grasp_client.reset_hithand_and_panda()
 
             # Spawn model
