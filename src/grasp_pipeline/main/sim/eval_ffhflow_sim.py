@@ -12,8 +12,10 @@ from grasp_pipeline.utils.metadata_handler import MetadataHandler
 from grasp_pipeline.utils.object_names_in_datasets import OBJECTS_FOR_EVAL as obj_list
 # from grasp_pipeline.utils.object_names_in_datasets import OBJECTS_DATA_GEN_PAPER_VIDEO as obj_list
 
+# from eigengrasps_hithand import *
+
 # Define parameters:
-FILTER_THRESH = 0.9  # set to -1 if no filtering desired, default 0.9
+FILTER_THRESH = -1  # set to -1 if no filtering desired, default 0.9
 FILTER_NUM_GRASPS = 20
 NUM_TRIALS_PER_OBJ = 20
 path2grasp_data = os.path.join(os.path.expanduser("~"), 'grasp_data')
@@ -58,7 +60,8 @@ with open('grasp_result.csv', 'wb') as file:
 
                 # Sample N latent variables and get the poses
                 palm_poses_obj_frame, joint_confs = grasp_client.infer_flow_grasp_poses(visualize_poses=True)
-
+                print(palm_poses_obj_frame[0])
+                print(len(palm_poses_obj_frame))
                 # Evaluate the generated poses according to the FFHEvaluator
                 palm_poses_obj_frame, joint_confs = grasp_client.evaluate_and_remove_grasps(
                     palm_poses_obj_frame, joint_confs, thresh=FILTER_THRESH, visualize_poses=True)
@@ -77,8 +80,10 @@ with open('grasp_result.csv', 'wb') as file:
                     # idx = np.random.randint(0, len(joint_confs))
                     idx = i
                     try:
+                        # TODO:
+                        joint_confs_with_offset = joint_confs[idx] # + ......
                         grasp_executed, grasp_label = grasp_client.grasp_from_inferred_pose(palm_poses_obj_frame[idx],
-                                                                        joint_confs[idx])
+                                                                        joint_confs_with_offset)
                     except IndexError:
                         print('palm_poses_obj_frame:', len(palm_poses_obj_frame))
                         print('joint_confs:', len(joint_confs))

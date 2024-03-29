@@ -53,6 +53,7 @@ class InferFFHFlow():
     def check_quat_validity(self, quat):
         q_norm_error = abs(quat[1] * quat[1] + quat[2] * quat[2] + quat[3] * quat[3] + quat[0] * quat[0] - 1.0)
         if q_norm_error > 0.1:
+            print('found invalid quat in infer_ffhflow::check_quat_validity')
             return False
         else:
             return True
@@ -151,8 +152,10 @@ class InferFFHFlow():
             grasps = self.model.sort_and_filter_grasps(grasps, perc=0.99,return_arr=True)
             # i = -1 then no images will be saved in show_grasps
             # self.model.show_gt_grasps(batch['pcd_path'][0], batch, i)
-
+        print('after filter, we have grasps of:', len(grasps))
         palm_poses, joint_confs = self.build_pose_and_joint_conf_list(grasps['rot_matrix'], grasps['transl'],joint_conf=grasps['joint_conf'])
+        print('after build_pose_and_joint_conf_list, we have palm_poses of:', len(palm_poses))
+
         # palm_poses = self.build_pose_list(grasps['rot_matrix'], grasps['transl'])
         # joint_confs = self.build_joint_conf_list(grasps['joint_conf'])
         # joint_confs = self.build_joint_conf_list()
