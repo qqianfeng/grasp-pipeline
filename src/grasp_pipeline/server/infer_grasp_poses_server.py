@@ -23,7 +23,7 @@ class GraspInference():
     def __init__(self):
         rospy.init_node('grasp_inference_node')
         cfg = EvalConfig().parse()
-        self.load_path = rospy.get_param('ffhnet_path')
+        self.load_path = rospy.get_param('ffhnet_model_path')
         self.FFHNet = FFHNet(cfg)
         self.FFHNet.load_ffhgenerator(epoch=10,
                                       load_path=os.path.join(self.load_path,'models/ffhgenerator'))

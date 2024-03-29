@@ -15,14 +15,17 @@ import pickle
 
 # Add FFHNet to the path
 sys.path.append(rospy.get_param('ffhflow_path'))
+sys.path.append('/home/yb/workspace/normalizing-flows')
+
 from ffhflow.configs import get_config
-from ffhflow.ffhflow_pos_enc import FFHFlowPosEnc
-from ffhflow.ffhflow_pos_enc_with_transl import FFHFlowPosEncWithTransl
-from ffhflow.ffhflow_pos_enc_neg_grasp import FFHFlowPosEncNegGrasp
+# from ffhflow.ffhflow_pos_enc import FFHFlowPosEnc
+# from ffhflow.ffhflow_pos_enc_with_transl import FFHFlowPosEncWithTransl
+# from ffhflow.ffhflow_pos_enc_neg_grasp import FFHFlowPosEncNegGrasp
 from geometry_msgs.msg import PoseStamped
 from grasp_pipeline.srv import *
 from grasp_pipeline.utils import utils
 from sensor_msgs.msg import JointState
+from ffhflow.normflows_ffhflow_pos_enc_with_transl import NormflowsFFHFlowPosEncWithTransl_LVM
 
 class InferFFHFlow():
     def __init__(self, client):
@@ -37,7 +40,7 @@ class InferFFHFlow():
         # Set up cfg
         cfg = get_config(model_cfg)
 
-        self.model = FFHFlowPosEncWithTransl.load_from_checkpoint(ckpt_path, cfg=cfg)
+        self.model = NormflowsFFHFlowPosEncWithTransl_LVM.load_from_checkpoint(ckpt_path, cfg=cfg)
         self.model.eval()
 
     def build_pose_list(self, rot_matrix, transl, frame_id='object_centroid_vae'):
@@ -80,7 +83,7 @@ class InferFFHFlow():
         n_samples = 100
         # Go over the images in the dataset.
         with torch.no_grad():
-            grasps = self.model.sample(bps_tensor, num_samples=n_samples)
+            grasps = self.model.sample_in_experiment(bps_tensor, num_samples=n_samples)
             # self.model.show_grasps(pcd_path=rospy.get_param('object_pcd_path'), samples=grasps, i=-1)
             grasps = self.model.sort_and_filter_grasps(grasps, perc=0.99,return_arr=True)
             # i = -1 then no images will be saved in show_grasps

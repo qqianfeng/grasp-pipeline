@@ -17,10 +17,13 @@
     <param name="depth_img_topic"         value="/camera/depth/image_raw"   type="string" />
     <param name="/use_sim_time"           value="true"                      type="bool"   />
     <param name="ffhnet_path"             value="/home/yb/Projects/hithand_ws/src/FFHNet-dev" type="string"/>
+    <param name="ffhnet_model_path"             value="/data/hdd1/qf/hithand_data/" type="string"/>
 
-    <param name="ffhflow_path"             value="/home/yb/workspace/FFHFlow" type="string"/>
-    <param name="model_cfg"             value="models/ffhflow_flow_pos_enc_res_depth4_epoch25/hparams.yaml" type="string"/>
-    <param name="ckpt_path"             value="models/ffhflow_flow_pos_enc_res_depth4_epoch25/epoch=25-step=299983.ckpt" type="string"/>
+    <!-- <param name="ffhflow_path"             value="/home/yb/workspace/FFHFlow_new_package" type="string"/> -->
+    <param name="ffhflow_path"             value="/home/yb/workspace/FFHFlow-dpf" type="string"/>
+
+    <param name="model_cfg"             value="/data/hdd1/qf/ffhflow_model_history/flow_lvm/flow_lvm_lr1e-5_2/hparams.yaml" type="string"/>
+    <param name="ckpt_path"             value="/data/hdd1/qf/ffhflow_model_history/flow_lvm/flow_lvm_lr1e-5_2/epoch=16-step=199999.ckpt" type="string"/>
 
     <param name="hithand_ws_path"         value="/home/yb/Projects/hithand_ws" type="string"/>
     <param name="data_recording_path"     value="/data/hdd1/qf/sim_exp_ffhflow" type="string"/>
