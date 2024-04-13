@@ -10,7 +10,12 @@ import sys
 sys.path.append(rospy.get_param('ffhnet_path'))
 
 from FFHNet.models.ffhnet import FFHNet
-from FFHNet.config.eval_config import EvalConfig
+use_new_config=True
+if use_new_config:
+    from FFHNet.config.config import Config
+else:
+    from FFHNet.config.eval_config import EvalConfig
+
 from FFHNet.utils import visualization
 
 from geometry_msgs.msg import PoseStamped
@@ -22,11 +27,18 @@ from sensor_msgs.msg import JointState
 class GraspInference():
     def __init__(self):
         rospy.init_node('grasp_inference_node')
-        cfg = EvalConfig().parse()
+        if use_new_config:
+            config_path = '/data/hdd1/qf/ffhflow_model_history/ffhnet-prior-vae/config.yaml'
+            config = Config(config_path)
+            cfg = config.parse()
+        else:
+            cfg = EvalConfig().parse()
         self.load_path = rospy.get_param('ffhnet_model_path')
         self.FFHNet = FFHNet(cfg)
+        # self.FFHNet.load_ffhgenerator(epoch=10,
+        #                               load_path=os.path.join(self.load_path,'models/ffhgenerator'))
         self.FFHNet.load_ffhgenerator(epoch=10,
-                                      load_path=os.path.join(self.load_path,'models/ffhgenerator'))
+                                load_path='/data/hdd1/qf/ffhflow_model_history/ffhnet-prior-vae')
         self.FFHNet.load_ffhevaluator(
             epoch=30,
             load_path=os.path.join(self.load_path, 'models/ffhevaluator'))
