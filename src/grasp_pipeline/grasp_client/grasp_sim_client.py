@@ -2274,7 +2274,7 @@ class GraspClient():
 
         return execution_success
 
-    def grasp_from_inferred_pose(self, pose_obj_frame, joint_conf):
+    def grasp_from_inferred_pose(self, pose_obj_frame, joint_conf,camera_projection=False):
         """ Used in FFHNet evaluataion. Try to reach the pose and joint conf and attempt grasp given grasps from FFHNet.
 
         Args:
@@ -2282,8 +2282,35 @@ class GraspClient():
             joint_conf (JointState): The desired joint position.
         """
         # transform the pose_obj_frame to world_frame
-        palm_pose_world = self.transform_pose(pose_obj_frame, 'object_centroid_vae', 'world')
 
+        if camera_projection:
+            deg30_cam_T_origin_cam = np.array([[ 9.75897449e-01,  1.00929891e-19, -2.18229623e-01,
+                                                    9.93760276e-02],
+                                                [ 3.35109406e-21,  1.00000000e+00, -4.64617274e-20,
+                                                    -1.11013227e-16],
+                                                [ 2.18229623e-01,  3.92787307e-20,  9.75897449e-01,
+                                                    -1.73563836e-01],
+                                                [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+                                                    1.00000000e+00]])
+            # deg30_cam_T_origin_cam[:3,-1] = np.array([0,0,0])
+            grasp_mat_obj_origin_cam_center = utils.hom_matrix_from_pose_stamped(pose_obj_frame)
+            print('grasp_mat_obj_origin_cam_center',grasp_mat_obj_origin_cam_center)
+
+            obj_center_origin_cam = np.load('/home/yb/obj_center_origin_cam.npy')
+            obj_center_new_cam = np.load('/home/yb/obj_center.npy')
+
+            origin_cam_T_obj_center = np.eye(4)
+            origin_cam_T_obj_center[:3,-1] = obj_center_origin_cam
+            origin_cam_T_grasp = np.matmul(origin_cam_T_obj_center, grasp_mat_obj_origin_cam_center)
+            new_cam_T_grasp = np.matmul(deg30_cam_T_origin_cam, origin_cam_T_grasp)
+            new_cam_T_obj_center = np.eye(4)
+            new_cam_T_obj_center[:3,-1] = obj_center_new_cam
+            obj_new_cam_center_T_grasp = np.matmul(np.linalg.inv(new_cam_T_obj_center),new_cam_T_grasp)
+            print('obj_new_cam_center_T_grasp',obj_new_cam_center_T_grasp)
+            pose_obj_frame = utils.pose_stamped_from_hom_matrix(obj_new_cam_center_T_grasp, 'object_centroid_vae')
+
+        palm_pose_world = self.transform_pose(pose_obj_frame, 'object_centroid_vae', 'world')
+        print('palm_pose_world',palm_pose_world)
         object_pose = self.get_grasp_object_pose_client()
 
         # save the desired pre of the palm and joints (given to function call) in an ins

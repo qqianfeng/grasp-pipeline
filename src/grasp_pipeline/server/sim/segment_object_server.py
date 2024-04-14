@@ -344,11 +344,13 @@ class ObjectSegmenter():
             # if no need to transfer to world frame, pcd stay in self center frame.
             if not req.need_to_transfer_pcd_to_world_frame:
                 object_pcd.transform(self.camera_T_world)
+                print('pcd in cam frame')
+                np.save('/home/yb/obj_center.npy',object_pcd.get_center())
                 object_pcd.translate((-1) * object_pcd.get_center())
             # else pcd stays in world frame
-            print("pcd in world frame")
+            else:
+                print("pcd in world frame")
             self.custom_draw_scene(object_pcd)
-
         o3d.io.write_point_cloud(self.object_pcd_path, object_pcd)
         if req.object_pcd_record_path != '':
             o3d.io.write_point_cloud(req.object_pcd_record_path, object_pcd)

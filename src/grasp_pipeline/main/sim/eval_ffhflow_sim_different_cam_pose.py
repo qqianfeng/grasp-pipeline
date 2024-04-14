@@ -6,6 +6,7 @@ import torch
 import rospy
 import os
 import csv
+import subprocess
 
 from grasp_pipeline.grasp_client.grasp_sim_client import GraspClient
 from grasp_pipeline.utils.metadata_handler import MetadataHandler
@@ -55,11 +56,20 @@ with open('grasp_result.csv', 'wb') as file:
                 # Get point cloud (mean-free, orientation of camera frame)
                 grasp_client.save_visual_data_and_segment_object(down_sample_pcd=False)
 
+                # Define the command to run the Python script
+                command = ['/data/hdd1/qf/.conda/envs/ffhnet/bin/python', '/home/yb/Projects/hithand_ws/src/grasp-pipeline/scripts/convert_pcd_with_cam_pose.py']
+
+                # Execute the command
+                process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                stdout, stderr = process.communicate()
+
                 # Compute BPS of point cloud, stores encoding to disk
                 grasp_client.encode_pcd_with_bps()
 
                 # Sample N latent variables and get the poses
                 palm_poses_obj_frame, joint_confs = grasp_client.infer_flow_grasp_poses(visualize_poses=True)
+                print(palm_poses_obj_frame[0])
+                print(len(palm_poses_obj_frame))
                 # Evaluate the generated poses according to the FFHEvaluator
                 palm_poses_obj_frame, joint_confs = grasp_client.evaluate_and_remove_grasps(
                     palm_poses_obj_frame, joint_confs, thresh=FILTER_THRESH, visualize_poses=True)
@@ -81,7 +91,7 @@ with open('grasp_result.csv', 'wb') as file:
                         # TODO:
                         joint_confs_with_offset = joint_confs[idx] # + ......
                         grasp_executed, grasp_label = grasp_client.grasp_from_inferred_pose(palm_poses_obj_frame[idx],
-                                                                        joint_confs_with_offset)
+                                                                        joint_confs_with_offset,camera_projection=True)
                     except IndexError:
                         print('palm_poses_obj_frame:', len(palm_poses_obj_frame))
                         print('joint_confs:', len(joint_confs))
