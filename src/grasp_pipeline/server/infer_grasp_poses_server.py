@@ -10,7 +10,7 @@ import sys
 sys.path.append(rospy.get_param('ffhnet_path'))
 
 from FFHNet.models.ffhnet import FFHNet
-use_new_config=True
+use_new_config = rospy.get_param('use_new_config')
 if use_new_config:
     from FFHNet.config.config import Config
 else:
@@ -35,10 +35,13 @@ class GraspInference():
             cfg = EvalConfig().parse()
         self.load_path = rospy.get_param('ffhnet_model_path')
         self.FFHNet = FFHNet(cfg)
-        # self.FFHNet.load_ffhgenerator(epoch=10,
-        #                               load_path=os.path.join(self.load_path,'models/ffhgenerator'))
-        self.FFHNet.load_ffhgenerator(epoch=10,
-                                load_path='/data/hdd1/qf/ffhflow_model_history/ffhnet-prior-vae')
+        if use_new_config:
+            self.FFHNet.load_ffhgenerator(epoch=10,
+                        load_path='/data/hdd1/qf/ffhflow_model_history/ffhnet-prior-vae')
+        else:
+            self.FFHNet.load_ffhgenerator(epoch=10,
+                                        load_path=os.path.join(self.load_path,'models/ffhgenerator'))
+
         self.FFHNet.load_ffhevaluator(
             epoch=30,
             load_path=os.path.join(self.load_path, 'models/ffhevaluator'))
