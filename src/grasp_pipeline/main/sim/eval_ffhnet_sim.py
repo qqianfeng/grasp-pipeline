@@ -99,4 +99,12 @@ for obj_full in obj_list:
                     success_trials += 1
                 print('current status of %s success grasps out of %s trials', success_trials, total_trials)
                 grasp_client.record_grasp_trial_data_client()
+                # this break is for choosing one grasp
+                # break
+            # the following two if conditions are served for random 20 grasps
+            if total_trials >=20:
+                print('break within same object pose')
                 break
+        if total_trials >=20:
+            print('break outside loop, different object pose is tried')
+            break
