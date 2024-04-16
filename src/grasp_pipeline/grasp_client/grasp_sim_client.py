@@ -2292,6 +2292,14 @@ class GraspClient():
                                                     -1.73563836e-01],
                                                 [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
                                                     1.00000000e+00]])
+            deg20_cam_T_origin = np.array([[ 9.98200540e-01,  1.05898559e-19, -5.99640065e-02,
+                                    1.40909693e-02],
+                                [-7.78966005e-21,  1.00000000e+00, -2.68195039e-20,
+                                    -1.11021370e-16],
+                                [ 5.99640065e-02,  2.26970654e-20,  9.98200540e-01,
+                                    -3.74358729e-02],
+                                [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+                                    1.00000000e+00]])
             # deg30_cam_T_origin_cam[:3,-1] = np.array([0,0,0])
             grasp_mat_obj_origin_cam_center = utils.hom_matrix_from_pose_stamped(pose_obj_frame)
             print('grasp_mat_obj_origin_cam_center',grasp_mat_obj_origin_cam_center)
@@ -2302,7 +2310,7 @@ class GraspClient():
             origin_cam_T_obj_center = np.eye(4)
             origin_cam_T_obj_center[:3,-1] = obj_center_origin_cam
             origin_cam_T_grasp = np.matmul(origin_cam_T_obj_center, grasp_mat_obj_origin_cam_center)
-            new_cam_T_grasp = np.matmul(deg30_cam_T_origin_cam, origin_cam_T_grasp)
+            new_cam_T_grasp = np.matmul(deg20_cam_T_origin, origin_cam_T_grasp)
             new_cam_T_obj_center = np.eye(4)
             new_cam_T_obj_center[:3,-1] = obj_center_new_cam
             obj_new_cam_center_T_grasp = np.matmul(np.linalg.inv(new_cam_T_obj_center),new_cam_T_grasp)

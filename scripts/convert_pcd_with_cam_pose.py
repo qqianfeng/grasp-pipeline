@@ -4,8 +4,8 @@ import open3d as o3d
 from copy import deepcopy
 
 sim_cam_pose_origin = [0.5,-0.75,0.35,0,0.3,1.57]
-
-sim_cam_pose_30dge = [0.5,-0.75,0.55,0,0.52,1.57]
+sim_cam_pose_30dge = [0.5,-0.75,0.39,0,0.36,1.57]
+# sim_cam_pose_30dge = [0.5,-0.75,0.55,0,0.52,1.57]
 
 def xyzrpy_to_mat(xyzrpy):
     mat_rot = urdfpy.rpy_to_matrix(xyzrpy[3:])
