@@ -348,6 +348,20 @@ class ObjectSegmenter():
             # else pcd stays in world frame
             print("pcd in world frame")
             self.custom_draw_scene(object_pcd)
+        # ################### add noise ##################
+        # mu, sigma = 0, 0.01
+        # # creating a noise with the same dimension as the dataset (2,2)
+        # pcd_np = np.asarray(object_pcd.points)
+        # noise = np.random.normal(mu, sigma, [pcd_np.shape[0],3])
+        # signal = pcd_np + noise
+
+        # pcd_noise = o3d.geometry.PointCloud()
+        # pcd_noise.points = o3d.utility.Vector3dVector(signal)
+
+        # # o3d.visualization.draw_geometries([object_pcd])
+        # # o3d.visualization.draw_geometries([pcd_noise])
+        # object_pcd = pcd_noise
+        # ##############################################
 
         o3d.io.write_point_cloud(self.object_pcd_path, object_pcd)
         if req.object_pcd_record_path != '':
