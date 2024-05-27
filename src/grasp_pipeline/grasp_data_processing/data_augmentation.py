@@ -103,22 +103,27 @@ def save_mesh_frame_centroid_tf(obj_full, full_save_path, obj_full_pcd, tf_list)
 
 
 if __name__ == '__main__':
+    save_rgb_data = True
     # Some "hyperparameters"
     n_pcds_per_obj = 50
-    input_grasp_data_file = '/home/vm/multi_grasp_data/grasp_data_all.h5'
-    gazebo_objects_path = '/home/vm/gazebo-objects/objects_gazebo/')
+    input_grasp_data_file = '/data/hdd1/qf/hithand_data/ffhnet-data-for-task-label/grasp_data_all.h5'
+    gazebo_objects_path = '/data/hdd1/qf/gazebo-objects/objects_gazebo/'
     # Get all available objects and choose one
     with h5py.File(input_grasp_data_file, 'r') as hdf:
         objects = hdf.keys()
 
     # Make the base directory
-    dest_folder = '/home/vm/multi_grasp_data/'
+    dest_folder = '/data/hdd1/qf/hithand_data/ffhnet-data-for-task-label/'
     pcds_folder = os.path.join(dest_folder, 'point_clouds')
     pcd_tfs_path = os.path.join(dest_folder, 'pcd_transforms.h5')
     mkdir(pcds_folder)
 
     # Instantiate grasp client
-    grasp_client = GraspClient(is_rec_sess=False)
+    # grasp_client = GraspClient(is_rec_sess=False)
+    if save_rgb_data:
+        data_recording_path = '/data/hdd1/qf/hithand_data/ffhnet-data-for-task-label'
+    grasp_client = GraspClient(is_rec_sess=True, grasp_data_recording_path=data_recording_path)
+
     metadata_handler = MetadataHandler(gazebo_objects_path)
 
     # Iterate over all objects
@@ -141,6 +146,10 @@ if __name__ == '__main__':
             num_str = str(i).zfill(3)
             obj_full_pcd = obj_full + '_pcd' + num_str
             pcd_save_path = os.path.join(object_folder, obj_full_pcd + '.pcd')
+
+            if save_rgb_data:
+                # add here to save rgb depth
+                grasp_client.create_dirs_new_grasp_trial(is_new_pose_or_object=True)
 
             # Spawn object in random position and orientation. NOTE: currently this will only spawn the objects upright with random z orientation
             grasp_client.spawn_object(pose_type='random')
