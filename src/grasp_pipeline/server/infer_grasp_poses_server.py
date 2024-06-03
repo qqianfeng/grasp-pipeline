@@ -61,10 +61,16 @@ class GraspInference():
 
     def build_joint_conf_list(self, joint_conf):
         joint_confs = []
+        offset = 0.2
+        joint_offset = [0,offset,offset,0,offset,offset,0,offset,offset,0,offset,offset,0,offset,offset]
         for i in range(joint_conf.shape[0]):
             jc = JointState()
-            jc.position = joint_conf[i, :]
+            joint_conf_i = joint_conf[i, :]
+            # if we add offset
+            joint_conf_i += np.asarray(joint_offset)
+            jc.position = joint_conf_i
             joint_confs.append(jc)
+
         return joint_confs
 
     def handle_infer_grasp_poses(self, req):
