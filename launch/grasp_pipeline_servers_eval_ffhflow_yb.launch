@@ -21,9 +21,14 @@
 
     <!-- <param name="ffhflow_path"             value="/home/yb/workspace/FFHFlow_new_package" type="string"/> -->
     <param name="ffhflow_path"             value="/home/yb/workspace/FFHFlow-dpf" type="string"/>
+    <!-- <param name="model_cfg"             value="/home/yb/workspace/FFHFlow-dpf/checkpoints/normflow_best_parm_no_pe/hparams.yaml" type="string"/>
+    <param name="ckpt_path"             value="/home/yb/workspace/FFHFlow-dpf/checkpoints/normflow_best_parm_no_pe/epoch=15-step=189999.ckpt" type="string"/> -->
 
-    <param name="model_cfg"             value="/data/hdd1/qf/ffhflow_model_history/flow_lvm/flow_lvm_lr1e-5_2/hparams.yaml" type="string"/>
-    <param name="ckpt_path"             value="/data/hdd1/qf/ffhflow_model_history/flow_lvm/flow_lvm_lr1e-5_2/epoch=16-step=199999.ckpt" type="string"/>
+    <param name="model_cfg"             value="/data/hdd1/qf/ffhflow_model_history/flow_lvm/flow_lvm_light_lr1e-4/hparams.yaml" type="string"/>
+    <param name="ckpt_path"             value="/data/hdd1/qf/ffhflow_model_history/flow_lvm/flow_lvm_light_lr1e-4/epoch=16-step=199999.ckpt" type="string"/>
+
+    <!-- <param name="model_cfg"             value="/data/hdd1/qf/ffhflow_model_history/flow_lvm/flow_lvm_lr1e-5_2/hparams.yaml" type="string"/>
+    <param name="ckpt_path"             value="/data/hdd1/qf/ffhflow_model_history/flow_lvm/flow_lvm_lr1e-5_2/epoch=16-step=199999.ckpt" type="string"/> -->
 
     <param name="hithand_ws_path"         value="/home/yb/Projects/hithand_ws" type="string"/>
     <param name="data_recording_path"     value="/data/hdd1/qf/sim_exp_ffhflow" type="string"/>

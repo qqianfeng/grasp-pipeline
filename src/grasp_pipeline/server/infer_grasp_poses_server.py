@@ -61,7 +61,7 @@ class GraspInference():
 
     def build_joint_conf_list(self, joint_conf):
         joint_confs = []
-        offset = 0.2
+        offset = 0.05
         joint_offset = [0,offset,offset,0,offset,offset,0,offset,offset,0,offset,offset,0,offset,offset]
         for i in range(joint_conf.shape[0]):
             jc = JointState()

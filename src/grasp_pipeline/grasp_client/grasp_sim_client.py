@@ -258,7 +258,7 @@ class GraspClient():
         self.spawn_object_x_min, self.spawn_object_x_max = 0.45, 0.65
         self.spawn_object_y_min, self.spawn_object_y_max = -0.2, 0.2
 
-    def generate_random_object_pose_for_experiment(self):
+    def generate_random_object_pose_for_experiment(self,return_pose=False):
         """Generates a random x,y position and z orientation within object_spawn boundaries for grasping experiments.
         """
         rand_x = np.random.uniform(self.spawn_object_x_min, self.spawn_object_x_max)
@@ -271,6 +271,8 @@ class GraspClient():
         rospy.logdebug('Generated random object pose:')
         rospy.logdebug(object_pose)
         object_pose_stamped = get_pose_stamped_from_array(object_pose)
+        if return_pose:
+            return object_pose_stamped
         self.object_metadata["mesh_frame_pose"] = object_pose_stamped
 
     def choose_random_grasp_preshape(self):
@@ -1597,6 +1599,28 @@ class GraspClient():
         # Update the true mesh pose
         self.update_object_mesh_frame_pose_client()
 
+    def spawn_a_random_new_object(self):
+
+        self.generate_random_object_pose_for_experiment()
+
+        # Update gazebo object, delete old object and spawn new one
+        self.update_gazebo_object_client()
+
+        # Now wait for 2 seconds for object to rest and update actual object position
+        if self.is_rec_sess:
+            rospy.sleep(3)
+        object_pose = self.get_grasp_object_pose_client()
+
+        # Update the sim_pose with the actual pose of the object after it came to rest
+        self.object_metadata["mesh_frame_pose"] = PoseStamped(
+            header=Header(frame_id='world'), pose=object_pose)
+
+        # Update moveit scene object
+        if not self.is_eval_sess:
+            self.update_moveit_scene_client()
+
+        # Update the true mesh pose
+        self.update_object_mesh_frame_pose_client()
     #####################################################
     ## below are codes for multiple objects generation ##
     #####################################################
