@@ -94,6 +94,10 @@ if __name__ == '__main__':
     # Create grasp client and metadata handler
     grasp_client = GraspClientCollData(is_rec_sess=True, grasp_data_recording_path=data_recording_path)
     metadata_handler = MetadataHandler(gazebo_objects_path=gazebo_objects_path)
+
+    # clean up
+    grasp_client.clean_moveit_scene_client()
+
     ############################################
 
     # This loop runs for all objects, 4 poses, and evaluates N grasps per pose
@@ -120,7 +124,7 @@ if __name__ == '__main__':
             grasp_client.set_path_and_save_visual_data(grasp_phase="single")
             # First take a shot of the scene and store RGB, depth and point cloud to disk
             # Then segment the object point cloud from the rest of the scene
-            grasp_client.segment_object_client(down_sample_pcd=False,need_to_transfer_pcd_to_world_frame=False)
+            grasp_client.segment_object_client(down_sample_pcd=True,need_to_transfer_pcd_to_world_frame=True)
 
             # Move saved point cloud to rgb depth folder
             segmented_obj_pcd_path = "/home/yb/object.pcd"
@@ -141,7 +145,7 @@ if __name__ == '__main__':
                 continue
 
             grasp_client.set_path_and_save_visual_data(grasp_phase="pre")
-            grasp_client.segment_object_client(down_sample_pcd=False,need_to_transfer_pcd_to_world_frame=False)
+            grasp_client.segment_object_client(down_sample_pcd=True,need_to_transfer_pcd_to_world_frame=True)
 
             multi_pcd = o3d.io.read_point_cloud(segmented_obj_pcd_path)
 
@@ -149,9 +153,9 @@ if __name__ == '__main__':
             shutil.move(segmented_obj_pcd_path, os.path.dirname(grasp_client.color_img_save_path))
             shutil.move(scene_pcd_path, os.path.dirname(grasp_client.color_img_save_path))
 
-            target_pcd, obstacle_pcd = grasp_client.find_intersection_pointcloud(single_pcd,multi_pcd)
-            o3d.io.write_point_cloud(os.path.dirname(grasp_client.color_img_save_path)+'segmented_obj.pcd',target_pcd)
-            o3d.io.write_point_cloud(os.path.dirname(grasp_client.color_img_save_path)+'obstacles.pcd',obstacle_pcd)
+            target_pcd, obstacle_pcd = grasp_client.find_overlapped_pcd(single_pcd,multi_pcd)
+            o3d.io.write_point_cloud(os.path.dirname(grasp_client.color_img_save_path)+'/segmented_obj.pcd',target_pcd)
+            o3d.io.write_point_cloud(os.path.dirname(grasp_client.color_img_save_path)+'/obstacles.pcd',obstacle_pcd)
 
             # clean up obstacles and scene
             grasp_client.remove_obstacle_objects(obstacle_objects)

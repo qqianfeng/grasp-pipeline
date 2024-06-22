@@ -339,15 +339,15 @@ class ObjectSegmenter():
         # only in the data_gen_pipeline.py, data_gen_pipeline_multi_obj and verify_collision_label.py,
         # down_sample_pcd is set to true.
         # TODO: fix this super wired flag
-        if not req.down_sample_pcd:  # if req.down_sample is false, we assume this should be stored in VAE format, therefore transform the cloud back to camera frame
-            self.object_centroid = object_pcd.get_center()
-            # if no need to transfer to world frame, pcd stay in self center frame.
-            if not req.need_to_transfer_pcd_to_world_frame:
-                object_pcd.transform(self.camera_T_world)
-                object_pcd.translate((-1) * object_pcd.get_center())
-            # else pcd stays in world frame
-            print("pcd in world frame")
-            self.custom_draw_scene(object_pcd)
+        # if not req.down_sample_pcd:  # if req.down_sample is false, we assume this should be stored in VAE format, therefore transform the cloud back to camera frame
+        self.object_centroid = object_pcd.get_center()
+        # if no need to transfer to world frame, pcd stay in self center frame.
+        if not req.need_to_transfer_pcd_to_world_frame:
+            object_pcd.transform(self.camera_T_world)
+            object_pcd.translate((-1) * object_pcd.get_center())
+        # else pcd stays in world frame
+        print("pcd in world frame")
+        self.custom_draw_scene(object_pcd)
         # ################### add noise ##################
         # mu, sigma = 0, 0.01
         # # creating a noise with the same dimension as the dataset (2,2)

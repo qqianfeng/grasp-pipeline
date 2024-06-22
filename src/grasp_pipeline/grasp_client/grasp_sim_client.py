@@ -2672,7 +2672,7 @@ def _get_world_to_camera_transformation():
     camera_T_world_buffer = camera_T_world
     return camera_T_world
 
-
+from time import time
 class GraspClientCollData(GraspClient):
     def __init__(self, is_rec_sess, grasp_data_recording_path='', is_eval_sess=False):
         super(GraspClientCollData, self).__init__(is_rec_sess, grasp_data_recording_path, is_eval_sess)
@@ -2696,7 +2696,8 @@ class GraspClientCollData(GraspClient):
         return dist_mat
 
 
-    def find_intersection_pointcloud(self,single_pcd, multi_pcd, dist_thresh=0.001,vis=False):
+    def find_overlapped_pcd(self,single_pcd, multi_pcd, dist_thresh=0.001,vis=False):
+        start = time()
         single_pcd_np = np.asarray(single_pcd.points)
         multi_pcd_np = np.asarray(multi_pcd.points)
 
@@ -2733,7 +2734,7 @@ class GraspClientCollData(GraspClient):
         if vis:
             o3d.visualization.draw_geometries([segmented_obj_pcd, multi_pcd, origin])
             o3d.visualization.draw_geometries([obstacle_obj_pcd, multi_pcd, origin])
-
+        print('find overlapped point cloud take: ', time()-start)
         return segmented_obj_pcd, obstacle_obj_pcd
 
 if __name__ == "__main__":
@@ -2746,7 +2747,7 @@ if __name__ == "__main__":
 
     single_pcd_np = np.asarray(single_pcd.points)
     multi_pcd_np = np.asarray(multi_pcd.points)
-    find_intersection_pointcloud(single_pcd,multi_pcd)
+    find_overlapped_pcd(single_pcd,multi_pcd)
 
 
 
