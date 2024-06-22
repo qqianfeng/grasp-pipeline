@@ -46,7 +46,7 @@ camera_T_world_buffer = None
 world_T_camera_buffer = None
 
 
-class GraspClient():
+class GraspClient(object):
     """ This class is a wrapper around all the individual functionality involved in grasping experiments.
     """
 
@@ -2671,3 +2671,83 @@ def _get_world_to_camera_transformation():
     camera_T_world[:, 3] = [r.x, r.y, r.z, 1]
     camera_T_world_buffer = camera_T_world
     return camera_T_world
+
+
+class GraspClientCollData(GraspClient):
+    def __init__(self, is_rec_sess, grasp_data_recording_path='', is_eval_sess=False):
+        super(GraspClientCollData, self).__init__(is_rec_sess, grasp_data_recording_path, is_eval_sess)
+
+    @staticmethod
+    def euclidean_distance_points_pairwise_np(pt1, pt2):
+        """For each grasp in pt1 set, we find the L2 distance to all grasps in pt2 set.
+
+        Args:
+            pt1 (_type_): [N, 3] numpy array, predicted grasp translation
+            pts (_type_): [M, 3] numpy array, ground truth grasp translation
+
+        Returns:
+            dist_mat _type_: [N,M]
+        """
+        dist_mat = np.zeros((pt1.shape[0],pt2.shape[0]))
+        for idx in range(pt1.shape[0]):
+            deltas = pt2 - pt1[idx]
+            dist_2 = np.einsum('ij,ij->i', deltas, deltas)
+            dist_mat[idx] = dist_2
+        return dist_mat
+
+
+    def find_intersection_pointcloud(self,single_pcd, multi_pcd, dist_thresh=0.001,vis=False):
+        single_pcd_np = np.asarray(single_pcd.points)
+        multi_pcd_np = np.asarray(multi_pcd.points)
+
+        # calculate point-wise distance
+        dist_mat = self.euclidean_distance_points_pairwise_np(multi_pcd_np, single_pcd_np)
+
+        # find point paris/index with min distance
+        dist_min = np.min(dist_mat, axis=1)
+        min_index_filtered = np.array(range(multi_pcd_np.shape[0]))[dist_min < dist_thresh]
+
+        # find other points that are not paired
+        set1 = set(range(multi_pcd_np.shape[0]))
+        set2 = set(min_index_filtered)
+        unique_to_list1 = set1 - set2
+        other_index = list(unique_to_list1)
+
+        # get pcd with calculated index
+        segmented_obj_pcd_np = multi_pcd_np[min_index_filtered]
+        obstacle_obj_pcd_np = multi_pcd_np[other_index]
+
+        # numpy to open3d
+        segmented_obj_pcd = o3d.geometry.PointCloud()
+        segmented_obj_pcd.points = o3d.utility.Vector3dVector(segmented_obj_pcd_np)
+        colors_np = np.zeros_like(segmented_obj_pcd_np) # color needed for vis
+        colors_np[:,0] = 255
+        segmented_obj_pcd.colors = o3d.utility.Vector3dVector(colors_np)
+        # numpy to open3d
+        obstacle_obj_pcd = o3d.geometry.PointCloud()
+        obstacle_obj_pcd.points = o3d.utility.Vector3dVector(obstacle_obj_pcd_np)
+        colors_np = np.zeros_like(obstacle_obj_pcd_np)
+        colors_np[:,0] = 255
+        obstacle_obj_pcd.colors = o3d.utility.Vector3dVector(colors_np)
+
+        if vis:
+            o3d.visualization.draw_geometries([segmented_obj_pcd, multi_pcd, origin])
+            o3d.visualization.draw_geometries([obstacle_obj_pcd, multi_pcd, origin])
+
+        return segmented_obj_pcd, obstacle_obj_pcd
+
+if __name__ == "__main__":
+    single_pcd = o3d.io.read_point_cloud('single_grasp/object.pcd')
+    multi_pcd = o3d.io.read_point_cloud('pre_grasp/object.pcd')
+
+    origin = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1)
+    o3d.visualization.draw_geometries([single_pcd,origin])
+    o3d.visualization.draw_geometries([multi_pcd,origin])
+
+    single_pcd_np = np.asarray(single_pcd.points)
+    multi_pcd_np = np.asarray(multi_pcd.points)
+    find_intersection_pointcloud(single_pcd,multi_pcd)
+
+
+
+
