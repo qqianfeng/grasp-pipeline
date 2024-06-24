@@ -8,7 +8,6 @@ import time
 import shutil
 from grasp_pipeline.utils.metadata_handler import MetadataHandler
 from grasp_pipeline.utils import utils
-import random
 import numpy as np
 import h5py
 import shutil
@@ -34,56 +33,6 @@ for obj_full in KIT_OBJECTS_TRAIN:
     metadata = metadata_handler.get_object_metadata(dset, obj_name)
     all_grasp_objects.append(metadata)
 
-def find_random_obstacles(grasp_object, amount=3):
-
-    objects = []
-    object_names = set()
-    num_total = len(all_grasp_objects)
-
-    for _ in range(amount):
-        obj = random.choice(all_grasp_objects)
-        while obj['name'] == grasp_object['name'] or obj['name'] in object_names:
-            obj = random.choice(all_grasp_objects)
-        object_names.add(obj['name'])
-        print(obj['name'])
-        rospy.loginfo("obstacle object: %s"% obj['name'])
-        objects.append(obj)
-    return objects
-
-def distribute_obstacle_objects_randomly(grasp_object_pose,
-                                         obstacle_objects,
-                                         min_center_to_center_distance=0.10):
-    """Assign random location to each obstacle objects. Location is defined within a certain space.
-
-    Args:
-        grasp_object_pose (_type_):
-        obstacle_objects (list): a list of obstacle objects
-        min_center_to_center_distance (float, optional): distance between object center. Describe the clutterness of the scene. Defaults to 0.1.
-
-    Returns:
-        objects (list): a list of chosen obstacle objects
-    """
-    existing_object_positions = [np.array(grasp_object_pose)[:3]]
-    for idx, obj in enumerate(obstacle_objects):
-        obstacle_objects[idx] = grasp_client.set_to_random_pose(obj)
-        position = np.array([
-            obstacle_objects[idx]['mesh_frame_pose'].pose.position.x,
-            obstacle_objects[idx]['mesh_frame_pose'].pose.position.y,
-            obstacle_objects[idx]['mesh_frame_pose'].pose.position.z
-        ])
-        while not all([
-                np.linalg.norm(position[:2] - existing_position[:2]) >
-                min_center_to_center_distance for existing_position in existing_object_positions
-        ]):
-            obstacle_objects[idx] = grasp_client.set_to_random_pose(obj)
-            position = np.array([
-                obstacle_objects[idx]['mesh_frame_pose'].pose.position.x,
-                obstacle_objects[idx]['mesh_frame_pose'].pose.position.y,
-                obstacle_objects[idx]['mesh_frame_pose'].pose.position.z
-            ])
-        existing_object_positions.append(position)
-    return obstacle_objects
-
 if __name__ == '__main__':
     ####################  Init #################
     # Some relevant variables
@@ -97,7 +46,7 @@ if __name__ == '__main__':
 
     # clean up
     grasp_client.clean_moveit_scene_client()
-
+    grasp_client.delete_collision_h5_file()
     ############################################
 
     # This loop runs for all objects, 4 poses, and evaluates N grasps per pose
@@ -109,6 +58,9 @@ if __name__ == '__main__':
 
         # assign to self variables
         grasp_client.update_object_metadata(object_metadata)
+
+        # create object in collision ids h5 file
+        grasp_client.create_object_group_in_h5_file(object_metadata)
 
         # # while loop to generate heaps_per_item of heaps for each item.
         j = 0
@@ -135,8 +87,8 @@ if __name__ == '__main__':
             shutil.move(scene_pcd_path, os.path.dirname(grasp_client.color_img_save_path))
 
             # Spawn obstacles
-            obstacle_objects = find_random_obstacles(object_metadata)
-            distribute_obstacle_objects_randomly(target_poses, obstacle_objects, min_center_to_center_distance=0.1)
+            obstacle_objects = grasp_client.find_random_obstacles(all_grasp_objects, object_metadata)
+            grasp_client.distribute_obstacle_objects_randomly(target_poses, obstacle_objects, min_center_to_center_distance=0.1)
             try:
                 grasp_client.spawn_obstacle_objects(obstacle_objects)
             except Exception as e:
@@ -153,9 +105,26 @@ if __name__ == '__main__':
             shutil.move(segmented_obj_pcd_path, os.path.dirname(grasp_client.color_img_save_path))
             shutil.move(scene_pcd_path, os.path.dirname(grasp_client.color_img_save_path))
 
-            target_pcd, obstacle_pcd = grasp_client.find_overlapped_pcd(single_pcd,multi_pcd)
-            o3d.io.write_point_cloud(os.path.dirname(grasp_client.color_img_save_path)+'/segmented_obj.pcd',target_pcd)
-            o3d.io.write_point_cloud(os.path.dirname(grasp_client.color_img_save_path)+'/obstacles.pcd',obstacle_pcd)
+            target_pcd, obstacle_pcd, obj_occluded = grasp_client.find_overlapped_pcd(single_pcd,multi_pcd)
+            # filter the case when target too much occluded
+            if obj_occluded:
+                print('target obj is too much occluded')
+                continue
+
+            # save segmented pcd to file where rgb/depth is saved
+            grasp_client.save_segmented_pcds(target_pcd, obstacle_pcd)
+
+            # get grasps for target obj
+            grasps_world = grasp_client.find_grasp_dist(object_metadata)
+
+            # filter grasps
+            prune_idxs, no_ik_idxs, collision_idxs = grasp_client.filter_palm_goal_poses_client(palm_poses=grasps_world)
+
+            # save index to h5
+            obj_full = object_metadata['name_rec_path']
+            num_str = str(j).zfill(3)
+            obj_full_scene_name = obj_full + '_scene' + num_str
+            grasp_client.save_filtered_collision_label_per_grasp(obj_full,obj_full_scene_name,collision_idxs)
 
             # clean up obstacles and scene
             grasp_client.remove_obstacle_objects(obstacle_objects)

@@ -14,6 +14,7 @@ import datetime
 from multiprocessing import Process
 import numpy as np
 import cv2
+import h5py
 import math
 import open3d as o3d
 import os
@@ -2672,10 +2673,76 @@ def _get_world_to_camera_transformation():
     camera_T_world_buffer = camera_T_world
     return camera_T_world
 
-from time import time
+import random
+
 class GraspClientCollData(GraspClient):
+
     def __init__(self, is_rec_sess, grasp_data_recording_path='', is_eval_sess=False):
         super(GraspClientCollData, self).__init__(is_rec_sess, grasp_data_recording_path, is_eval_sess)
+        self.grasp_data = h5py.File('/data/hdd1/qf/hithand_data/ffhnet-data/grasp_data_all.h5')
+        root_path = '/data/hdd1/qf/sim_exp_ffhflow'
+        self.collision_ids_data_path = os.path.join(root_path, 'collision_ids.h5')
+
+    def find_random_obstacles(self, all_grasp_objects, grasp_object, amount=3):
+        objects = []
+        object_names = set()
+        num_total = len(all_grasp_objects)
+
+        for _ in range(amount):
+            obj = random.choice(all_grasp_objects)
+            while obj['name'] == grasp_object['name'] or obj['name'] in object_names:
+                obj = random.choice(all_grasp_objects)
+            object_names.add(obj['name'])
+            print(obj['name'])
+            rospy.loginfo("obstacle object: %s"% obj['name'])
+            objects.append(obj)
+        return objects
+
+    def distribute_obstacle_objects_randomly(self, grasp_object_pose,
+                                            obstacle_objects,
+                                            min_center_to_center_distance=0.10):
+        """Assign random location to each obstacle objects. Location is defined within a certain space.
+
+        Args:
+            grasp_object_pose (_type_):
+            obstacle_objects (list): a list of obstacle objects
+            min_center_to_center_distance (float, optional): distance between object center. Describe the clutterness of the scene. Defaults to 0.1.
+
+        Returns:
+            objects (list): a list of chosen obstacle objects
+        """
+        existing_object_positions = [np.array(grasp_object_pose)[:3]]
+        for idx, obj in enumerate(obstacle_objects):
+            obstacle_objects[idx] = self.set_to_random_pose(obj)
+            position = np.array([
+                obstacle_objects[idx]['mesh_frame_pose'].pose.position.x,
+                obstacle_objects[idx]['mesh_frame_pose'].pose.position.y,
+                obstacle_objects[idx]['mesh_frame_pose'].pose.position.z
+            ])
+            while not all([
+                    np.linalg.norm(position[:2] - existing_position[:2]) >
+                    min_center_to_center_distance for existing_position in existing_object_positions
+            ]):
+                obstacle_objects[idx] = self.set_to_random_pose(obj)
+                position = np.array([
+                    obstacle_objects[idx]['mesh_frame_pose'].pose.position.x,
+                    obstacle_objects[idx]['mesh_frame_pose'].pose.position.y,
+                    obstacle_objects[idx]['mesh_frame_pose'].pose.position.z
+                ])
+            existing_object_positions.append(position)
+        return obstacle_objects
+
+    def find_grasp_dist(self, object_metadata):
+        grasp_dist = self.grasp_data[object_metadata['name_rec_path']]['positive']
+        grasps_world = []
+        for k,v in grasp_dist.items():
+            mesh_T_grasp_pose = v['true_preshape_palm_mesh_frame']
+            mesh_T_grasp_pose_stamped = utils.get_pose_stamped_from_rot_quat_list(mesh_T_grasp_pose,frame_id='object_mesh_frame')
+            grasp_joint_conf = v['true_preshape_joint_state']
+            world_T_grasp_pose = self.transform_pose(mesh_T_grasp_pose_stamped, 'object_mesh_frame',
+                                            'world')
+            grasps_world.append(world_T_grasp_pose)
+        return grasps_world
 
     @staticmethod
     def euclidean_distance_points_pairwise_np(pt1, pt2):
@@ -2695,9 +2762,8 @@ class GraspClientCollData(GraspClient):
             dist_mat[idx] = dist_2
         return dist_mat
 
-
     def find_overlapped_pcd(self,single_pcd, multi_pcd, dist_thresh=0.001,vis=False):
-        start = time()
+        start = time.time()
         single_pcd_np = np.asarray(single_pcd.points)
         multi_pcd_np = np.asarray(multi_pcd.points)
 
@@ -2734,8 +2800,48 @@ class GraspClientCollData(GraspClient):
         if vis:
             o3d.visualization.draw_geometries([segmented_obj_pcd, multi_pcd, origin])
             o3d.visualization.draw_geometries([obstacle_obj_pcd, multi_pcd, origin])
-        print('find overlapped point cloud take: ', time()-start)
-        return segmented_obj_pcd, obstacle_obj_pcd
+        print('find overlapped point cloud take: ', time.time()-start)
+
+        # filter the case when target too much occluded
+        origin_obj_pcd = len(single_pcd.points)
+        remaining_obj_pcd = len(segmented_obj_pcd.points)
+        if remaining_obj_pcd * 1.0 / origin_obj_pcd < 0.5:
+            obj_occluded = True
+        else:
+            obj_occluded = False
+
+        return segmented_obj_pcd, obstacle_obj_pcd, obj_occluded
+
+    def save_segmented_pcds(self, target_pcd, obstacle_pcd):
+        o3d.io.write_point_cloud(os.path.dirname(self.color_img_save_path)+'/segmented_obj.pcd',target_pcd)
+        o3d.io.write_point_cloud(os.path.dirname(self.color_img_save_path)+'/obstacles.pcd',obstacle_pcd)
+
+    ##### Handles the h5 files #######
+    def create_object_group_in_h5_file(self, object_metadata):
+        full_obj_name = object_metadata['name_rec_path']
+        with h5py.File(self.collision_ids_data_path, 'a') as hdf:
+            if full_obj_name not in hdf.keys():
+                hdf.create_group(full_obj_name)
+            else:
+                print("Name %s already existed in file." % full_obj_name)
+
+    def save_filtered_collision_label_per_grasp(self, obj_full, obj_full_pcd, collision_ids):
+
+        with h5py.File(self.collision_ids_data_path, 'r+') as hdf:
+            hdf[obj_full].create_dataset(obj_full_pcd + '_collision_ids', data=collision_ids)
+
+    def delete_collision_h5_file(self):
+        file_path = self.collision_ids_data_path
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+                print("File deleted successfully:", file_path)
+            except PermissionError:
+                print("Permission denied:", file_path)
+            except Exception as e:
+                print("Error deleting file:", file_path, e)
+        else:
+            print("File not found: ", file_path)
 
 if __name__ == "__main__":
     single_pcd = o3d.io.read_point_cloud('single_grasp/object.pcd')
