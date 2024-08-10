@@ -14,7 +14,8 @@ import transforms3d
 import pickle
 
 # Add FFHNet to the path
-sys.path.append(rospy.get_param('ffhflow_path'))
+# sys.path.append(rospy.get_param('ffhflow_path'))
+sys.path.append('/home/yb/workspace/FFHFlow-dpf')
 sys.path.append('/home/yb/workspace/normalizing-flows')
 
 use_ffhflow_lvm = True

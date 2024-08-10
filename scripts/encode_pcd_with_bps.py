@@ -10,9 +10,10 @@ import open3d as o3d
 import torch
 import os
 
-
+bps_path = '/data/hdd1/qf/hithand_data/models/basis_point_set.npy'
+# bps_path = '/data/hdd1/qf/hithand_data/ffhnet-data/basis_point_set.npy'
 class BPSEncoder():
-    def __init__(self, client, bps_path=os.path.join(rospy.get_param('ffhnet_path'), 'models/basis_point_set.npy')):
+    def __init__(self, client, bps_path=bps_path):
         self.client = client
         service = rlp.Service(client, '/encode_pcd_with_bps', 'std_srvs/SetBool')
         service.advertise(self.handle_encode_pcd_with_bps)
