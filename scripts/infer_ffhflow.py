@@ -18,14 +18,18 @@ import pickle
 sys.path.append('/home/yb/workspace/FFHFlow-dpf')
 sys.path.append('/home/yb/workspace/normalizing-flows')
 
-use_ffhflow_lvm = True
+use_ffhflow_lvm = False
 
 from ffhflow.configs import get_config
 # TODO: Change the import package
 # from ffhflow.ffhflow_pos_enc_with_transl import FFHFlowPosEncWithTransl
-from ffhflow.normflows_ffhflow_pos_enc_with_transl import NormflowsFFHFlowPosEncWithTransl
+from ffhflow.ffhflow_cnf import FFHFlowCNF
 if use_ffhflow_lvm:
-    from ffhflow.normflows_ffhflow_pos_enc_with_transl import NormflowsFFHFlowPosEncWithTransl_LVM
+    from ffhflow.ffhflow_lvm import FFHFlowLVM
+
+# from ffhflow.normflows_ffhflow_pos_enc_with_transl import NormflowsFFHFlowPosEncWithTransl
+# if use_ffhflow_lvm:
+#     from ffhflow.normflows_ffhflow_pos_enc_with_transl import NormflowsFFHFlowPosEncWithTransl_LVM
 
 from geometry_msgs.msg import PoseStamped
 from grasp_pipeline.srv import *
@@ -46,9 +50,9 @@ class InferFFHFlow():
         cfg = get_config(model_cfg)
         # TODO: Use the correct imported module
         if use_ffhflow_lvm:
-            self.model = NormflowsFFHFlowPosEncWithTransl_LVM.load_from_checkpoint(ckpt_path, cfg=cfg)
+            self.model = FFHFlowLVM.load_from_checkpoint(ckpt_path, cfg=cfg)
         else:
-            self.model = NormflowsFFHFlowPosEncWithTransl.load_from_checkpoint(ckpt_path, cfg=cfg)
+            self.model = FFHFlowCNF.load_from_checkpoint(ckpt_path, cfg=cfg)
         self.model.eval()
 
     def check_quat_validity(self, quat):
@@ -90,7 +94,9 @@ class InferFFHFlow():
         for i in range(joint_conf.shape[0]):
             jc = JointState()
             jc.position = joint_conf[i, :]
+            # jc.position = 0.2*np.zeros(20)
             joint_confs.append(jc)
+        print(joint_confs)
         return joint_confs
 
     def build_pose_and_joint_conf_list(self, rot_matrix, transl, frame_id='object_centroid_vae', joint_conf=False):
@@ -147,7 +153,7 @@ class InferFFHFlow():
             if use_ffhflow_lvm:
                 grasps = self.model.sample_in_experiment(bps_tensor, num_samples=n_samples)
             else:
-                grasps = self.model.sample(bps_tensor, num_samples=n_samples)
+                grasps = self.model.sample_in_experiment(bps_tensor, num_samples=n_samples)
 
             # self.model.show_grasps(pcd_path=rospy.get_param('object_pcd_path'), samples=grasps, i=-1)
             grasps = self.model.sort_and_filter_grasps(grasps, perc=0.99,return_arr=True)

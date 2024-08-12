@@ -18,7 +18,7 @@
     <param name="ffhnet_path"             value="/home/yb/Projects/hithand_ws/src/FFHNet-dev" type="string"/>
     <param name="config_path"             value="/home/yb/Projects/hithand_ws/src/FFHNet-dev/FFHNet/config/config_ffhnet_yb.yaml" type="string"/>
     <param name="ffhnet_model_path"             value="/data/hdd1/qf/hithand_data/" type="string"/>
-    <param name="use_new_config"           value="true"                      type="bool"   />
+    <param name="use_new_config"           value="false"                      type="bool"   />
 
     <param name="hithand_ws_path"         value="/home/yb/Projects/hithand_ws" type="string"/>
     <param name="data_recording_path"     value="/data/hdd1/qf/sim_exp_ffhflow" type="string"/>

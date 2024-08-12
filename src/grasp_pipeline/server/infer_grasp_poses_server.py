@@ -6,14 +6,22 @@ import tf.transformations as tft
 import os
 import sys
 
-# Add FFHNet to the path
-sys.path.append(rospy.get_param('ffhnet_path'))
+use_gan = False
 
-from FFHNet.models.ffhnet import FFHNet
 use_new_config = rospy.get_param('use_new_config')
 if use_new_config:
+    # Add FFHNet to the path
+    sys.path.append(rospy.get_param('ffhnet_path'))
+    from FFHNet.models.ffhnet import FFHNet
+    from FFHNet.config.config import Config
+elif use_gan:
+    sys.path.append('/home/yb/workspace/Multifinger-Net-dev')
+    from FFHNet.models.ffhnet import FFHNet
     from FFHNet.config.config import Config
 else:
+    # Add FFHNet to the path
+    sys.path.append(rospy.get_param('ffhnet_path'))
+    from FFHNet.models.ffhnet import FFHNet
     from FFHNet.config.eval_config import EvalConfig
 
 from FFHNet.utils import visualization
@@ -31,6 +39,11 @@ class GraspInference():
             config_path = '/data/hdd1/qf/ffhflow_model_history/ffhnet-prior-vae/config.yaml'
             config = Config(config_path)
             cfg = config.parse()
+        elif use_gan:
+            config_path = '/home/yb/workspace/Multifinger-Net-dev/models/ffhgenerator/hparams.yaml'
+            config = Config(config_path)
+            cfg = config.parse()
+
         else:
             cfg = EvalConfig().parse()
         self.load_path = rospy.get_param('ffhnet_model_path')
@@ -38,6 +51,9 @@ class GraspInference():
         if use_new_config:
             self.FFHNet.load_ffhgenerator(epoch=10,
                         load_path='/data/hdd1/qf/ffhflow_model_history/ffhnet-prior-vae')
+        elif use_gan:
+            self.FFHNet.load_ffhgenerator(epoch=10,
+                        load_path='/home/yb/workspace/Multifinger-Net-dev/models/ffhgenerator/')
         else:
             self.FFHNet.load_ffhgenerator(epoch=10,
                                         load_path=os.path.join(self.load_path,'models/ffhgenerator'))
@@ -78,6 +94,13 @@ class GraspInference():
         joint_confs = []
         for i in range(joint_conf.shape[0]):
             jc = JointState()
+            # jc.position = np.array([
+            #     0,0.2,0.2,
+            #     0,0.2,0.2,
+            #     0,0.2,0.2,
+            #     0,0.2,0.2,
+            #     0,0.2,0.2,
+            # ])
             jc.position = joint_conf[i, :]
             joint_confs.append(jc)
         return joint_confs
@@ -88,6 +111,7 @@ class GraspInference():
         n_samples = req.n_poses
         results = self.FFHNet.generate_grasps(
             bps_object, n_samples=n_samples, return_arr=True)
+
 
         if self.VISUALIZE:
             visualization.show_generated_grasp_distribution(
