@@ -2274,6 +2274,20 @@ class GraspClient():
 
         return execution_success
 
+    def has_ik_solutions(self, pose_obj_frame):
+        palm_pose_world = self.transform_pose(pose_obj_frame, 'object_centroid_vae', 'world')
+        print('palm_pose_world',palm_pose_world)
+
+        self.palm_poses['desired_pre'] = palm_pose_world
+        self.hand_joint_states['desired_pre'] = joint_conf
+
+        # Update the palm pose for visualization in RVIZ
+        self.update_grasp_palm_pose_client(palm_pose_world)
+        plan_exists = self.plan_arm_trajectory_client(palm_pose_world)
+        if not plan_exists:
+            plan_exists = self.plan_arm_trajectory_client(palm_pose_world)
+        return plan_exists
+
     def grasp_from_inferred_pose(self, pose_obj_frame, joint_conf,camera_projection=False):
         """ Used in FFHNet evaluataion. Try to reach the pose and joint conf and attempt grasp given grasps from FFHNet.
 

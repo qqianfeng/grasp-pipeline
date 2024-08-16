@@ -19,6 +19,7 @@ sys.path.append('/home/yb/workspace/FFHFlow-dpf')
 sys.path.append('/home/yb/workspace/normalizing-flows')
 
 use_ffhflow_lvm = False
+add_joint_conf = False
 
 from ffhflow.configs import get_config
 # TODO: Change the import package
@@ -91,9 +92,15 @@ class InferFFHFlow():
 
     def build_joint_conf_list(self, joint_conf=False):
         joint_confs = []
+        offset = 0.1
+        joint_offset = [0,offset,offset,0,offset,offset,0,offset,offset,0,offset,offset,0,offset,offset]
+
         for i in range(joint_conf.shape[0]):
             jc = JointState()
             jc.position = joint_conf[i, :]
+            if add_joint_conf:
+                jc.position += np.asarray(joint_offset)
+
             # jc.position = 0.2*np.zeros(20)
             joint_confs.append(jc)
         print(joint_confs)

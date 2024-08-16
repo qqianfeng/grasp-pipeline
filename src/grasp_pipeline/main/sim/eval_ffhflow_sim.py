@@ -80,8 +80,13 @@ with open('grasp_result.csv', 'wb') as file:
                     try:
                         # TODO:
                         joint_confs_with_offset = joint_confs[idx] # + ......
+                        # execute grasp
                         grasp_executed, grasp_label = grasp_client.grasp_from_inferred_pose(palm_poses_obj_frame[idx],
                                                                         joint_confs_with_offset)
+                        # calculate ik plans
+                        # palm_pose_world = grasp_client.transform_pose(palm_poses_obj_frame[idx], 'object_centroid_vae', 'world')
+                        # _, no_ik_idx, _ = grasp_client.filter_palm_goal_poses_client(palm_poses=palm_pose_world)
+
                     except IndexError:
                         print('palm_poses_obj_frame:', len(palm_poses_obj_frame))
                         print('joint_confs:', len(joint_confs))

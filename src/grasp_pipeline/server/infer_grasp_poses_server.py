@@ -7,6 +7,11 @@ import os
 import sys
 
 use_gan = False
+# TODO: gan evaluator is somewhere wrong.
+if use_gan:
+    sys.path.insert(0,'/home/yb/workspace/Multifinger-Net-dev')
+    from FFHNet.models.ffhgan import FFHGANet
+    from FFHNet.config.config import Config
 
 use_new_config = rospy.get_param('use_new_config')
 if use_new_config:
@@ -14,13 +19,9 @@ if use_new_config:
     sys.path.append(rospy.get_param('ffhnet_path'))
     from FFHNet.models.ffhnet import FFHNet
     from FFHNet.config.config import Config
-elif use_gan:
-    sys.path.append('/home/yb/workspace/Multifinger-Net-dev')
-    from FFHNet.models.ffhnet import FFHNet
-    from FFHNet.config.config import Config
 else:
     # Add FFHNet to the path
-    sys.path.append(rospy.get_param('ffhnet_path'))
+    sys.path.insert(0,rospy.get_param('ffhnet_path'))
     from FFHNet.models.ffhnet import FFHNet
     from FFHNet.config.eval_config import EvalConfig
 
@@ -47,14 +48,15 @@ class GraspInference():
         else:
             cfg = EvalConfig().parse()
         self.load_path = rospy.get_param('ffhnet_model_path')
-        self.FFHNet = FFHNet(cfg)
         if use_new_config:
             self.FFHNet.load_ffhgenerator(epoch=10,
                         load_path='/data/hdd1/qf/ffhflow_model_history/ffhnet-prior-vae')
         elif use_gan:
-            self.FFHNet.load_ffhgenerator(epoch=10,
+            self.FFHGAN = FFHGANet(cfg)
+            self.FFHGAN.load_ffhgenerator(epoch=25,
                         load_path='/home/yb/workspace/Multifinger-Net-dev/models/ffhgenerator/')
         else:
+            self.FFHNet = FFHNet(cfg)
             self.FFHNet.load_ffhgenerator(epoch=10,
                                         load_path=os.path.join(self.load_path,'models/ffhgenerator'))
 
@@ -91,17 +93,21 @@ class GraspInference():
         return poses
 
     def build_joint_conf_list(self, joint_conf):
+        add_offset = False
+        fix_joint = False
         joint_confs = []
+        offset = 0.2
+        joint_offset = [0,offset,offset,0,offset,offset,0,offset,offset,0,offset,offset,0,offset,offset]
+
         for i in range(joint_conf.shape[0]):
             jc = JointState()
-            # jc.position = np.array([
-            #     0,0.2,0.2,
-            #     0,0.2,0.2,
-            #     0,0.2,0.2,
-            #     0,0.2,0.2,
-            #     0,0.2,0.2,
-            # ])
-            jc.position = joint_conf[i, :]
+            joint_conf_i = joint_conf[i, :]
+            if add_offset:
+                joint_conf_i += np.asarray(joint_offset)
+            elif fix_joint:
+                joint_conf_i = np.asarray(joint_offset)
+
+            jc.position = joint_conf_i
             joint_confs.append(jc)
         return joint_confs
 
