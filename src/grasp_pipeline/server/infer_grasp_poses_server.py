@@ -131,7 +131,7 @@ class GraspInference():
 
         return res
 
-    def to_grasp_dict(self, palm_poses, joint_confs):
+    def to_grasp_dict(self, palm_poses, joint_confs, probs=False):
         """Take the palm_poses and joint_confs in ros-format and convert them to a dict with two 3D arrays in order to
         use as input for FFHEvaluator
 
@@ -147,9 +147,9 @@ class GraspInference():
         joint_arr = np.zeros((batch_n, 15))
         rot_matrix_arr = np.zeros((batch_n, 3, 3))
         transl_arr = np.zeros((batch_n, 3))
-
+        prob_arr = np.zeros((batch_n, 1))
         # convert
-        for i, (palm_pose, joint_conf) in enumerate(zip(palm_poses, joint_confs)):
+        for i, (palm_pose, joint_conf, prob) in enumerate(zip(palm_poses, joint_confs, probs)):
             q = palm_pose.pose.orientation
             t = palm_pose.pose.position
 
@@ -157,20 +157,29 @@ class GraspInference():
                 [q.x, q.y, q.z, q.w])[:3, :3]
             transl_arr[i, :] = [t.x, t.y, t.z]
             joint_arr[i, :] = np.array(joint_conf.position)
+            prob_arr[i] = prob
 
         # Build grasp dict
         grasp_dict = {}
         grasp_dict['rot_matrix'] = rot_matrix_arr
         grasp_dict['transl'] = transl_arr
         grasp_dict['joint_conf'] = joint_arr
-
+        grasp_dict['log_prob'] = prob_arr
         return grasp_dict
 
     def handle_evaluate_and_filter_grasp_poses(self, req):
         bps_object = np.load(rospy.get_param('object_pcd_enc_path'))
-        grasp_dict = self.to_grasp_dict(req.palm_poses, req.joint_confs)
-        results = self.FFHNet.filter_grasps(
-            bps_object, grasp_dict, thresh=req.thresh)
+        grasp_dict = self.to_grasp_dict(req.palm_poses, req.joint_confs, req.probs)
+        filter_with_prob = True
+        print('evaluator: filter_with_prob:',filter_with_prob)
+        try:
+            results = self.FFHNet.filter_grasps(
+                bps_object, grasp_dict, thresh=req.thresh, filter_with_prob=filter_with_prob)
+        except Exception:
+            print('here!!!!!!!!!!!!!!!!')
+            print(grasp_dict)
+            print(req.thresh)
+            results = grasp_dict
 
         n_grasps_filt = results['rot_matrix'].shape[0]
 

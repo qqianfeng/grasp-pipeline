@@ -372,6 +372,13 @@ OBJECTS_FOR_EVAL = [
     'kit_TomatoSoup',
     'kit_YellowSaltCube2'
 ]
+OBJECTS_FOR_EVAL_UNCERTAINTY = [
+    'ycb_025_mug',
+    'ycb_035_power_drill',
+    'kit_PowerCup',
+    'bigbird_detergent',
+    'bigbird_softsoap_gold'
+]
 # OBJECTS_FOR_EVAL = ["ycb_006_mustard_bottle"]
 
 OBJECTS_DATA_GEN_PAPER_VIDEO = [

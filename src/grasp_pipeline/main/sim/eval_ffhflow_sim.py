@@ -9,8 +9,8 @@ import csv
 
 from grasp_pipeline.grasp_client.grasp_sim_client import GraspClient
 from grasp_pipeline.utils.metadata_handler import MetadataHandler
+# from grasp_pipeline.utils.object_names_in_datasets import OBJECTS_FOR_EVAL as obj_list
 from grasp_pipeline.utils.object_names_in_datasets import OBJECTS_FOR_EVAL as obj_list
-# from grasp_pipeline.utils.object_names_in_datasets import OBJECTS_DATA_GEN_PAPER_VIDEO as obj_list
 
 # from eigengrasps_hithand import *
 
@@ -59,10 +59,10 @@ with open('grasp_result.csv', 'wb') as file:
                 grasp_client.encode_pcd_with_bps()
 
                 # Sample N latent variables and get the poses
-                palm_poses_obj_frame, joint_confs = grasp_client.infer_flow_grasp_poses(visualize_poses=True)
+                palm_poses_obj_frame, joint_confs, probs = grasp_client.infer_flow_grasp_poses(visualize_poses=True)
                 # Evaluate the generated poses according to the FFHEvaluator
                 palm_poses_obj_frame, joint_confs = grasp_client.evaluate_and_remove_grasps(
-                    palm_poses_obj_frame, joint_confs, thresh=FILTER_THRESH, visualize_poses=True)
+                    palm_poses_obj_frame, joint_confs, probs, thresh=FILTER_THRESH, visualize_poses=True)
 
                 palm_poses_obj_frame = palm_poses_obj_frame[:FILTER_NUM_GRASPS]
                 joint_confs = joint_confs[:FILTER_NUM_GRASPS]

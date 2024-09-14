@@ -404,7 +404,7 @@ class GraspClient():
             rospy.logerr('Service encode_pcd_with_bps call failed: %s' % e)
         rospy.logdebug('Service encode_pcd_with_bps is executed.')
 
-    def evaluate_and_filter_grasp_poses_client(self, palm_poses, joint_confs, thresh):
+    def evaluate_and_filter_grasp_poses_client(self, palm_poses, joint_confs, probs, thresh):
         """Filter out all the grasp poses for which the FFHEvaluator predicts a success probability of less than thresh
 
         Args:
@@ -420,6 +420,7 @@ class GraspClient():
             req.thresh = thresh
             req.palm_poses = palm_poses
             req.joint_confs = joint_confs
+            req.probs = probs
             res = evaluate_and_filter_grasp_poses(req)
         except rospy.ServiceException, e:
             rospy.logerr('Service evaluate_and_filter_grasp_poses call failed: %s' % e)
@@ -1490,10 +1491,10 @@ class GraspClient():
     def encode_pcd_with_bps(self):
         self.encode_pcd_with_bps_client()
 
-    def evaluate_and_remove_grasps(self, palm_poses, joint_confs, thresh, visualize_poses=True):
+    def evaluate_and_remove_grasps(self, palm_poses, joint_confs, probs, thresh, visualize_poses=True):
         n_before = len(joint_confs)
         palm_poses_f, joint_confs_f = self.evaluate_and_filter_grasp_poses_client(
-            palm_poses, joint_confs, thresh)
+            palm_poses, joint_confs, probs, thresh)
         # if visualize_poses:
         #     self.visualize_grasp_pose_list_client(palm_poses_f)
         n_after = len(joint_confs_f)
@@ -1516,10 +1517,10 @@ class GraspClient():
         self.infer_flow_grasp_poses_client()
         # TODO why this visualization is not working
         with open(rospy.get_param('grasp_save_path'), 'rb') as fp:
-            palm_poses, joint_confs = pickle.load(fp)
+            palm_poses, joint_confs, probs = pickle.load(fp)
         # if visualize_poses:
         #     self.visualize_grasp_pose_list_client(palm_poses)
-        return palm_poses, joint_confs
+        return palm_poses, joint_confs, probs
 
     def label_grasp(self):
         object_pose = self.get_grasp_object_pose_client()

@@ -18,8 +18,8 @@ import pickle
 sys.path.append('/home/yb/workspace/FFHFlow-dpf')
 sys.path.append('/home/yb/workspace/normalizing-flows')
 
-use_ffhflow_lvm = False
-add_joint_conf = False
+use_ffhflow_lvm = True
+add_joint_conf = True
 
 from ffhflow.configs import get_config
 # TODO: Change the import package
@@ -92,7 +92,7 @@ class InferFFHFlow():
 
     def build_joint_conf_list(self, joint_conf=False):
         joint_confs = []
-        offset = 0.1
+        offset = 0.2
         joint_offset = [0,offset,offset,0,offset,offset,0,offset,offset,0,offset,offset,0,offset,offset]
 
         for i in range(joint_conf.shape[0]):
@@ -158,15 +158,16 @@ class InferFFHFlow():
         with torch.no_grad():
             # For normflow ffhflow-lvm model
             if use_ffhflow_lvm:
-                grasps = self.model.sample_in_experiment(bps_tensor, num_samples=n_samples)
+                grasps = self.model.sample_in_experiment(bps_tensor, num_samples=n_samples, posterior_score="neg_kl")
             else:
                 grasps = self.model.sample_in_experiment(bps_tensor, num_samples=n_samples)
-
-            # self.model.show_grasps(pcd_path=rospy.get_param('object_pcd_path'), samples=grasps, i=-1)
+            # # self.model.show_grasps(pcd_path=rospy.get_param('object_pcd_path'), samples=grasps, i=-1)
             grasps = self.model.sort_and_filter_grasps(grasps, perc=0.99,return_arr=True)
+            # print('after filter', grasps['log_prob'])
+            # if no sort_and_filter
+            # grasps = {k: v.cpu().detach().numpy() for k, v in grasps.items()}
             # i = -1 then no images will be saved in show_grasps
             # self.model.show_gt_grasps(batch['pcd_path'][0], batch, i)
-        print('after filter, we have grasps of:', len(grasps))
         palm_poses, joint_confs = self.build_pose_and_joint_conf_list(grasps['rot_matrix'], grasps['transl'],joint_conf=grasps['joint_conf'])
         print('after build_pose_and_joint_conf_list, we have palm_poses of:', len(palm_poses))
 
@@ -175,70 +176,73 @@ class InferFFHFlow():
         # joint_confs = self.build_joint_conf_list()
 
         with open(rospy.get_param('grasp_save_path'), 'wb') as fp:
-            pickle.dump([palm_poses, joint_confs], fp, protocol=2)
+            pickle.dump([palm_poses, joint_confs, grasps['log_prob']], fp, protocol=2)
 
         return True
 
-    def to_grasp_dict(self, palm_poses, joint_confs):
-        """Take the palm_poses and joint_confs in ros-format and convert them to a dict with two 3D arrays in order to
-        use as input for FFHEvaluator
+    # def to_grasp_dict(self, palm_poses, joint_confs, probs=False):
+    #     """Take the palm_poses and joint_confs in ros-format and convert them to a dict with two 3D arrays in order to
+    #     use as input for FFHEvaluator
 
-        Args:
-            palm_poses (List of PoseStamped): List of Palm poses in object frame
-            joint_confs (List of JointState): List of joint states belonging to grasp
+    #     Args:
+    #         palm_poses (List of PoseStamped): List of Palm poses in object frame
+    #         joint_confs (List of JointState): List of joint states belonging to grasp
 
-        Returns:
-            grasp_dict (dict): k1 is
-        """
-        # prepare
-        batch_n = len(palm_poses)
-        joint_arr = np.zeros((batch_n, 15))
-        rot_matrix_arr = np.zeros((batch_n, 3, 3))
-        transl_arr = np.zeros((batch_n, 3))
+    #     Returns:
+    #         grasp_dict (dict): k1 is
+    #     """
+    #     # prepare
+    #     batch_n = len(palm_poses)
+    #     joint_arr = np.zeros((batch_n, 15))
+    #     rot_matrix_arr = np.zeros((batch_n, 3, 3))
+    #     transl_arr = np.zeros((batch_n, 3))
+    #     prob_arr = np.zeros((batch_n, 1))
+    #     # convert
+    #     for i, (palm_pose, joint_conf, prob) in enumerate(zip(palm_poses, joint_confs, probs)):
+    #         q = palm_pose.pose.orientation
+    #         t = palm_pose.pose.position
 
-        # convert
-        for i, (palm_pose, joint_conf) in enumerate(zip(palm_poses, joint_confs)):
-            q = palm_pose.pose.orientation
-            t = palm_pose.pose.position
+    #         rot_matrix_arr[i, :, :] = tft.quaternion_matrix(
+    #             [q.x, q.y, q.z, q.w])[:3, :3]
+    #         transl_arr[i, :] = [t.x, t.y, t.z]
+    #         joint_arr[i, :] = np.array(joint_conf.position)
+    #         prob_arr[i] = prob
 
-            rot_matrix_arr[i, :, :] = tft.quaternion_matrix(
-                [q.x, q.y, q.z, q.w])[:3, :3]
-            transl_arr[i, :] = [t.x, t.y, t.z]
-            joint_arr[i, :] = np.array(joint_conf.position)
+    #     # Build grasp dict
+    #     grasp_dict = {}
+    #     grasp_dict['rot_matrix'] = rot_matrix_arr
+    #     grasp_dict['transl'] = transl_arr
+    #     grasp_dict['joint_conf'] = joint_arr
+    #     grasp_dict['log_prob'] = prob_arr
+    #     return grasp_dict
 
-        # Build grasp dict
-        grasp_dict = {}
-        grasp_dict['rot_matrix'] = rot_matrix_arr
-        grasp_dict['transl'] = transl_arr
-        grasp_dict['joint_conf'] = joint_arr
+    # def handle_evaluate_and_filter_grasp_poses(self, req):
+    #     bps_object = np.load(rospy.get_param('object_pcd_enc_path'))
+    #     grasp_dict = self.to_grasp_dict(req.palm_poses, req.joint_confs, req.probs)
+    #     print('before filter')
+    #     results = self.FFHNet.filter_grasps(
+    #         bps_object, grasp_dict, thresh=req.thresh, filter_grasps=True)
+    #     print('after filter')
 
-        return grasp_dict
+    #     n_grasps_filt = results['rot_matrix'].shape[0]
 
-    def handle_evaluate_and_filter_grasp_poses(self, req):
-        bps_object = np.load(rospy.get_param('object_pcd_enc_path'))
-        grasp_dict = self.to_grasp_dict(req.palm_poses, req.joint_confs)
-        results = self.FFHNet.filter_grasps(
-            bps_object, grasp_dict, thresh=req.thresh)
+    #     palm_poses = req.palm_poses
+    #     n_samples = len(palm_poses)
+    #     print("n_grasps after filtering: %d" % n_grasps_filt)
+    #     print("This means %.2f of grasps pass the filtering" %
+    #           (n_grasps_filt / n_samples))
 
-        n_grasps_filt = results['rot_matrix'].shape[0]
+    #     if self.VISUALIZE:
+    #         visualization.show_generated_grasp_distribution(
+    #             self.pcd_path, results)
 
-        palm_poses = req.palm_poses
-        n_samples = len(palm_poses)
-        print("n_grasps after filtering: %d" % n_grasps_filt)
-        print("This means %.2f of grasps pass the filtering" %
-              (n_grasps_filt / n_samples))
+    #     # prepare response
+    #     res = EvaluateAndFilterGraspPosesResponse()
+    #     res.palm_poses = self.build_pose_list(
+    #         results['rot_matrix'], results['transl'])
+    #     res.joint_confs = self.build_joint_conf_list(results['joint_conf'])
 
-        if self.VISUALIZE:
-            visualization.show_generated_grasp_distribution(
-                self.pcd_path, results)
-
-        # prepare response
-        res = EvaluateAndFilterGraspPosesResponse()
-        res.palm_poses = self.build_pose_list(
-            results['rot_matrix'], results['transl'])
-        res.joint_confs = self.build_joint_conf_list(results['joint_conf'])
-
-        return res
+    #     return res
 
     def handle_evaluate_grasp_poses(self, req):
         bps_object = np.load(rospy.get_param('object_pcd_enc_path'))
